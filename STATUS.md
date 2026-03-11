@@ -7,6 +7,7 @@
 
 ## Latest work
 - Added initial app/service skeleton and Magisk module template.
+- Added basic UI with active session list and preset list sliders.
 
 ## Last updated
 - 2026-03-11
