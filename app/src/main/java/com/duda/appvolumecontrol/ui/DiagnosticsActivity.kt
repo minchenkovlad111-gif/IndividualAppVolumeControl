@@ -220,6 +220,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     private fun copyReport() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
+        Toast.makeText(this, "Report copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun exportPresets() {
