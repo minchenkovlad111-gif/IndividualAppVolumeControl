@@ -55,6 +55,7 @@
 - Linked preset format in README.
 - Added import error handling to diagnostics.
 - Added active app count to service notification.
+- Clarified preset export metadata in docs.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
