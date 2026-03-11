@@ -28,6 +28,7 @@ class VolumeStore(context: Context) {
     fun exportJson(): String {
         val obj = JSONObject()
         obj.put("_version", 1)
+        obj.put("_exported_at", System.currentTimeMillis())
         for ((key, value) in prefs.all) {
             if (value is Float) {
                 obj.put(key, value)

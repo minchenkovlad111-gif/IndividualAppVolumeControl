@@ -121,6 +121,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val lastDumpTime = formatTime(snapshot.lastDumpTime, dateFormat)
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
         val lastImportTime = formatTime(snapshot.lastImportTime, dateFormat)
+        val lastExportTime = formatTime(snapshot.lastExportTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -156,6 +157,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Stored presets: $presetCount",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
+            "Last export count: ${snapshot.lastExportCount}",
+            "Last export time: $lastExportTime",
             "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
             "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
             "Hidden API last attempt: $hiddenApiTime",
@@ -199,6 +202,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val json = volumeStore.exportJson()
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("presets", json))
+        diagnosticsStore.recordLastExport(volumeStore.countPresets())
+        Toast.makeText(this, "Exported ${volumeStore.countPresets()} presets", Toast.LENGTH_SHORT).show()
     }
 
     private fun importPresets(replace: Boolean = false) {
@@ -224,6 +229,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, json)
         }
+        diagnosticsStore.recordLastExport(volumeStore.countPresets())
         startActivity(Intent.createChooser(sendIntent, "Share presets"))
     }
 

@@ -52,6 +52,13 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordLastExport(count: Int) {
+        prefs.edit()
+            .putInt(KEY_LAST_EXPORT_COUNT, count)
+            .putLong(KEY_LAST_EXPORT_TIME, System.currentTimeMillis())
+            .apply()
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
@@ -67,6 +74,8 @@ class DiagnosticsStore(context: Context) {
             hiddenApiTime = prefs.getLong(KEY_HIDDEN_API_TIME, 0L),
             lastImportCount = prefs.getInt(KEY_LAST_IMPORT_COUNT, 0),
             lastImportTime = prefs.getLong(KEY_LAST_IMPORT_TIME, 0L),
+            lastExportCount = prefs.getInt(KEY_LAST_EXPORT_COUNT, 0),
+            lastExportTime = prefs.getLong(KEY_LAST_EXPORT_TIME, 0L),
         )
     }
 
@@ -84,6 +93,8 @@ class DiagnosticsStore(context: Context) {
         val hiddenApiTime: Long,
         val lastImportCount: Int,
         val lastImportTime: Long,
+        val lastExportCount: Int,
+        val lastExportTime: Long,
     )
 
     companion object {
@@ -101,5 +112,7 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_HIDDEN_API_TIME = "hidden_api_time"
         private const val KEY_LAST_IMPORT_COUNT = "last_import_count"
         private const val KEY_LAST_IMPORT_TIME = "last_import_time"
+        private const val KEY_LAST_EXPORT_COUNT = "last_export_count"
+        private const val KEY_LAST_EXPORT_TIME = "last_export_time"
     }
 }
