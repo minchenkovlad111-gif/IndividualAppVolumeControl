@@ -61,6 +61,7 @@
 - Added POST_NOTIFICATIONS status to diagnostics.
 - Added target SDK to diagnostics.
 - Added package-name copy on long-press of app labels.
+- Added audio permission status to diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

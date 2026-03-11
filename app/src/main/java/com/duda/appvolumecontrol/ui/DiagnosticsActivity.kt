@@ -134,6 +134,10 @@ class DiagnosticsActivity : AppCompatActivity() {
         } else {
             true
         }
+        val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasModifyRouting = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_ROUTING) ==
+            PackageManager.PERMISSION_GRANTED
         val audioManager = getSystemService(AudioManager::class.java)
         val activeConfigs = audioManager.activePlaybackConfigurations
         val activePackages = activeConfigs
@@ -176,6 +180,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "hidden_api_policy_p_apps: ${hiddenApiPolicyP ?: "-"}",
             "WRITE_SECURE_SETTINGS granted: $hasWriteSecureSettings",
             "POST_NOTIFICATIONS granted: $hasPostNotifications",
+            "MODIFY_AUDIO_SETTINGS granted: $hasModifyAudio",
+            "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
         )
 
         lastReport = lines.joinToString("\n")
