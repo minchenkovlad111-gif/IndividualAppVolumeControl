@@ -78,6 +78,7 @@
 - Removed redundant initializers in hidden API helper.
 - Suppressed compileSdk 35 AGP warning in gradle.properties.
 - Documented compileSdk warning suppression in build notes.
+- Noted hidden permission constants in permissions doc.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

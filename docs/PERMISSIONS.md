@@ -1,6 +1,7 @@
 # Permissions
 
 ## Manifest permissions
+Note: Some privileged permissions are not exposed as public SDK constants; use their string names in code when checking grants.
 ### Privileged (privapp whitelist)
 - `android.permission.MODIFY_AUDIO_SETTINGS`: Adjust per-player volume via AudioManager/hidden APIs.
 - `android.permission.MODIFY_AUDIO_ROUTING`: Required for advanced routing and per-player control on some devices.
