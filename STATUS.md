@@ -31,6 +31,7 @@
 - Added "Max active" quick action.
 - Added validation checklist to research notes.
 - Added toast feedback for preset import.
+- Added compatibility tracking doc.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
