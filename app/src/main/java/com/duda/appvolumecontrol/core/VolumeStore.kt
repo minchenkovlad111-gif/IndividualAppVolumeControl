@@ -40,6 +40,7 @@ class VolumeStore(context: Context) {
         val editor = prefs.edit()
         var count = 0
         for (key in obj.keys()) {
+            if (key.startsWith("_")) continue
             val value = obj.optDouble(key, Double.NaN)
             if (!value.isNaN()) {
                 val normalized = min(1f, max(0f, value.toFloat()))
