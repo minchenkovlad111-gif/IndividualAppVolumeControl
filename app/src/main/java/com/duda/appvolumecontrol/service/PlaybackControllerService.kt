@@ -21,6 +21,7 @@ class PlaybackControllerService : Service() {
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val lastApplied = mutableMapOf<String, Float>()
+    private var lastNotifiedCount: Int = -1
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
@@ -32,7 +33,7 @@ class PlaybackControllerService : Service() {
     override fun onCreate() {
         super.onCreate()
         HiddenApi.tryAllowHiddenApiAccess(this)
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startForeground(NOTIFICATION_ID, buildNotification(-1))
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         safeApplyVolumes(audioManager.activePlaybackConfigurations)
     }
@@ -56,8 +57,10 @@ class PlaybackControllerService : Service() {
         diagnosticsStore.recordLastActive(configs.size)
         var appliedCount = 0
         val activeKeys = mutableSetOf<String>()
+        val activePackages = mutableSetOf<String>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            activePackages.add(packageName)
             val desiredVolume = volumeStore.getVolume(packageName) ?: 1f
             val key = "${packageName}:${config.hashCode()}"
             activeKeys.add(key)
@@ -74,6 +77,7 @@ class PlaybackControllerService : Service() {
         }
         lastApplied.keys.retainAll(activeKeys)
         diagnosticsStore.recordLastApply(appliedCount)
+        updateNotification(activePackages.size)
     }
 
     private fun safeApplyVolumes(configs: List<AudioPlaybackConfiguration>) {
@@ -97,7 +101,7 @@ class PlaybackControllerService : Service() {
         }
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(activeCount: Int): Notification {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -108,11 +112,19 @@ class PlaybackControllerService : Service() {
             channel.description = "Per-app volume control service"
             manager.createNotificationChannel(channel)
         }
+        val detail = if (activeCount >= 0) "Active apps: $activeCount" else "Managing per-app volume"
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("App Volume Control")
-            .setContentText("Managing per-app volume")
+            .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .build()
+    }
+
+    private fun updateNotification(activeCount: Int) {
+        if (activeCount == lastNotifiedCount) return
+        lastNotifiedCount = activeCount
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, buildNotification(activeCount))
     }
 
     companion object {
