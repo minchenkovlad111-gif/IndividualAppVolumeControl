@@ -77,6 +77,16 @@ class DiagnosticsActivity : AppCompatActivity() {
             setOnClickListener { importPresets() }
         }
 
+        val importReplaceButton = Button(this).apply {
+            text = "Import replace"
+            setOnClickListener { importPresets(replace = true) }
+        }
+
+        val sharePresetsButton = Button(this).apply {
+            text = "Share presets"
+            setOnClickListener { sharePresets() }
+        }
+
         contentView = TextView(this).apply {
             textSize = 14f
             setPadding(0, 16, 0, 16)
@@ -89,6 +99,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(shareButton)
         root.addView(exportButton)
         root.addView(importButton)
+        root.addView(importReplaceButton)
+        root.addView(sharePresetsButton)
         root.addView(contentView)
 
         val scroll = ScrollView(this).apply {
@@ -189,11 +201,14 @@ class DiagnosticsActivity : AppCompatActivity() {
         manager.setPrimaryClip(ClipData.newPlainText("presets", json))
     }
 
-    private fun importPresets() {
+    private fun importPresets(replace: Boolean = false) {
         val manager = getSystemService(ClipboardManager::class.java)
         val clip = manager.primaryClip ?: return
         val text = clip.getItemAt(0).coerceToText(this)?.toString() ?: return
         val count = try {
+            if (replace) {
+                volumeStore.clearAll()
+            }
             volumeStore.importJson(text)
         } catch (_: Exception) {
             0
@@ -201,6 +216,15 @@ class DiagnosticsActivity : AppCompatActivity() {
         diagnosticsStore.recordLastImport(count)
         Toast.makeText(this, "Imported $count presets", Toast.LENGTH_SHORT).show()
         refresh()
+    }
+
+    private fun sharePresets() {
+        val json = volumeStore.exportJson()
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, json)
+        }
+        startActivity(Intent.createChooser(sendIntent, "Share presets"))
     }
 
     private fun shareReport() {

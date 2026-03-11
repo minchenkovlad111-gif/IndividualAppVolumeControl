@@ -43,6 +43,7 @@
 - Ignored metadata keys during preset import.
 - Added version field to preset export.
 - Added clear filter button to presets list.
+- Added replace/share options for preset import/export.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
