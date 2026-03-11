@@ -138,6 +138,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasModifyRouting = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_ROUTING) ==
             PackageManager.PERMISSION_GRANTED
+        val hasQueryAllPackages = checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES) ==
+            PackageManager.PERMISSION_GRANTED
         val audioManager = getSystemService(AudioManager::class.java)
         val activeConfigs = audioManager.activePlaybackConfigurations
         val activePackages = activeConfigs
@@ -182,6 +184,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "POST_NOTIFICATIONS granted: $hasPostNotifications",
             "MODIFY_AUDIO_SETTINGS granted: $hasModifyAudio",
             "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
+            "QUERY_ALL_PACKAGES granted: $hasQueryAllPackages",
         )
 
         lastReport = lines.joinToString("\n")
