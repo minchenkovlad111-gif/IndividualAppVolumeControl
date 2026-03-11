@@ -80,6 +80,7 @@
 - Documented compileSdk warning suppression in build notes.
 - Noted hidden permission constants in permissions doc.
 - Refresh diagnostics after preset export/share to show updated timestamps.
+- Use reflection for privileged flag check in diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

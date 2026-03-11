@@ -281,7 +281,9 @@ class DiagnosticsActivity : AppCompatActivity() {
 
     private fun isPrivilegedApp(appInfo: ApplicationInfo): Boolean {
         return try {
-            val field = ApplicationInfo::class.java.getField("FLAG_PRIVILEGED")
+            val field = ApplicationInfo::class.java.getDeclaredField("FLAG_PRIVILEGED").apply {
+                isAccessible = true
+            }
             val flag = field.getInt(null)
             (appInfo.flags and flag) != 0
         } catch (_: Exception) {
