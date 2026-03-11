@@ -163,7 +163,9 @@ class MainActivity : AppCompatActivity() {
         activeContainer.removeAllViews()
         val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
-        activePackages = packages.toSet()
+            .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
+            .sortedBy { it.label.lowercase() }
+        activePackages = packages.map { it.packageName }.toSet()
 
         if (packages.isEmpty()) {
             activeContainer.addView(buildEmptyRow("No active audio sessions."))
@@ -171,9 +173,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        for (packageName in packages) {
-            val label = resolveLabel(packageName)
-            activeContainer.addView(buildVolumeRow(packageName, label, true))
+        for (entry in packages) {
+            activeContainer.addView(buildVolumeRow(entry.packageName, entry.label, true))
         }
         updatePresetApps()
     }
