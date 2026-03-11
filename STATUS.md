@@ -41,6 +41,7 @@
 - Added active session count in UI header.
 - Added preset count in UI header.
 - Ignored metadata keys during preset import.
+- Added version field to preset export.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
