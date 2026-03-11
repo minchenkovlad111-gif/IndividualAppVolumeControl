@@ -277,7 +277,12 @@ class MainActivity : AppCompatActivity() {
         presetTitle.text = "Presets (${packages.size})"
 
         if (packages.isEmpty()) {
-            presetContainer.addView(buildEmptyRow("No matching apps."))
+            val message = if (trimmedFilter.isBlank()) {
+                "No apps available."
+            } else {
+                "No matching apps."
+            }
+            presetContainer.addView(buildEmptyRow(message))
             return
         }
 
