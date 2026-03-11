@@ -12,5 +12,5 @@
 - The wrapper needs to download the Gradle distribution; pre-seed `GRADLE_USER_HOME` if network access is blocked.
 
 ## Module packaging
-1. Copy the built APK to `module/system/priv-app/AppVolumeControl/AppVolumeControl.apk`.
-2. Zip the `module/` folder and install via Magisk.
+1. Build the APK.
+2. Run `module/package.sh` (optionally pass APK path and output zip path).
