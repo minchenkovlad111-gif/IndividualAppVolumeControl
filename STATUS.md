@@ -107,6 +107,7 @@
 - Renamed presets section to "Saved volumes".
 - Added readiness hint text in diagnostics screen.
 - Added setup check screen for kid-friendly validation.
+- Added ready indicator and copy button in setup check screen.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

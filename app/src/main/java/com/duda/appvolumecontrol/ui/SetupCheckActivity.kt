@@ -21,6 +21,7 @@ import java.util.Locale
 class SetupCheckActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
+    private lateinit var statusView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,9 +43,20 @@ class SetupCheckActivity : AppCompatActivity() {
             setPadding(0, 8, 0, 8)
         }
 
+        statusView = TextView(this).apply {
+            text = "Ready: checking..."
+            textSize = 16f
+            setPadding(0, 8, 0, 8)
+        }
+
         val refreshButton = Button(this).apply {
             text = "Run check"
             setOnClickListener { refresh() }
+        }
+
+        val copyButton = Button(this).apply {
+            text = "Copy report"
+            setOnClickListener { copyReport() }
         }
 
         val diagnosticsButton = Button(this).apply {
@@ -59,7 +71,9 @@ class SetupCheckActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(helper)
+        root.addView(statusView)
         root.addView(refreshButton)
+        root.addView(copyButton)
         root.addView(diagnosticsButton)
         root.addView(contentView)
 
@@ -93,10 +107,12 @@ class SetupCheckActivity : AppCompatActivity() {
 
         val ready = isPrivApp && hasModifyAudio && hiddenApiOk
         val readyLine = if (ready) {
-            "Ready: yes"
+            "Ready: YES"
         } else {
-            "Ready: no (see checklist below)"
+            "Ready: NO (see checklist below)"
         }
+        statusView.text = readyLine
+        statusView.setTextColor(if (ready) 0xFF1B5E20.toInt() else 0xFFB71C1C.toInt())
 
         val lines = listOf(
             readyLine,
@@ -140,5 +156,13 @@ class SetupCheckActivity : AppCompatActivity() {
         } catch (_: Exception) {
             false
         }
+    }
+
+    private fun copyReport() {
+        val manager = getSystemService(android.content.ClipboardManager::class.java)
+        manager.setPrimaryClip(
+            android.content.ClipData.newPlainText("setup_check", contentView.text)
+        )
+        android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show()
     }
 }
