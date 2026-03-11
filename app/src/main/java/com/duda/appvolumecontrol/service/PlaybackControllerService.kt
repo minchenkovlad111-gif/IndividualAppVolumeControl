@@ -55,10 +55,12 @@ class PlaybackControllerService : Service() {
     private fun applyVolumes(configs: List<AudioPlaybackConfiguration>) {
         diagnosticsStore.recordLastActive(configs.size)
         var appliedCount = 0
+        val activeKeys = mutableSetOf<String>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
             val desiredVolume = volumeStore.getVolume(packageName) ?: 1f
             val key = "${packageName}:${config.hashCode()}"
+            activeKeys.add(key)
             val current = lastApplied[key]
             if (current != null && current == desiredVolume) continue
 
@@ -70,6 +72,7 @@ class PlaybackControllerService : Service() {
                 Log.w(TAG, "Failed to apply volume for $packageName")
             }
         }
+        lastApplied.keys.retainAll(activeKeys)
         diagnosticsStore.recordLastApply(appliedCount)
     }
 
