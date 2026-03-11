@@ -11,6 +11,8 @@
 - Added app icons, active indicators, and preset search filter.
 - Added hidden API bypass attempts via VMRuntime and Settings.Global.
 - Added periodic refresh and last-updated indicator in the UI.
+- Added Gradle wrapper jar and updated wrapper scripts/config.
+- Build attempt blocked by wrapper download (no network access in this environment).
 - Added Gradle wrapper scripts and properties (wrapper jar still needed).
 
 ## Last updated

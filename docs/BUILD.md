@@ -8,6 +8,8 @@
 ## App build (debug)
 - Ensure `gradle/wrapper/gradle-wrapper.jar` exists (generate via `gradle wrapper` on a machine with Gradle installed).
 - `./gradlew :app:assembleDebug`
+- If you see wrapper download errors in restricted environments, run with `GRADLE_USER_HOME=/tmp/gradle`.
+- The wrapper needs to download the Gradle distribution; pre-seed `GRADLE_USER_HOME` if network access is blocked.
 
 ## Module packaging
 1. Copy the built APK to `module/system/priv-app/AppVolumeControl/AppVolumeControl.apk`.
