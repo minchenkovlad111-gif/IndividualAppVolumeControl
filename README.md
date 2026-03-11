@@ -5,6 +5,11 @@ A root-required Android app + Magisk module for per-app volume control, designed
 ## Status
 - Core service, UI controls, diagnostics screen, and Magisk module packaging script in place.
 
+## Features
+- Active playback list with per-app volume sliders.
+- Preset list with search, quick actions, and import/export.
+- Diagnostics screen with permission and hidden API status.
+
 ## Repository layout
 - `app/`: Android app (system/privileged app)
 - `module/`: Magisk module that installs the app as a system-privileged app
