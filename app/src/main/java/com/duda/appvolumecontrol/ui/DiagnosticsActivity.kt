@@ -210,8 +210,14 @@ class DiagnosticsActivity : AppCompatActivity() {
 
     private fun importPresets(replace: Boolean = false) {
         val manager = getSystemService(ClipboardManager::class.java)
-        val clip = manager.primaryClip ?: return
-        val text = clip.getItemAt(0).coerceToText(this)?.toString() ?: return
+        val clip = manager.primaryClip ?: run {
+            Toast.makeText(this, "Clipboard empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val text = clip.getItemAt(0).coerceToText(this)?.toString() ?: run {
+            Toast.makeText(this, "Clipboard has no text", Toast.LENGTH_SHORT).show()
+            return
+        }
         val count = try {
             if (replace) {
                 volumeStore.clearAll()
@@ -221,7 +227,11 @@ class DiagnosticsActivity : AppCompatActivity() {
             0
         }
         diagnosticsStore.recordLastImport(count)
-        Toast.makeText(this, "Imported $count presets", Toast.LENGTH_SHORT).show()
+        if (count == 0) {
+            Toast.makeText(this, "No presets imported", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Imported $count presets", Toast.LENGTH_SHORT).show()
+        }
         refresh()
     }
 
