@@ -19,6 +19,7 @@
 - Added diagnostics report copy/share actions.
 - Documented offline Gradle distribution seeding.
 - Added volume percentage labels next to sliders.
+- Marked active apps within the presets list.
 
 ## Last updated
 - 2026-03-11

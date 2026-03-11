@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var presetSearch: EditText
     private lateinit var lastUpdatedView: TextView
     private var presetEntries: List<AppEntry> = emptyList()
+    private var activePackages: Set<String> = emptySet()
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -151,6 +152,7 @@ class MainActivity : AppCompatActivity() {
         activeContainer.removeAllViews()
         val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
+        activePackages = packages.toSet()
 
         if (packages.isEmpty()) {
             activeContainer.addView(buildEmptyRow("No active audio sessions."))
@@ -193,7 +195,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         for (entry in packages) {
-            presetContainer.addView(buildVolumeRow(entry.packageName, entry.label, false))
+            val isActive = activePackages.contains(entry.packageName)
+            presetContainer.addView(buildVolumeRow(entry.packageName, entry.label, isActive))
         }
     }
 
