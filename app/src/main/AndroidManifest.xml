@@ -24,6 +24,9 @@
         <activity
             android:name=".ui.DiagnosticsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.SetupCheckActivity"
+            android:exported="false" />
 
         <service
             android:name=".service.PlaybackControllerService"

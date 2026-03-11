@@ -168,6 +168,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val checkButton = Button(this).apply {
+            text = "Check setup"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, SetupCheckActivity::class.java))
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -230,6 +237,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(halfActiveButton)
         root.addView(diagnosticsButton)
         root.addView(helpButton)
+        root.addView(checkButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
