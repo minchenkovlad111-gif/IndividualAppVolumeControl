@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val refreshButton = Button(this).apply {
-            text = "Refresh"
+            text = "Refresh list"
             setOnClickListener {
                 updateActiveApps(audioManager.activePlaybackConfigurations)
                 updateLastUpdated()
@@ -93,12 +93,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         val resetButton = Button(this).apply {
-            text = "Reset presets"
+            text = "Clear saved volumes"
             setOnClickListener {
                 AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Reset presets")
-                    .setMessage("This will clear all saved per-app volumes.")
-                    .setPositiveButton("Reset") { _, _ ->
+                    .setTitle("Clear saved volumes")
+                    .setMessage("This clears all saved per-app sliders.")
+                    .setPositiveButton("Clear") { _, _ ->
                         volumeStore.clearAll()
                         updateActiveApps(audioManager.activePlaybackConfigurations)
                         PlaybackControllerService.requestReapply(this@MainActivity)
@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val boostActiveButton = Button(this).apply {
-            text = "Max active"
+            text = "Make active loud"
             setOnClickListener {
                 for (packageName in activePackages) {
                     volumeStore.setVolume(packageName, 1f)
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val halfActiveButton = Button(this).apply {
-            text = "Active 50%"
+            text = "Active half"
             setOnClickListener {
                 for (packageName in activePackages) {
                     volumeStore.setVolume(packageName, 0.5f)
@@ -142,9 +142,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         val diagnosticsButton = Button(this).apply {
-            text = "Diagnostics"
+            text = "Diagnostics / report"
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, DiagnosticsActivity::class.java))
+            }
+        }
+
+        val helpButton = Button(this).apply {
+            text = "Help"
+            setOnClickListener {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Help")
+                    .setMessage(
+                        "This app needs to be installed as a system app via Magisk.\n" +
+                            "Steps:\n" +
+                            "1) Install the Magisk module and reboot.\n" +
+                            "2) Play audio in any app.\n" +
+                            "3) Move the slider for that app.\n\n" +
+                            "If nothing happens, open Diagnostics and copy the report."
+                    )
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
 
@@ -204,6 +222,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(muteActiveButton)
         root.addView(halfActiveButton)
         root.addView(diagnosticsButton)
+        root.addView(helpButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
