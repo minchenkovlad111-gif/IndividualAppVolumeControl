@@ -4,6 +4,7 @@
 - System-privileged app: monitors active audio playback and applies per-app volume via hidden APIs.
 - Magisk module: installs the app into `/system/priv-app/` and supplies `privapp-permissions`.
 - Diagnostics UI: shows last apply stats, errors, and hidden API policy values.
+- Preset UI: per-app sliders with import/export via clipboard.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
