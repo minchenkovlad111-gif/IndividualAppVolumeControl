@@ -66,6 +66,7 @@
 - Added QUERY_ALL_PACKAGES status to diagnostics.
 - Added INTERACT_ACROSS_USERS status to diagnostics.
 - Added debuggable flag to diagnostics.
+- Updated compatibility steps with diagnostics details.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

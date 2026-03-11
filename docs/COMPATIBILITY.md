@@ -8,7 +8,7 @@ Use this table to track observed behavior across devices and Android versions.
 
 ## Steps
 1. Install the app via Magisk module and reboot.
-2. Open Diagnostics and record hidden API results.
+2. Open Diagnostics and record hidden API results + permission status.
 3. Play audio from two apps at once and adjust per-app sliders.
 4. Record whether volume changes apply correctly.
 
