@@ -11,6 +11,7 @@
 2. For each active playback configuration, resolve package name.
 3. Lookup per-app volume in `VolumeStore`.
 4. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
+   - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.
 
 ## Hidden API strategy
 - Attempt `VMRuntime.setHiddenApiExemptions` to relax reflection limits.

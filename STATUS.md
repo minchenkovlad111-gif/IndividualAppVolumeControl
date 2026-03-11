@@ -67,6 +67,7 @@
 - Added INTERACT_ACROSS_USERS status to diagnostics.
 - Added debuggable flag to diagnostics.
 - Updated compatibility steps with diagnostics details.
+- Documented setVolume fallback in architecture notes.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
