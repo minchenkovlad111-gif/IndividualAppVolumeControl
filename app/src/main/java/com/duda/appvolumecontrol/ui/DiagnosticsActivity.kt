@@ -26,10 +26,12 @@ class DiagnosticsActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
     private var lastReport: String = ""
+    private lateinit var volumeStore: VolumeStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         diagnosticsStore = DiagnosticsStore(this)
+        volumeStore = VolumeStore(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -64,6 +66,16 @@ class DiagnosticsActivity : AppCompatActivity() {
             setOnClickListener { shareReport() }
         }
 
+        val exportButton = Button(this).apply {
+            text = "Export presets"
+            setOnClickListener { exportPresets() }
+        }
+
+        val importButton = Button(this).apply {
+            text = "Import presets"
+            setOnClickListener { importPresets() }
+        }
+
         contentView = TextView(this).apply {
             textSize = 14f
             setPadding(0, 16, 0, 16)
@@ -74,6 +86,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(selfTestButton)
         root.addView(copyButton)
         root.addView(shareButton)
+        root.addView(exportButton)
+        root.addView(importButton)
         root.addView(contentView)
 
         val scroll = ScrollView(this).apply {
@@ -93,6 +107,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val lastActiveTime = formatTime(snapshot.lastActiveTime, dateFormat)
         val lastDumpTime = formatTime(snapshot.lastDumpTime, dateFormat)
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
+        val lastImportTime = formatTime(snapshot.lastImportTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -104,7 +119,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val activePackages = audioManager.activePlaybackConfigurations
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
-        val presetCount = VolumeStore(this).countPresets()
+        val presetCount = volumeStore.countPresets()
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
@@ -124,6 +139,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last dump time: $lastDumpTime",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
             "Stored presets: $presetCount",
+            "Last import count: ${snapshot.lastImportCount}",
+            "Last import time: $lastImportTime",
             "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
             "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
             "Hidden API last attempt: $hiddenApiTime",
@@ -161,6 +178,25 @@ class DiagnosticsActivity : AppCompatActivity() {
     private fun copyReport() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
+    }
+
+    private fun exportPresets() {
+        val json = volumeStore.exportJson()
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("presets", json))
+    }
+
+    private fun importPresets() {
+        val manager = getSystemService(ClipboardManager::class.java)
+        val clip = manager.primaryClip ?: return
+        val text = clip.getItemAt(0).coerceToText(this)?.toString() ?: return
+        val count = try {
+            volumeStore.importJson(text)
+        } catch (_: Exception) {
+            0
+        }
+        diagnosticsStore.recordLastImport(count)
+        refresh()
     }
 
     private fun shareReport() {

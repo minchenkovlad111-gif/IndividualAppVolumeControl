@@ -3,6 +3,7 @@ package com.duda.appvolumecontrol.core
 import android.content.Context
 import kotlin.math.max
 import kotlin.math.min
+import org.json.JSONObject
 
 class VolumeStore(context: Context) {
     private val prefs = context.getSharedPreferences("volume_store", Context.MODE_PRIVATE)
@@ -22,5 +23,31 @@ class VolumeStore(context: Context) {
 
     fun countPresets(): Int {
         return prefs.all.size
+    }
+
+    fun exportJson(): String {
+        val obj = JSONObject()
+        for ((key, value) in prefs.all) {
+            if (value is Float) {
+                obj.put(key, value)
+            }
+        }
+        return obj.toString(2)
+    }
+
+    fun importJson(json: String): Int {
+        val obj = JSONObject(json)
+        val editor = prefs.edit()
+        var count = 0
+        for (key in obj.keys()) {
+            val value = obj.optDouble(key, Double.NaN)
+            if (!value.isNaN()) {
+                val normalized = min(1f, max(0f, value.toFloat()))
+                editor.putFloat(key, normalized)
+                count += 1
+            }
+        }
+        editor.apply()
+        return count
     }
 }
