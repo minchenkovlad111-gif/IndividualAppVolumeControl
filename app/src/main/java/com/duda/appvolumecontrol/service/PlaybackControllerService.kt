@@ -93,7 +93,9 @@ class PlaybackControllerService : Service() {
         try {
             val configs = audioManager.activePlaybackConfigurations
             diagnosticsStore.recordLastDump(configs.size)
-            val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }.distinct()
+            val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
+                .distinct()
+                .sorted()
             Log.i(TAG, "Diagnostics dump: active=${configs.size} packages=$packages")
         } catch (t: Throwable) {
             Log.e(TAG, "Diagnostics dump failed", t)

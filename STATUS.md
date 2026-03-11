@@ -92,6 +92,7 @@
 - Improved empty-state messaging for presets list.
 - Added explicit import-failure toast in diagnostics.
 - Filtered metadata-like keys from preset export.
+- Sorted package list in diagnostics dump logging.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
