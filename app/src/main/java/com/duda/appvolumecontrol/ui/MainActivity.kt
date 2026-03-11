@@ -27,6 +27,7 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+    private val uiPrefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
     private lateinit var audioManager: AudioManager
     private lateinit var volumeStore: VolumeStore
     private lateinit var activeContainer: LinearLayout
@@ -131,7 +132,9 @@ class MainActivity : AppCompatActivity() {
 
         showAllAppsToggle = CheckBox(this).apply {
             text = "Show all apps"
+            isChecked = uiPrefs.getBoolean(KEY_SHOW_ALL, false)
             setOnCheckedChangeListener { _, isChecked ->
+                uiPrefs.edit().putBoolean(KEY_SHOW_ALL, isChecked).apply()
                 loadPresetApps(isChecked)
                 updatePresetApps()
             }
@@ -364,5 +367,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REFRESH_INTERVAL_MS = 2000L
+        private const val PREFS_NAME = "ui_prefs"
+        private const val KEY_SHOW_ALL = "show_all_apps"
     }
 }
