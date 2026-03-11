@@ -156,6 +156,7 @@ class MainActivity : AppCompatActivity() {
 
         if (packages.isEmpty()) {
             activeContainer.addView(buildEmptyRow("No active audio sessions."))
+            updatePresetApps()
             return
         }
 
@@ -163,6 +164,7 @@ class MainActivity : AppCompatActivity() {
             val label = resolveLabel(packageName)
             activeContainer.addView(buildVolumeRow(packageName, label, true))
         }
+        updatePresetApps()
     }
 
     private fun loadPresetApps() {
