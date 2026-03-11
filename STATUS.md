@@ -13,7 +13,7 @@
 - Added periodic refresh and last-updated indicator in the UI.
 - Added Gradle wrapper jar and updated wrapper scripts/config.
 - Build attempt blocked by wrapper download (no network access in this environment).
-- Added Gradle wrapper scripts and properties (wrapper jar still needed).
+- Added diagnostics screen and runtime stats tracking.
 
 ## Last updated
 - 2026-03-11

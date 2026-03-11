@@ -73,6 +73,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val diagnosticsButton = Button(this).apply {
+            text = "Diagnostics"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, DiagnosticsActivity::class.java))
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -108,6 +115,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(refreshButton)
+        root.addView(diagnosticsButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)

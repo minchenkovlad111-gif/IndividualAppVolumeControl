@@ -11,19 +11,21 @@ import android.media.AudioPlaybackConfiguration
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 
 class PlaybackControllerService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
+    private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val lastApplied = mutableMapOf<String, Float>()
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             if (configs == null) return
-            applyVolumes(configs)
+            safeApplyVolumes(configs)
         }
     }
 
@@ -32,7 +34,7 @@ class PlaybackControllerService : Service() {
         HiddenApi.tryAllowHiddenApiAccess(this)
         startForeground(NOTIFICATION_ID, buildNotification())
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
-        applyVolumes(audioManager.activePlaybackConfigurations)
+        safeApplyVolumes(audioManager.activePlaybackConfigurations)
     }
 
     override fun onDestroy() {
@@ -42,7 +44,7 @@ class PlaybackControllerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_REAPPLY) {
-            applyVolumes(audioManager.activePlaybackConfigurations)
+            safeApplyVolumes(audioManager.activePlaybackConfigurations)
         }
         return START_STICKY
     }
@@ -50,6 +52,8 @@ class PlaybackControllerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun applyVolumes(configs: List<AudioPlaybackConfiguration>) {
+        diagnosticsStore.recordLastActive(configs.size)
+        var appliedCount = 0
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
             val desiredVolume = volumeStore.getVolume(packageName) ?: 1f
@@ -60,9 +64,20 @@ class PlaybackControllerService : Service() {
             val applied = PlaybackUtils.applyVolumeToPlayer(config, desiredVolume)
             if (applied) {
                 lastApplied[key] = desiredVolume
+                appliedCount += 1
             } else {
                 Log.w(TAG, "Failed to apply volume for $packageName")
             }
+        }
+        diagnosticsStore.recordLastApply(appliedCount)
+    }
+
+    private fun safeApplyVolumes(configs: List<AudioPlaybackConfiguration>) {
+        try {
+            applyVolumes(configs)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to apply volumes", t)
+            diagnosticsStore.recordLastError(t.javaClass.simpleName + ": " + (t.message ?: "unknown"))
         }
     }
 
