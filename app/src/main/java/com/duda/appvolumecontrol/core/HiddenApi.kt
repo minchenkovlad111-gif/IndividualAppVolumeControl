@@ -9,8 +9,8 @@ object HiddenApi {
     private const val TAG = "HiddenApi"
 
     fun tryAllowHiddenApiAccess(context: Context) {
-        var vmRuntimeOk: Boolean? = null
-        var policyOk: Boolean? = null
+        var vmRuntimeOk: Boolean?
+        var policyOk: Boolean?
 
         try {
             val vmRuntimeClass = Class.forName("dalvik.system.VMRuntime")
