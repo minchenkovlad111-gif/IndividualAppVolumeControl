@@ -72,12 +72,20 @@ object PlaybackUtils {
                     resolved
                 }
             }
-            if (setVolume.parameterTypes.size == 2) {
-                setVolume.invoke(playerProxy, volume, 0)
-            } else {
-                setVolume.invoke(playerProxy, volume)
+            try {
+                if (setVolume.parameterTypes.size == 2) {
+                    setVolume.invoke(playerProxy, volume, 0)
+                } else {
+                    setVolume.invoke(playerProxy, volume)
+                }
+                true
+            } catch (t: Throwable) {
+                synchronized(setVolumeMethodCache) {
+                    setVolumeMethodCache.remove(proxyClass)
+                }
+                Log.w(TAG, "Failed to set player volume", t)
+                false
             }
-            true
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set player volume", t)
             false
