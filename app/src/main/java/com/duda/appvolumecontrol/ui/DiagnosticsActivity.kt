@@ -179,6 +179,9 @@ class DiagnosticsActivity : AppCompatActivity() {
         val isDebuggable = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val (versionName, versionCode) = getAppVersion()
         val targetSdk = appInfo.targetSdkVersion
+        val readyForControl = isPrivApp && hasModifyAudio &&
+            (snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1)
+        val readyStatus = if (readyForControl) "yes" else "no"
 
         val lines = listOf(
             "SDK: ${android.os.Build.VERSION.SDK_INT}",
@@ -186,6 +189,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "App package: $packageName",
             "App version: $versionName ($versionCode)",
             "Target SDK: $targetSdk",
+            "Ready to control volume: $readyStatus",
             "System app: $isSystemApp",
             "Privileged app: $isPrivApp",
             "Debuggable: $isDebuggable",

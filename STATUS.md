@@ -101,6 +101,7 @@
 - Simplified main screen labels and added a Help dialog.
 - Simplified diagnostics labels and added confirmation for replace import.
 - Request notification permission on Android 13+ to keep service visible.
+- Added a simple readiness flag in diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
