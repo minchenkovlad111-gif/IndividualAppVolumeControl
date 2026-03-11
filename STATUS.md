@@ -30,6 +30,7 @@
 - Added preset export/import via clipboard in diagnostics.
 - Added "Max active" quick action.
 - Added validation checklist to research notes.
+- Added toast feedback for preset import.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

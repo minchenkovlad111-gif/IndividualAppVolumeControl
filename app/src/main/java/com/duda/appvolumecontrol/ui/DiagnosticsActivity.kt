@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -196,6 +197,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             0
         }
         diagnosticsStore.recordLastImport(count)
+        Toast.makeText(this, "Imported $count presets", Toast.LENGTH_SHORT).show()
         refresh()
     }
 
