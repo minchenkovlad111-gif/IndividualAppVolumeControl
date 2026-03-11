@@ -1,0 +1,9 @@
+<permissions>
+    <privapp-permissions package="com.duda.appvolumecontrol">
+        <permission name="android.permission.MODIFY_AUDIO_SETTINGS" />
+        <permission name="android.permission.MODIFY_AUDIO_ROUTING" />
+        <permission name="android.permission.INTERACT_ACROSS_USERS" />
+        <permission name="android.permission.QUERY_ALL_PACKAGES" />
+        <permission name="android.permission.FOREGROUND_SERVICE" />
+    </privapp-permissions>
+</permissions>

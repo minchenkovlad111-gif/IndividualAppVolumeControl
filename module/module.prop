@@ -1,0 +1,6 @@
+id=appvolumecontrol
+name=App Volume Control (Privileged)
+version=0.1.0
+versionCode=1
+author=Codex
+description=Privileged system app for per-app volume control
