@@ -124,10 +124,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
+        val (versionName, versionCode) = getAppVersion()
 
         val lines = listOf(
             "SDK: ${android.os.Build.VERSION.SDK_INT}",
             "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+            "App version: $versionName ($versionCode)",
             "System app: $isSystemApp",
             "Privileged app: $isPrivApp",
             "Last error: ${snapshot.lastError ?: "-"}",
@@ -207,5 +209,29 @@ class DiagnosticsActivity : AppCompatActivity() {
             putExtra(Intent.EXTRA_TEXT, lastReport)
         }
         startActivity(Intent.createChooser(sendIntent, "Share diagnostics"))
+    }
+
+    private fun getAppVersion(): Pair<String, Long> {
+        return try {
+            val info = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                packageManager.getPackageInfo(
+                    packageName,
+                    android.content.pm.PackageManager.PackageInfoFlags.of(0L)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+            val versionName = info.versionName ?: "-"
+            val versionCode = if (android.os.Build.VERSION.SDK_INT >= 28) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+            versionName to versionCode
+        } catch (_: Exception) {
+            "-" to 0L
+        }
     }
 }

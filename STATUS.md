@@ -35,6 +35,7 @@
 - Pruned stale playback keys after each apply.
 - Documented compatibility matrix in README.
 - Persisted "show all apps" toggle in UI prefs.
+- Added app version info to diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
