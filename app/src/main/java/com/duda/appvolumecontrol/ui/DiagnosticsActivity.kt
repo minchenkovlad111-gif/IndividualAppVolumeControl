@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
@@ -136,11 +137,11 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
         val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
-        val hasModifyRouting = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_ROUTING) ==
+        val hasModifyRouting = checkSelfPermission(PERMISSION_MODIFY_AUDIO_ROUTING) ==
             PackageManager.PERMISSION_GRANTED
         val hasQueryAllPackages = checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES) ==
             PackageManager.PERMISSION_GRANTED
-        val hasAcrossUsers = checkSelfPermission(Manifest.permission.INTERACT_ACROSS_USERS) ==
+        val hasAcrossUsers = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
         val audioManager = getSystemService(AudioManager::class.java)
         val activeConfigs = audioManager.activePlaybackConfigurations
@@ -150,7 +151,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val presetCount = volumeStore.countPresets()
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
-        val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
+        val isPrivApp = isPrivilegedApp(appInfo)
         val isDebuggable = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val (versionName, versionCode) = getAppVersion()
         val targetSdk = appInfo.targetSdkVersion
@@ -172,7 +173,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
             "Active configs now: ${activeConfigs.size}",
-            "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
+            "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "Stored presets: $presetCount",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
@@ -276,6 +277,16 @@ class DiagnosticsActivity : AppCompatActivity() {
         startActivity(Intent.createChooser(sendIntent, "Share diagnostics"))
     }
 
+    private fun isPrivilegedApp(appInfo: ApplicationInfo): Boolean {
+        return try {
+            val field = ApplicationInfo::class.java.getField("FLAG_PRIVILEGED")
+            val flag = field.getInt(null)
+            (appInfo.flags and flag) != 0
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun getAppVersion(): Pair<String, Long> {
         return try {
             val info = if (android.os.Build.VERSION.SDK_INT >= 33) {
@@ -298,5 +309,10 @@ class DiagnosticsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             "-" to 0L
         }
+    }
+
+    companion object {
+        private const val PERMISSION_MODIFY_AUDIO_ROUTING = "android.permission.MODIFY_AUDIO_ROUTING"
+        private const val PERMISSION_INTERACT_ACROSS_USERS = "android.permission.INTERACT_ACROSS_USERS"
     }
 }
