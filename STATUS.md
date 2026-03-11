@@ -96,6 +96,7 @@
 - Documented `_preset_count` metadata in preset format notes.
 - Start foreground service with media playback type on Android 10+.
 - Evict cached setVolume method on invocation failure.
+- Skip NaN volumes in preset storage and export.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

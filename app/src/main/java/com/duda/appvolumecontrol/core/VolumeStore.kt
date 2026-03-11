@@ -9,12 +9,15 @@ class VolumeStore(context: Context) {
     private val prefs = context.getSharedPreferences("volume_store", Context.MODE_PRIVATE)
 
     fun setVolume(packageName: String, volume: Float) {
+        if (volume.isNaN()) return
         val normalized = min(1f, max(0f, volume))
         prefs.edit().putFloat(packageName, normalized).apply()
     }
 
     fun getVolume(packageName: String): Float? {
-        return if (prefs.contains(packageName)) prefs.getFloat(packageName, 1f) else null
+        if (!prefs.contains(packageName)) return null
+        val stored = prefs.getFloat(packageName, 1f)
+        return if (stored.isNaN()) null else stored
     }
 
     fun clearAll() {
@@ -35,7 +38,7 @@ class VolumeStore(context: Context) {
             .sorted()
         for (key in keys) {
             val value = prefs.all[key]
-            if (value is Float) {
+            if (value is Float && !value.isNaN()) {
                 obj.put(key, value)
             }
         }
