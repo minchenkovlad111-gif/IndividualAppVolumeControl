@@ -30,7 +30,9 @@ class VolumeStore(context: Context) {
         obj.put("_version", 1)
         obj.put("_exported_at", System.currentTimeMillis())
         obj.put("_preset_count", prefs.all.size)
-        val keys = prefs.all.keys.sorted()
+        val keys = prefs.all.keys
+            .filterNot { it.startsWith("_") }
+            .sorted()
         for (key in keys) {
             val value = prefs.all[key]
             if (value is Float) {
