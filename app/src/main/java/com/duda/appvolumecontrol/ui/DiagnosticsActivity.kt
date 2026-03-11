@@ -151,6 +151,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
+        val isDebuggable = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val (versionName, versionCode) = getAppVersion()
         val targetSdk = appInfo.targetSdkVersion
 
@@ -161,6 +162,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Target SDK: $targetSdk",
             "System app: $isSystemApp",
             "Privileged app: $isPrivApp",
+            "Debuggable: $isDebuggable",
             "Last error: ${snapshot.lastError ?: "-"}",
             "Last error time: $lastErrorTime",
             "Last apply count: ${snapshot.lastApplyCount}",
