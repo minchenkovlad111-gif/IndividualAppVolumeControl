@@ -56,6 +56,7 @@
 - Added import error handling to diagnostics.
 - Added active app count to service notification.
 - Clarified preset export metadata in docs.
+- Added FOREGROUND_SERVICE_MEDIA_PLAYBACK permission.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
