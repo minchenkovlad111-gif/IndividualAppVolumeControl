@@ -45,6 +45,12 @@ class DiagnosticsActivity : AppCompatActivity() {
             textSize = 20f
         }
 
+        val helper = TextView(this).apply {
+            text = "If something does not work, tap \"Copy report\" and share it."
+            textSize = 13f
+            setPadding(0, 8, 0, 8)
+        }
+
         val refreshButton = Button(this).apply {
             text = "Refresh"
             setOnClickListener { refresh() }
@@ -94,6 +100,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         root.addView(header)
+        root.addView(helper)
         root.addView(refreshButton)
         root.addView(selfTestButton)
         root.addView(copyButton)

@@ -21,6 +21,7 @@ import android.widget.TextView
 import android.text.TextUtils
 import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
@@ -77,6 +78,12 @@ class MainActivity : AppCompatActivity() {
             textSize = 20f
         }
 
+        val quickStart = TextView(this).apply {
+            text = "Quick start:\n1) Install the Magisk module and reboot.\n2) Play audio in an app.\n3) Move the slider for that app."
+            textSize = 13f
+            setPadding(0, 8, 0, 8)
+        }
+
         val refreshButton = Button(this).apply {
             text = "Refresh"
             setOnClickListener {
@@ -88,9 +95,16 @@ class MainActivity : AppCompatActivity() {
         val resetButton = Button(this).apply {
             text = "Reset presets"
             setOnClickListener {
-                volumeStore.clearAll()
-                updateActiveApps(audioManager.activePlaybackConfigurations)
-                PlaybackControllerService.requestReapply(this@MainActivity)
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Reset presets")
+                    .setMessage("This will clear all saved per-app volumes.")
+                    .setPositiveButton("Reset") { _, _ ->
+                        volumeStore.clearAll()
+                        updateActiveApps(audioManager.activePlaybackConfigurations)
+                        PlaybackControllerService.requestReapply(this@MainActivity)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
             }
         }
 
@@ -183,6 +197,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         root.addView(header)
+        root.addView(quickStart)
         root.addView(refreshButton)
         root.addView(resetButton)
         root.addView(boostActiveButton)
