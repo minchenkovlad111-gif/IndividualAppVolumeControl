@@ -105,6 +105,7 @@ class PlaybackControllerService : Service() {
                 "App Volume Control",
                 NotificationManager.IMPORTANCE_LOW
             )
+            channel.description = "Per-app volume control service"
             manager.createNotificationChannel(channel)
         }
         return Notification.Builder(this, CHANNEL_ID)
