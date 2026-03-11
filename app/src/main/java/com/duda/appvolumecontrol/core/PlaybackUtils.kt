@@ -36,9 +36,21 @@ object PlaybackUtils {
             val method = AudioPlaybackConfiguration::class.java.getDeclaredMethod("getPlayerProxy")
             method.isAccessible = true
             val playerProxy = method.invoke(config) ?: return false
-            val setVolume = playerProxy.javaClass.getDeclaredMethod("setVolume", Float::class.javaPrimitiveType)
+            val setVolume = try {
+                playerProxy.javaClass.getDeclaredMethod("setVolume", Float::class.javaPrimitiveType)
+            } catch (_: Throwable) {
+                playerProxy.javaClass.getDeclaredMethod(
+                    "setVolume",
+                    Float::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType
+                )
+            }
             setVolume.isAccessible = true
-            setVolume.invoke(playerProxy, volume)
+            if (setVolume.parameterTypes.size == 2) {
+                setVolume.invoke(playerProxy, volume, 0)
+            } else {
+                setVolume.invoke(playerProxy, volume)
+            }
             true
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set player volume", t)

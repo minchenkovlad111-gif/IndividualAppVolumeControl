@@ -49,6 +49,7 @@
 - Added active config count to diagnostics.
 - Switched module packaging script to portable shebang.
 - Added "Active 50%" quick action.
+- Added fallback setVolume signature handling.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
