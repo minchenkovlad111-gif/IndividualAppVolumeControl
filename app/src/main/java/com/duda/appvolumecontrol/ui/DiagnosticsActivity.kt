@@ -16,6 +16,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -103,6 +104,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val activePackages = audioManager.activePlaybackConfigurations
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
+        val presetCount = VolumeStore(this).countPresets()
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
@@ -121,6 +123,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
+            "Stored presets: $presetCount",
             "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
             "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
             "Hidden API last attempt: $hiddenApiTime",

@@ -19,4 +19,8 @@ class VolumeStore(context: Context) {
     fun clearAll() {
         prefs.edit().clear().apply()
     }
+
+    fun countPresets(): Int {
+        return prefs.all.size
+    }
 }
