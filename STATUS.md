@@ -68,6 +68,7 @@
 - Added debuggable flag to diagnostics.
 - Updated compatibility steps with diagnostics details.
 - Documented setVolume fallback in architecture notes.
+- Sorted preset export keys for readability.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
