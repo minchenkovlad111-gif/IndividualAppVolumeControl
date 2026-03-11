@@ -7,11 +7,14 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
@@ -21,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var volumeStore: VolumeStore
     private lateinit var activeContainer: LinearLayout
     private lateinit var presetContainer: LinearLayout
+    private lateinit var presetSearch: EditText
+    private var presetEntries: List<AppEntry> = emptyList()
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
@@ -68,6 +73,13 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 24, 0, 8)
         }
 
+        presetSearch = EditText(this).apply {
+            hint = "Filter apps"
+            textSize = 14f
+            setPadding(16, 8, 16, 8)
+            addTextChangedListener { updatePresetApps(it?.toString().orEmpty()) }
+        }
+
         presetContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -77,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeTitle)
         root.addView(activeContainer)
         root.addView(presetTitle)
+        root.addView(presetSearch)
         root.addView(presetContainer)
 
         val scroll = ScrollView(this).apply {
@@ -87,6 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
         updateActiveApps(audioManager.activePlaybackConfigurations)
+        loadPresetApps()
         updatePresetApps()
     }
 
@@ -112,35 +126,70 @@ class MainActivity : AppCompatActivity() {
 
         for (packageName in packages) {
             val label = resolveLabel(packageName)
-            activeContainer.addView(buildVolumeRow(packageName, label))
+            activeContainer.addView(buildVolumeRow(packageName, label, true))
         }
     }
 
-    private fun updatePresetApps() {
-        presetContainer.removeAllViews()
+    private fun loadPresetApps() {
         val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
         val activities = packageManager.queryIntentActivities(mainIntent, 0)
-        val packages = activities.map { it.activityInfo.packageName }.distinct().sorted()
+        presetEntries = activities
+            .map { it.activityInfo.packageName }
+            .distinct()
+            .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
+            .sortedBy { it.label.lowercase() }
+    }
 
-        for (packageName in packages) {
-            val label = resolveLabel(packageName)
-            presetContainer.addView(buildVolumeRow(packageName, label))
+    private fun updatePresetApps(filter: String = presetSearch.text?.toString().orEmpty()) {
+        presetContainer.removeAllViews()
+        val trimmedFilter = filter.trim().lowercase()
+        val packages = if (trimmedFilter.isBlank()) {
+            presetEntries
+        } else {
+            presetEntries.filter {
+                it.label.lowercase().contains(trimmedFilter) ||
+                    it.packageName.lowercase().contains(trimmedFilter)
+            }
+        }
+
+        if (packages.isEmpty()) {
+            presetContainer.addView(buildEmptyRow("No matching apps."))
+            return
+        }
+
+        for (entry in packages) {
+            presetContainer.addView(buildVolumeRow(entry.packageName, entry.label, false))
         }
     }
 
-    private fun buildVolumeRow(packageName: String, label: String): View {
+    private fun buildVolumeRow(packageName: String, label: String, isActive: Boolean): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 8, 0, 8)
         }
 
+        val iconView = ImageView(this).apply {
+            val size = dpToPx(32)
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginEnd = dpToPx(12)
+            }
+            setImageDrawable(resolveIcon(packageName))
+        }
+
         val nameView = TextView(this).apply {
             text = label
             textSize = 14f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val activeBadge = TextView(this).apply {
+            text = "ACTIVE"
+            textSize = 12f
+            setPadding(dpToPx(6), dpToPx(2), dpToPx(6), dpToPx(2))
+            visibility = if (isActive) View.VISIBLE else View.GONE
         }
 
         val slider = SeekBar(this).apply {
@@ -162,7 +211,9 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
+        row.addView(iconView)
         row.addView(nameView)
+        row.addView(activeBadge)
         row.addView(slider)
         return row
     }
@@ -183,4 +234,20 @@ class MainActivity : AppCompatActivity() {
             packageName
         }
     }
+
+    private fun resolveIcon(packageName: String) = try {
+        val appInfo = packageManager.getApplicationInfo(packageName, 0)
+        packageManager.getApplicationIcon(appInfo)
+    } catch (_: Exception) {
+        getDrawable(android.R.drawable.sym_def_app_icon)
+    }
+
+    private fun dpToPx(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private data class AppEntry(
+        val packageName: String,
+        val label: String,
+    )
 }
