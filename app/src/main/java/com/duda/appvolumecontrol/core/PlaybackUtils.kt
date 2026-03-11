@@ -7,21 +7,39 @@ import android.util.Log
 object PlaybackUtils {
     private const val TAG = "PlaybackUtils"
 
+    private val clientPackageMethod = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredMethod("getClientPackageName").apply {
+            isAccessible = true
+        }
+    }.getOrNull()
+
+    private val clientUidMethod = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredMethod("getClientUid").apply {
+            isAccessible = true
+        }
+    }.getOrNull()
+
+    private val playerProxyMethod = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredMethod("getPlayerProxy").apply {
+            isAccessible = true
+        }
+    }.getOrNull()
+
     fun getClientPackageName(
         config: AudioPlaybackConfiguration,
         packageManager: PackageManager
     ): String? {
         try {
-            val method = AudioPlaybackConfiguration::class.java.getDeclaredMethod("getClientPackageName")
-            method.isAccessible = true
-            return method.invoke(config) as? String
+            val method = clientPackageMethod
+            if (method != null) {
+                return method.invoke(config) as? String
+            }
         } catch (_: Throwable) {
             // Fallback to resolving by UID if hidden API is blocked.
         }
 
         return try {
-            val uidMethod = AudioPlaybackConfiguration::class.java.getDeclaredMethod("getClientUid")
-            uidMethod.isAccessible = true
+            val uidMethod = clientUidMethod ?: return null
             val uid = uidMethod.invoke(config) as? Int ?: return null
             val packages = packageManager.getPackagesForUid(uid)
             packages?.firstOrNull()
@@ -33,8 +51,7 @@ object PlaybackUtils {
 
     fun applyVolumeToPlayer(config: AudioPlaybackConfiguration, volume: Float): Boolean {
         return try {
-            val method = AudioPlaybackConfiguration::class.java.getDeclaredMethod("getPlayerProxy")
-            method.isAccessible = true
+            val method = playerProxyMethod ?: return false
             val playerProxy = method.invoke(config) ?: return false
             val setVolume = try {
                 playerProxy.javaClass.getDeclaredMethod("setVolume", Float::class.javaPrimitiveType)
