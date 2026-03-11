@@ -7,6 +7,7 @@
 - `android.permission.QUERY_ALL_PACKAGES`: Enumerate installed apps for presets list.
 - `android.permission.FOREGROUND_SERVICE`: Run the playback controller as a foreground service.
 - `android.permission.WRITE_SECURE_SETTINGS`: Attempt to relax hidden API policy via Settings.Global.
+- `android.permission.POST_NOTIFICATIONS`: Allow foreground service notification on Android 13+.
 
 ## Privapp whitelist
 The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant signature/privileged permissions to the app when installed as a system app.

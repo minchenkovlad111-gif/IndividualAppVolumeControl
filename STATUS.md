@@ -29,6 +29,7 @@
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
 - Documented module packaging script usage.
+- Added POST_NOTIFICATIONS permission for Android 13+ foreground notifications.
 - Sorted active apps alphabetically by label.
 
 ## Last updated
