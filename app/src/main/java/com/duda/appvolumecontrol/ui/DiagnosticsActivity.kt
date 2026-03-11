@@ -230,6 +230,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         manager.setPrimaryClip(ClipData.newPlainText("presets", json))
         diagnosticsStore.recordLastExport(volumeStore.countPresets())
         Toast.makeText(this, "Exported ${volumeStore.countPresets()} presets", Toast.LENGTH_SHORT).show()
+        refresh()
     }
 
     private fun importPresets(replace: Boolean = false) {
@@ -266,6 +267,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             putExtra(Intent.EXTRA_TEXT, json)
         }
         diagnosticsStore.recordLastExport(volumeStore.countPresets())
+        refresh()
         startActivity(Intent.createChooser(sendIntent, "Share presets"))
     }
 

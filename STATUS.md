@@ -79,6 +79,7 @@
 - Suppressed compileSdk 35 AGP warning in gradle.properties.
 - Documented compileSdk warning suppression in build notes.
 - Noted hidden permission constants in permissions doc.
+- Refresh diagnostics after preset export/share to show updated timestamps.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
