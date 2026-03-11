@@ -86,6 +86,7 @@
 - Clarified POST_NOTIFICATIONS status output for pre-Android 13 devices.
 - Added app package to diagnostics report.
 - Added preset count metadata to preset exports.
+- Added active package count line in diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

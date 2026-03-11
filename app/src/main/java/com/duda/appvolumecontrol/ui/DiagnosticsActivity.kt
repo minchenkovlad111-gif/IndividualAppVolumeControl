@@ -181,6 +181,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
             "Active configs now: ${activeConfigs.size}",
+            "Active packages count: ${activePackages.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "Stored presets: $presetCount",
             "Last import count: ${snapshot.lastImportCount}",
