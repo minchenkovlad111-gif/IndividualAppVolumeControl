@@ -46,6 +46,7 @@
 - Added replace/share options for preset import/export.
 - Added "Mute active" quick action.
 - Added export tracking and metadata for presets.
+- Added active config count to diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

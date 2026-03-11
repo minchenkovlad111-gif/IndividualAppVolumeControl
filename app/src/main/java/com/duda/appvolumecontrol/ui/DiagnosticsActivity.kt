@@ -130,7 +130,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
         val audioManager = getSystemService(AudioManager::class.java)
-        val activePackages = audioManager.activePlaybackConfigurations
+        val activeConfigs = audioManager.activePlaybackConfigurations
+        val activePackages = activeConfigs
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
         val presetCount = volumeStore.countPresets()
@@ -153,6 +154,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last active time: $lastActiveTime",
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
+            "Active configs now: ${activeConfigs.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
             "Stored presets: $presetCount",
             "Last import count: ${snapshot.lastImportCount}",
