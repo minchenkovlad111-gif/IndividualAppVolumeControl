@@ -16,6 +16,7 @@
 ## Hidden API strategy
 - Attempt `VMRuntime.setHiddenApiExemptions` to relax reflection limits.
 - As a fallback, try setting hidden API policy via `Settings.Global` (requires `WRITE_SECURE_SETTINGS`).
+- Cache reflected `setVolume` method lookups per player proxy class to reduce per-apply overhead.
 
 ## Compatibility
 - Target: Android 15 (API 35).
