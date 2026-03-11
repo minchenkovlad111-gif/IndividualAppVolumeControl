@@ -43,8 +43,9 @@ class PlaybackControllerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_REAPPLY) {
-            safeApplyVolumes(audioManager.activePlaybackConfigurations)
+        when (intent?.action) {
+            ACTION_REAPPLY -> safeApplyVolumes(audioManager.activePlaybackConfigurations)
+            ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
         }
         return START_STICKY
     }
@@ -81,6 +82,18 @@ class PlaybackControllerService : Service() {
         }
     }
 
+    private fun dumpActiveConfigs() {
+        try {
+            val configs = audioManager.activePlaybackConfigurations
+            diagnosticsStore.recordLastDump(configs.size)
+            val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }.distinct()
+            Log.i(TAG, "Diagnostics dump: active=${configs.size} packages=$packages")
+        } catch (t: Throwable) {
+            Log.e(TAG, "Diagnostics dump failed", t)
+            diagnosticsStore.recordLastError(t.javaClass.simpleName + ": " + (t.message ?: "unknown"))
+        }
+    }
+
     private fun buildNotification(): Notification {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -103,10 +116,17 @@ class PlaybackControllerService : Service() {
         private const val CHANNEL_ID = "app_volume_control"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_REAPPLY = "com.duda.appvolumecontrol.action.REAPPLY"
+        const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
 
         fun requestReapply(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
             intent.action = ACTION_REAPPLY
+            context.startForegroundService(intent)
+        }
+
+        fun requestDiagnosticsDump(context: Context) {
+            val intent = Intent(context, PlaybackControllerService::class.java)
+            intent.action = ACTION_DIAGNOSTICS_DUMP
             context.startForegroundService(intent)
         }
     }

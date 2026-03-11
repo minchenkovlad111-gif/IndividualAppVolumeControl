@@ -15,6 +15,7 @@
 - Build attempt blocked by wrapper download (no network access in this environment).
 - Added diagnostics screen and runtime stats tracking.
 - Added Magisk module packaging script.
+- Added diagnostics self-test action and service dump logging.
 
 ## Last updated
 - 2026-03-11

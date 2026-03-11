@@ -26,6 +26,13 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordLastDump(count: Int) {
+        prefs.edit()
+            .putInt(KEY_LAST_DUMP_COUNT, count)
+            .putLong(KEY_LAST_DUMP_TIME, System.currentTimeMillis())
+            .apply()
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
@@ -34,6 +41,8 @@ class DiagnosticsStore(context: Context) {
             lastApplyTime = prefs.getLong(KEY_LAST_APPLY_TIME, 0L),
             lastActiveCount = prefs.getInt(KEY_LAST_ACTIVE_COUNT, 0),
             lastActiveTime = prefs.getLong(KEY_LAST_ACTIVE_TIME, 0L),
+            lastDumpCount = prefs.getInt(KEY_LAST_DUMP_COUNT, 0),
+            lastDumpTime = prefs.getLong(KEY_LAST_DUMP_TIME, 0L),
         )
     }
 
@@ -44,6 +53,8 @@ class DiagnosticsStore(context: Context) {
         val lastApplyTime: Long,
         val lastActiveCount: Int,
         val lastActiveTime: Long,
+        val lastDumpCount: Int,
+        val lastDumpTime: Long,
     )
 
     companion object {
@@ -54,5 +65,7 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_APPLY_TIME = "last_apply_time"
         private const val KEY_LAST_ACTIVE_COUNT = "last_active_count"
         private const val KEY_LAST_ACTIVE_TIME = "last_active_time"
+        private const val KEY_LAST_DUMP_COUNT = "last_dump_count"
+        private const val KEY_LAST_DUMP_TIME = "last_dump_time"
     }
 }

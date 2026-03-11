@@ -11,6 +11,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.service.PlaybackControllerService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,6 +39,14 @@ class DiagnosticsActivity : AppCompatActivity() {
             setOnClickListener { refresh() }
         }
 
+        val selfTestButton = Button(this).apply {
+            text = "Run self-test"
+            setOnClickListener {
+                PlaybackControllerService.requestDiagnosticsDump(this@DiagnosticsActivity)
+                refresh()
+            }
+        }
+
         contentView = TextView(this).apply {
             textSize = 14f
             setPadding(0, 16, 0, 16)
@@ -45,6 +54,7 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(refreshButton)
+        root.addView(selfTestButton)
         root.addView(contentView)
 
         val scroll = ScrollView(this).apply {
@@ -62,6 +72,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val lastErrorTime = formatTime(snapshot.lastErrorTime, dateFormat)
         val lastApplyTime = formatTime(snapshot.lastApplyTime, dateFormat)
         val lastActiveTime = formatTime(snapshot.lastActiveTime, dateFormat)
+        val lastDumpTime = formatTime(snapshot.lastDumpTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -77,6 +88,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last apply time: $lastApplyTime",
             "Last active count: ${snapshot.lastActiveCount}",
             "Last active time: $lastActiveTime",
+            "Last dump count: ${snapshot.lastDumpCount}",
+            "Last dump time: $lastDumpTime",
             "hidden_api_policy: ${hiddenApiPolicy ?: "-"}",
             "hidden_api_policy_pre_p_apps: ${hiddenApiPolicyPreP ?: "-"}",
             "hidden_api_policy_p_apps: ${hiddenApiPolicyP ?: "-"}",
