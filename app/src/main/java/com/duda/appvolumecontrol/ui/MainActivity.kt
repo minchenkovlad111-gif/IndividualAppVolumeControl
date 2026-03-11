@@ -117,6 +117,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val halfActiveButton = Button(this).apply {
+            text = "Active 50%"
+            setOnClickListener {
+                for (packageName in activePackages) {
+                    volumeStore.setVolume(packageName, 0.5f)
+                }
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updatePresetApps()
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
         val diagnosticsButton = Button(this).apply {
             text = "Diagnostics"
             setOnClickListener {
@@ -177,6 +189,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(resetButton)
         root.addView(boostActiveButton)
         root.addView(muteActiveButton)
+        root.addView(halfActiveButton)
         root.addView(diagnosticsButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
