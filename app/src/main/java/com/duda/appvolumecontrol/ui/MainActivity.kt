@@ -185,7 +185,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         presetTitle = TextView(this).apply {
-            text = "Presets"
+            text = "Saved volumes"
             textSize = 16f
             setPadding(0, 24, 0, 8)
         }
@@ -317,7 +317,7 @@ class MainActivity : AppCompatActivity() {
                     it.packageName.lowercase().contains(trimmedFilter)
             }
         }
-        presetTitle.text = "Presets (${packages.size})"
+        presetTitle.text = "Saved volumes (${packages.size})"
 
         if (packages.isEmpty()) {
             val message = if (trimmedFilter.isBlank()) {
