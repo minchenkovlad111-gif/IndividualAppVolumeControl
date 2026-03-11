@@ -9,6 +9,7 @@
 - Added initial app/service skeleton and Magisk module template.
 - Added basic UI with active session list and preset list sliders.
 - Added app icons, active indicators, and preset search filter.
+- Added hidden API bypass attempts via VMRuntime and Settings.Global.
 
 ## Last updated
 - 2026-03-11

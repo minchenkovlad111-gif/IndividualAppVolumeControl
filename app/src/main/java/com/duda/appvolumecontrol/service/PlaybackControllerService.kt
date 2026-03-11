@@ -29,7 +29,7 @@ class PlaybackControllerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        HiddenApi.tryAllowHiddenApiAccess()
+        HiddenApi.tryAllowHiddenApiAccess(this)
         startForeground(NOTIFICATION_ID, buildNotification())
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         applyVolumes(audioManager.activePlaybackConfigurations)

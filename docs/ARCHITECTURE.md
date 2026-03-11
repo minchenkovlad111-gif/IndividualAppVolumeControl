@@ -10,6 +10,10 @@
 3. Lookup per-app volume in `VolumeStore`.
 4. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
 
+## Hidden API strategy
+- Attempt `VMRuntime.setHiddenApiExemptions` to relax reflection limits.
+- As a fallback, try setting hidden API policy via `Settings.Global` (requires `WRITE_SECURE_SETTINGS`).
+
 ## Compatibility
 - Target: Android 15 (API 35).
 - Minimum: Android 8.0 (API 26) to access AudioPlaybackConfiguration.
