@@ -252,16 +252,20 @@ class DiagnosticsActivity : AppCompatActivity() {
             Toast.makeText(this, "Clipboard has no text", Toast.LENGTH_SHORT).show()
             return
         }
+        var importFailed = false
         val count = try {
             if (replace) {
                 volumeStore.clearAll()
             }
             volumeStore.importJson(text)
         } catch (_: Exception) {
+            importFailed = true
             0
         }
         diagnosticsStore.recordLastImport(count)
-        if (count == 0) {
+        if (importFailed) {
+            Toast.makeText(this, "Import failed", Toast.LENGTH_SHORT).show()
+        } else if (count == 0) {
             Toast.makeText(this, "No presets imported", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "Imported $count presets", Toast.LENGTH_SHORT).show()

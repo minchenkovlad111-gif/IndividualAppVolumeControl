@@ -90,6 +90,7 @@
 - Cached player setVolume lookup per proxy class for faster apply.
 - Documented setVolume method caching in architecture notes.
 - Improved empty-state messaging for presets list.
+- Added explicit import-failure toast in diagnostics.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
