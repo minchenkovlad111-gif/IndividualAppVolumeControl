@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.View
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.pm.PackageManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -22,6 +23,7 @@ import android.text.TextUtils
 import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
@@ -246,6 +248,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        maybeRequestNotifications()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         handler.post(refreshRunnable)
     }
@@ -432,6 +435,20 @@ class MainActivity : AppCompatActivity() {
         lastUpdatedView.text = "Last updated: $time | Active: ${activePackages.size}"
     }
 
+    private fun maybeRequestNotifications() {
+        if (android.os.Build.VERSION.SDK_INT < 33) return
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_NOTIFICATIONS
+        )
+    }
+
     private fun resolveIcon(packageName: String): Drawable? {
         return iconCache[packageName] ?: try {
             val appInfo = packageManager.getApplicationInfo(packageName, 0)
@@ -460,5 +477,6 @@ class MainActivity : AppCompatActivity() {
         private const val REFRESH_INTERVAL_MS = 2000L
         private const val PREFS_NAME = "ui_prefs"
         private const val KEY_SHOW_ALL = "show_all_apps"
+        private const val REQUEST_NOTIFICATIONS = 100
     }
 }
