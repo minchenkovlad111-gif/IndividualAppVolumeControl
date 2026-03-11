@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -57,7 +58,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         val selfTestButton = Button(this).apply {
-            text = "Run self-test"
+            text = "Self-test"
             setOnClickListener {
                 PlaybackControllerService.requestDiagnosticsDump(this@DiagnosticsActivity)
                 refresh()
@@ -75,18 +76,27 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         val exportButton = Button(this).apply {
-            text = "Export presets"
+            text = "Copy presets"
             setOnClickListener { exportPresets() }
         }
 
         val importButton = Button(this).apply {
-            text = "Import presets"
+            text = "Paste presets"
             setOnClickListener { importPresets() }
         }
 
         val importReplaceButton = Button(this).apply {
-            text = "Import replace"
-            setOnClickListener { importPresets(replace = true) }
+            text = "Replace presets"
+            setOnClickListener {
+                AlertDialog.Builder(this@DiagnosticsActivity)
+                    .setTitle("Replace presets")
+                    .setMessage("This clears saved presets before importing.")
+                    .setPositiveButton("Replace") { _, _ ->
+                        importPresets(replace = true)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
         }
 
         val sharePresetsButton = Button(this).apply {
