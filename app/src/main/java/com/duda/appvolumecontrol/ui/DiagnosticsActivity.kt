@@ -166,6 +166,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val lines = listOf(
             "SDK: ${android.os.Build.VERSION.SDK_INT}",
             "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+            "App package: $packageName",
             "App version: $versionName ($versionCode)",
             "Target SDK: $targetSdk",
             "System app: $isSystemApp",

@@ -84,6 +84,7 @@
 - Sorted active packages in diagnostics report.
 - Removed redundant preset refresh calls in main UI actions.
 - Clarified POST_NOTIFICATIONS status output for pre-Android 13 devices.
+- Added app package to diagnostics report.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
