@@ -15,4 +15,8 @@ class VolumeStore(context: Context) {
     fun getVolume(packageName: String): Float? {
         return if (prefs.contains(packageName)) prefs.getFloat(packageName, 1f) else null
     }
+
+    fun clearAll() {
+        prefs.edit().clear().apply()
+    }
 }

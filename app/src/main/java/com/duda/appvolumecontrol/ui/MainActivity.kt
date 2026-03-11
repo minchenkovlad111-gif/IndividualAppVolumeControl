@@ -74,6 +74,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val resetButton = Button(this).apply {
+            text = "Reset presets"
+            setOnClickListener {
+                volumeStore.clearAll()
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updatePresetApps()
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
         val diagnosticsButton = Button(this).apply {
             text = "Diagnostics"
             setOnClickListener {
@@ -116,6 +126,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(refreshButton)
+        root.addView(resetButton)
         root.addView(diagnosticsButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
