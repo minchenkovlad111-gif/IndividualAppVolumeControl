@@ -148,6 +148,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val activePackages = activeConfigs
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
+            .sorted()
         val presetCount = volumeStore.countPresets()
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
