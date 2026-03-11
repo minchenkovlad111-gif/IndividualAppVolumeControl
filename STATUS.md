@@ -33,6 +33,7 @@
 - Added toast feedback for preset import.
 - Added compatibility tracking doc.
 - Pruned stale playback keys after each apply.
+- Documented compatibility matrix in README.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
