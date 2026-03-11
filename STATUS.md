@@ -74,6 +74,7 @@
 - Clarified privileged vs runtime permissions in permissions doc.
 - Added active count to last-updated UI and ensured presets load when empty.
 - Avoided hidden SDK constants in diagnostics so builds succeed.
+- Ran assembleDebug; build succeeds with compileSdk 35 warning on AGP 8.5.2.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
