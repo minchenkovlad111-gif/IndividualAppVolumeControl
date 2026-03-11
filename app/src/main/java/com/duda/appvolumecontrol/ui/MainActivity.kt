@@ -9,6 +9,7 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var activeContainer: LinearLayout
     private lateinit var presetContainer: LinearLayout
     private lateinit var presetSearch: EditText
+    private lateinit var showAllAppsToggle: CheckBox
     private lateinit var lastUpdatedView: TextView
     private var presetEntries: List<AppEntry> = emptyList()
     private var activePackages: Set<String> = emptySet()
@@ -113,6 +115,14 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 24, 0, 8)
         }
 
+        showAllAppsToggle = CheckBox(this).apply {
+            text = "Show all apps"
+            setOnCheckedChangeListener { _, isChecked ->
+                loadPresetApps(isChecked)
+                updatePresetApps()
+            }
+        }
+
         presetSearch = EditText(this).apply {
             hint = "Filter apps"
             textSize = 14f
@@ -132,6 +142,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeTitle)
         root.addView(activeContainer)
         root.addView(presetTitle)
+        root.addView(showAllAppsToggle)
         root.addView(presetSearch)
         root.addView(presetContainer)
 
@@ -143,7 +154,7 @@ class MainActivity : AppCompatActivity() {
 
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
         updateActiveApps(audioManager.activePlaybackConfigurations)
-        loadPresetApps()
+        loadPresetApps(showAllAppsToggle.isChecked)
         updatePresetApps()
     }
 
@@ -179,13 +190,17 @@ class MainActivity : AppCompatActivity() {
         updatePresetApps()
     }
 
-    private fun loadPresetApps() {
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
+    private fun loadPresetApps(showAll: Boolean) {
+        val packages = if (showAll) {
+            packageManager.getInstalledApplications(0).map { it.packageName }
+        } else {
+            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
+            packageManager.queryIntentActivities(mainIntent, 0).map { it.activityInfo.packageName }
         }
-        val activities = packageManager.queryIntentActivities(mainIntent, 0)
-        presetEntries = activities
-            .map { it.activityInfo.packageName }
+
+        presetEntries = packages
             .distinct()
             .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
             .sortedBy { it.label.lowercase() }
