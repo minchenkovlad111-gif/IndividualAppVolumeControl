@@ -276,7 +276,7 @@ class MainActivity : AppCompatActivity() {
 
         if (packages.isEmpty()) {
             activePackages = emptySet()
-            activeContainer.addView(buildEmptyRow("No active audio sessions."))
+            activeContainer.addView(buildEmptyRow("No active audio. Start playing music or video."))
             updatePresetApps()
             return
         }
