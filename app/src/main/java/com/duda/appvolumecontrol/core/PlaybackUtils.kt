@@ -25,6 +25,8 @@ object PlaybackUtils {
         }
     }.getOrNull()
 
+    private val setVolumeMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
+
     fun getClientPackageName(
         config: AudioPlaybackConfiguration,
         packageManager: PackageManager
@@ -53,16 +55,23 @@ object PlaybackUtils {
         return try {
             val method = playerProxyMethod ?: return false
             val playerProxy = method.invoke(config) ?: return false
-            val setVolume = try {
-                playerProxy.javaClass.getDeclaredMethod("setVolume", Float::class.javaPrimitiveType)
-            } catch (_: Throwable) {
-                playerProxy.javaClass.getDeclaredMethod(
-                    "setVolume",
-                    Float::class.javaPrimitiveType,
-                    Int::class.javaPrimitiveType
-                )
+            val proxyClass = playerProxy.javaClass
+            val setVolume = synchronized(setVolumeMethodCache) {
+                setVolumeMethodCache[proxyClass] ?: run {
+                    val resolved = try {
+                        proxyClass.getDeclaredMethod("setVolume", Float::class.javaPrimitiveType)
+                    } catch (_: Throwable) {
+                        proxyClass.getDeclaredMethod(
+                            "setVolume",
+                            Float::class.javaPrimitiveType,
+                            Int::class.javaPrimitiveType
+                        )
+                    }
+                    resolved.isAccessible = true
+                    setVolumeMethodCache[proxyClass] = resolved
+                    resolved
+                }
             }
-            setVolume.isAccessible = true
             if (setVolume.parameterTypes.size == 2) {
                 setVolume.invoke(playerProxy, volume, 0)
             } else {

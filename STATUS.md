@@ -87,6 +87,7 @@
 - Added app package to diagnostics report.
 - Added preset count metadata to preset exports.
 - Added active package count line in diagnostics.
+- Cached player setVolume lookup per proxy class for faster apply.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
