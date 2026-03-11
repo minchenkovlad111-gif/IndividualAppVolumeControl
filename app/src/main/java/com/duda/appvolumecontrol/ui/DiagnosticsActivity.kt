@@ -91,6 +91,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val lastApplyTime = formatTime(snapshot.lastApplyTime, dateFormat)
         val lastActiveTime = formatTime(snapshot.lastActiveTime, dateFormat)
         val lastDumpTime = formatTime(snapshot.lastDumpTime, dateFormat)
+        val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -120,6 +121,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
+            "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
+            "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
+            "Hidden API last attempt: $hiddenApiTime",
             "hidden_api_policy: ${hiddenApiPolicy ?: "-"}",
             "hidden_api_policy_pre_p_apps: ${hiddenApiPolicyPreP ?: "-"}",
             "hidden_api_policy_p_apps: ${hiddenApiPolicyP ?: "-"}",
@@ -141,6 +145,14 @@ class DiagnosticsActivity : AppCompatActivity() {
     private fun formatTime(value: Long, dateFormat: SimpleDateFormat): String {
         if (value <= 0L) return "-"
         return dateFormat.format(Date(value))
+    }
+
+    private fun formatTriState(value: Int): String {
+        return when (value) {
+            1 -> "yes"
+            0 -> "no"
+            else -> "-"
+        }
     }
 
     private fun copyReport() {

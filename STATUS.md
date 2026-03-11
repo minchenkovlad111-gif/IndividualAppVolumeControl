@@ -25,6 +25,7 @@
 - Added reset button to clear all stored presets.
 - Added device/app flags to diagnostics report.
 - Added live active package list to diagnostics report.
+- Added hidden API attempt status to diagnostics report.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

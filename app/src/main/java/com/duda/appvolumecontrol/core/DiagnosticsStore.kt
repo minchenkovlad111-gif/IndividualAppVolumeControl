@@ -33,6 +33,18 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordHiddenApiAttempt(vmRuntimeOk: Boolean?, policyOk: Boolean?) {
+        val editor = prefs.edit()
+        if (vmRuntimeOk != null) {
+            editor.putInt(KEY_HIDDEN_API_VM_OK, if (vmRuntimeOk) 1 else 0)
+        }
+        if (policyOk != null) {
+            editor.putInt(KEY_HIDDEN_API_POLICY_OK, if (policyOk) 1 else 0)
+        }
+        editor.putLong(KEY_HIDDEN_API_TIME, System.currentTimeMillis())
+        editor.apply()
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
@@ -43,6 +55,9 @@ class DiagnosticsStore(context: Context) {
             lastActiveTime = prefs.getLong(KEY_LAST_ACTIVE_TIME, 0L),
             lastDumpCount = prefs.getInt(KEY_LAST_DUMP_COUNT, 0),
             lastDumpTime = prefs.getLong(KEY_LAST_DUMP_TIME, 0L),
+            hiddenApiVmRuntimeOk = prefs.getInt(KEY_HIDDEN_API_VM_OK, -1),
+            hiddenApiPolicyOk = prefs.getInt(KEY_HIDDEN_API_POLICY_OK, -1),
+            hiddenApiTime = prefs.getLong(KEY_HIDDEN_API_TIME, 0L),
         )
     }
 
@@ -55,6 +70,9 @@ class DiagnosticsStore(context: Context) {
         val lastActiveTime: Long,
         val lastDumpCount: Int,
         val lastDumpTime: Long,
+        val hiddenApiVmRuntimeOk: Int,
+        val hiddenApiPolicyOk: Int,
+        val hiddenApiTime: Long,
     )
 
     companion object {
@@ -67,5 +85,8 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_ACTIVE_TIME = "last_active_time"
         private const val KEY_LAST_DUMP_COUNT = "last_dump_count"
         private const val KEY_LAST_DUMP_TIME = "last_dump_time"
+        private const val KEY_HIDDEN_API_VM_OK = "hidden_api_vm_ok"
+        private const val KEY_HIDDEN_API_POLICY_OK = "hidden_api_policy_ok"
+        private const val KEY_HIDDEN_API_TIME = "hidden_api_time"
     }
 }

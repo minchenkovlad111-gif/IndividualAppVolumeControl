@@ -9,6 +9,9 @@ object HiddenApi {
     private const val TAG = "HiddenApi"
 
     fun tryAllowHiddenApiAccess(context: Context) {
+        var vmRuntimeOk: Boolean? = null
+        var policyOk: Boolean? = null
+
         try {
             val vmRuntimeClass = Class.forName("dalvik.system.VMRuntime")
             val getRuntime = vmRuntimeClass.getDeclaredMethod("getRuntime")
@@ -19,8 +22,10 @@ object HiddenApi {
             val runtime = getRuntime.invoke(null)
             setExemptions.invoke(runtime, arrayOf("L"))
             Log.i(TAG, "Hidden API exemptions applied via VMRuntime")
+            vmRuntimeOk = true
         } catch (t: Throwable) {
             Log.w(TAG, "Hidden API exemption via VMRuntime failed", t)
+            vmRuntimeOk = false
         }
 
         try {
@@ -35,8 +40,12 @@ object HiddenApi {
                 }
             }
             Log.i(TAG, "Hidden API policy updated via Settings.Global")
+            policyOk = true
         } catch (t: Throwable) {
             Log.w(TAG, "Hidden API policy update failed", t)
+            policyOk = false
         }
+
+        DiagnosticsStore(context).recordHiddenApiAttempt(vmRuntimeOk, policyOk)
     }
 }
