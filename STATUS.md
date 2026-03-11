@@ -72,6 +72,7 @@
 - Added toast confirmation for diagnostics report copy.
 - Added toast confirmation for package copy.
 - Clarified privileged vs runtime permissions in permissions doc.
+- Added active count to last-updated UI and ensured presets load when empty.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

@@ -237,6 +237,7 @@ class MainActivity : AppCompatActivity() {
         activeTitle.text = "Active audio (${packages.size})"
 
         if (packages.isEmpty()) {
+            activePackages = emptySet()
             activeContainer.addView(buildEmptyRow("No active audio sessions."))
             updatePresetApps()
             return
@@ -266,6 +267,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun updatePresetApps(filter: String = presetSearch.text?.toString().orEmpty()) {
         presetContainer.removeAllViews()
+        if (presetEntries.isEmpty()) {
+            loadPresetApps(showAllAppsToggle.isChecked)
+        }
         val trimmedFilter = filter.trim().lowercase()
         val packages = if (trimmedFilter.isBlank()) {
             presetEntries
@@ -391,7 +395,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateLastUpdated() {
         val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-        lastUpdatedView.text = "Last updated: $time"
+        lastUpdatedView.text = "Last updated: $time | Active: ${activePackages.size}"
     }
 
     private fun resolveIcon(packageName: String): Drawable? {
