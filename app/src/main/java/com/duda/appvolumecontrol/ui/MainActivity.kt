@@ -88,6 +88,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val boostActiveButton = Button(this).apply {
+            text = "Max active"
+            setOnClickListener {
+                for (packageName in activePackages) {
+                    volumeStore.setVolume(packageName, 1f)
+                }
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updatePresetApps()
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
         val diagnosticsButton = Button(this).apply {
             text = "Diagnostics"
             setOnClickListener {
@@ -139,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(header)
         root.addView(refreshButton)
         root.addView(resetButton)
+        root.addView(boostActiveButton)
         root.addView(diagnosticsButton)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)

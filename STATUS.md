@@ -28,6 +28,7 @@
 - Added hidden API attempt status to diagnostics report.
 - Added stored preset count to diagnostics report.
 - Added preset export/import via clipboard in diagnostics.
+- Added "Max active" quick action.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
