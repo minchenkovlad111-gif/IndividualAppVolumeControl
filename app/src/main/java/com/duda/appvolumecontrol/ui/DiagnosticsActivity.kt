@@ -130,10 +130,16 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
-        val hasPostNotifications = if (android.os.Build.VERSION.SDK_INT >= 33) {
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val postNotificationsStatus = if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                "granted"
+            } else {
+                "denied"
+            }
         } else {
-            true
+            "n/a"
         }
         val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
@@ -187,7 +193,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "hidden_api_policy_pre_p_apps: ${hiddenApiPolicyPreP ?: "-"}",
             "hidden_api_policy_p_apps: ${hiddenApiPolicyP ?: "-"}",
             "WRITE_SECURE_SETTINGS granted: $hasWriteSecureSettings",
-            "POST_NOTIFICATIONS granted: $hasPostNotifications",
+            "POST_NOTIFICATIONS: $postNotificationsStatus",
             "MODIFY_AUDIO_SETTINGS granted: $hasModifyAudio",
             "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
             "QUERY_ALL_PACKAGES granted: $hasQueryAllPackages",
