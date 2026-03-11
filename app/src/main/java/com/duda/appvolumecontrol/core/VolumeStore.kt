@@ -29,6 +29,7 @@ class VolumeStore(context: Context) {
         val obj = JSONObject()
         obj.put("_version", 1)
         obj.put("_exported_at", System.currentTimeMillis())
+        obj.put("_preset_count", prefs.all.size)
         val keys = prefs.all.keys.sorted()
         for (key in keys) {
             val value = prefs.all[key]

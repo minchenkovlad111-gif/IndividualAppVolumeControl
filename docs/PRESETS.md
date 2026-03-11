@@ -12,6 +12,7 @@ Example:
 {
   "_version": 1,
   "_exported_at": 1710170000000,
+  "_preset_count": 2,
   "com.example.music": 0.7,
   "com.example.podcast": 1.0
 }
