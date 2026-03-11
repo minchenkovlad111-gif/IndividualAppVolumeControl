@@ -1,7 +1,10 @@
 package com.duda.appvolumecontrol.ui
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -19,6 +22,7 @@ import java.util.Locale
 class DiagnosticsActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
+    private var lastReport: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +51,16 @@ class DiagnosticsActivity : AppCompatActivity() {
             }
         }
 
+        val copyButton = Button(this).apply {
+            text = "Copy report"
+            setOnClickListener { copyReport() }
+        }
+
+        val shareButton = Button(this).apply {
+            text = "Share report"
+            setOnClickListener { shareReport() }
+        }
+
         contentView = TextView(this).apply {
             textSize = 14f
             setPadding(0, 16, 0, 16)
@@ -55,6 +69,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(header)
         root.addView(refreshButton)
         root.addView(selfTestButton)
+        root.addView(copyButton)
+        root.addView(shareButton)
         root.addView(contentView)
 
         val scroll = ScrollView(this).apply {
@@ -96,7 +112,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "WRITE_SECURE_SETTINGS granted: $hasWriteSecureSettings",
         )
 
-        contentView.text = lines.joinToString("\n")
+        lastReport = lines.joinToString("\n")
+        contentView.text = lastReport
     }
 
     private fun readGlobalInt(key: String): Int? {
@@ -110,5 +127,18 @@ class DiagnosticsActivity : AppCompatActivity() {
     private fun formatTime(value: Long, dateFormat: SimpleDateFormat): String {
         if (value <= 0L) return "-"
         return dateFormat.format(Date(value))
+    }
+
+    private fun copyReport() {
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
+    }
+
+    private fun shareReport() {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, lastReport)
+        }
+        startActivity(Intent.createChooser(sendIntent, "Share diagnostics"))
     }
 }

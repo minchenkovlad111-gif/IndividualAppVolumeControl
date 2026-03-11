@@ -16,6 +16,7 @@
 - Added diagnostics screen and runtime stats tracking.
 - Added Magisk module packaging script.
 - Added diagnostics self-test action and service dump logging.
+- Added diagnostics report copy/share actions.
 
 ## Last updated
 - 2026-03-11
