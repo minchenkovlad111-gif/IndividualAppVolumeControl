@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
+import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lastUpdatedView: TextView
     private var presetEntries: List<AppEntry> = emptyList()
     private var activePackages: Set<String> = emptySet()
+    private val iconCache = mutableMapOf<String, Drawable>()
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -329,11 +331,13 @@ class MainActivity : AppCompatActivity() {
         lastUpdatedView.text = "Last updated: $time"
     }
 
-    private fun resolveIcon(packageName: String) = try {
-        val appInfo = packageManager.getApplicationInfo(packageName, 0)
-        packageManager.getApplicationIcon(appInfo)
-    } catch (_: Exception) {
-        getDrawable(android.R.drawable.sym_def_app_icon)
+    private fun resolveIcon(packageName: String): Drawable? {
+        return iconCache[packageName] ?: try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationIcon(appInfo).also { iconCache[packageName] = it }
+        } catch (_: Exception) {
+            getDrawable(android.R.drawable.sym_def_app_icon)
+        }
     }
 
     private fun dpToPx(value: Int): Int {
