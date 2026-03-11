@@ -17,6 +17,7 @@
 - Added Magisk module packaging script.
 - Added diagnostics self-test action and service dump logging.
 - Added diagnostics report copy/share actions.
+- Documented offline Gradle distribution seeding.
 
 ## Last updated
 - 2026-03-11
