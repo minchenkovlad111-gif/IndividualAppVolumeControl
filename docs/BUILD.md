@@ -3,9 +3,10 @@
 ## Requirements
 - Android SDK with API 35 installed.
 - JDK 17.
-- Gradle (wrapper to be added).
+- Gradle wrapper jar (not generated in this environment).
 
 ## App build (debug)
+- Ensure `gradle/wrapper/gradle-wrapper.jar` exists (generate via `gradle wrapper` on a machine with Gradle installed).
 - `./gradlew :app:assembleDebug`
 
 ## Module packaging
