@@ -11,6 +11,7 @@ import android.media.AudioPlaybackConfiguration
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.content.pm.ServiceInfo
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -33,7 +34,16 @@ class PlaybackControllerService : Service() {
     override fun onCreate() {
         super.onCreate()
         HiddenApi.tryAllowHiddenApiAccess(this)
-        startForeground(NOTIFICATION_ID, buildNotification(-1))
+        val notification = buildNotification(-1)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         safeApplyVolumes(audioManager.activePlaybackConfigurations)
     }
