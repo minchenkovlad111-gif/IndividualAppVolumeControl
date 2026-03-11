@@ -8,6 +8,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -311,6 +313,10 @@ class MainActivity : AppCompatActivity() {
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnLongClickListener {
+                copyToClipboard(packageName)
+                true
+            }
         }
 
         val activeBadge = TextView(this).apply {
@@ -394,6 +400,11 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {
             getDrawable(android.R.drawable.sym_def_app_icon)
         }
+    }
+
+    private fun copyToClipboard(text: String) {
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("package", text))
     }
 
     private fun dpToPx(value: Int): Int {

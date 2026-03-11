@@ -60,6 +60,7 @@
 - Cached hidden method lookups in PlaybackUtils.
 - Added POST_NOTIFICATIONS status to diagnostics.
 - Added target SDK to diagnostics.
+- Added package-name copy on long-press of app labels.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
