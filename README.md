@@ -10,6 +10,7 @@ A root-required Android app + Magisk module for per-app volume control, designed
 - `module/`: Magisk module that installs the app as a system-privileged app
 - `docs/`: design, research, and build notes
 - `docs/COMPATIBILITY.md`: device testing matrix
+- `docs/PRESETS.md`: preset export/import format
 - `TODO.md`: prioritized tasks
 - `STATUS.md`: current work log
 
