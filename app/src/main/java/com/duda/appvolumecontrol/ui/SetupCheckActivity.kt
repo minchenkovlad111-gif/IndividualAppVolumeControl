@@ -22,6 +22,7 @@ class SetupCheckActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
     private lateinit var statusView: TextView
+    private lateinit var fixView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,8 +46,13 @@ class SetupCheckActivity : AppCompatActivity() {
 
         statusView = TextView(this).apply {
             text = "Ready: checking..."
-            textSize = 16f
-            setPadding(0, 8, 0, 8)
+            textSize = 20f
+            setPadding(0, 12, 0, 4)
+        }
+
+        fixView = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, 0, 0, 8)
         }
 
         val refreshButton = Button(this).apply {
@@ -72,6 +78,7 @@ class SetupCheckActivity : AppCompatActivity() {
         root.addView(header)
         root.addView(helper)
         root.addView(statusView)
+        root.addView(fixView)
         root.addView(refreshButton)
         root.addView(copyButton)
         root.addView(diagnosticsButton)
@@ -113,6 +120,11 @@ class SetupCheckActivity : AppCompatActivity() {
         }
         statusView.text = readyLine
         statusView.setTextColor(if (ready) 0xFF1B5E20.toInt() else 0xFFB71C1C.toInt())
+        fixView.text = if (ready) {
+            "Great! You can control per-app volume now."
+        } else {
+            buildFixText(isSystemApp, isPrivApp, hasModifyAudio, hiddenApiOk)
+        }
 
         val lines = listOf(
             readyLine,
@@ -138,6 +150,28 @@ class SetupCheckActivity : AppCompatActivity() {
 
     private fun boolLine(value: Boolean): String {
         return if (value) "yes" else "no"
+    }
+
+    private fun buildFixText(
+        isSystemApp: Boolean,
+        isPrivApp: Boolean,
+        hasModifyAudio: Boolean,
+        hiddenApiOk: Boolean
+    ): String {
+        val steps = mutableListOf<String>()
+        if (!isSystemApp || !isPrivApp) {
+            steps.add("Install the module and reboot.")
+        }
+        if (!hasModifyAudio) {
+            steps.add("Check the privapp permissions file is applied.")
+        }
+        if (!hiddenApiOk) {
+            steps.add("Open Diagnostics and try the self-test.")
+        }
+        if (steps.isEmpty()) {
+            steps.add("Play audio in any app and run the check again.")
+        }
+        return "Next steps:\n" + steps.joinToString("\n") { "- $it" }
     }
 
     private fun formatTime(value: Long): String {
