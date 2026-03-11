@@ -24,6 +24,7 @@
 - Added per-app mute button in the UI.
 - Added reset button to clear all stored presets.
 - Added device/app flags to diagnostics report.
+- Added live active package list to diagnostics report.
 - Sorted active apps alphabetically by label.
 
 ## Last updated

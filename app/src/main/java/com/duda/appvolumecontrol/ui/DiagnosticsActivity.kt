@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -14,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -96,6 +98,10 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
+        val audioManager = getSystemService(AudioManager::class.java)
+        val activePackages = audioManager.activePlaybackConfigurations
+            .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
+            .distinct()
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
@@ -113,6 +119,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last active time: $lastActiveTime",
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
+            "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(\", \")}",
             "hidden_api_policy: ${hiddenApiPolicy ?: "-"}",
             "hidden_api_policy_pre_p_apps: ${hiddenApiPolicyPreP ?: "-"}",
             "hidden_api_policy_p_apps: ${hiddenApiPolicyP ?: "-"}",
