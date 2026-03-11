@@ -35,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var presetContainer: LinearLayout
     private lateinit var presetSearch: EditText
     private lateinit var showAllAppsToggle: CheckBox
+    private lateinit var clearFilterButton: Button
     private lateinit var lastUpdatedView: TextView
     private lateinit var activeTitle: TextView
     private lateinit var presetTitle: TextView
@@ -150,6 +151,11 @@ class MainActivity : AppCompatActivity() {
             addTextChangedListener { updatePresetApps(it?.toString().orEmpty()) }
         }
 
+        clearFilterButton = Button(this).apply {
+            text = "Clear filter"
+            setOnClickListener { presetSearch.setText("") }
+        }
+
         presetContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -165,6 +171,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(presetTitle)
         root.addView(showAllAppsToggle)
         root.addView(presetSearch)
+        root.addView(clearFilterButton)
         root.addView(presetContainer)
 
         val scroll = ScrollView(this).apply {

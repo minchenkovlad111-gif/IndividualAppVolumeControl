@@ -42,6 +42,7 @@
 - Added preset count in UI header.
 - Ignored metadata keys during preset import.
 - Added version field to preset export.
+- Added clear filter button to presets list.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
