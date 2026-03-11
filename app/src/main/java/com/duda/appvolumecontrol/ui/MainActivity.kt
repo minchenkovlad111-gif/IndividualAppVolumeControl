@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var showAllAppsToggle: CheckBox
     private lateinit var lastUpdatedView: TextView
     private lateinit var activeTitle: TextView
+    private lateinit var presetTitle: TextView
     private var presetEntries: List<AppEntry> = emptyList()
     private var activePackages: Set<String> = emptySet()
     private val iconCache = mutableMapOf<String, Drawable>()
@@ -126,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
         }
 
-        val presetTitle = TextView(this).apply {
+        presetTitle = TextView(this).apply {
             text = "Presets"
             textSize = 16f
             setPadding(0, 24, 0, 8)
@@ -238,6 +239,7 @@ class MainActivity : AppCompatActivity() {
                     it.packageName.lowercase().contains(trimmedFilter)
             }
         }
+        presetTitle.text = "Presets (${packages.size})"
 
         if (packages.isEmpty()) {
             presetContainer.addView(buildEmptyRow("No matching apps."))
