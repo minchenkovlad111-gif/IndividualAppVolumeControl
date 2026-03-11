@@ -4,6 +4,8 @@ import android.content.Intent
 import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -18,6 +20,9 @@ import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var audioManager: AudioManager
@@ -25,12 +30,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var activeContainer: LinearLayout
     private lateinit var presetContainer: LinearLayout
     private lateinit var presetSearch: EditText
+    private lateinit var lastUpdatedView: TextView
     private var presetEntries: List<AppEntry> = emptyList()
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            updateActiveApps(audioManager.activePlaybackConfigurations)
+            updateLastUpdated()
+            handler.postDelayed(this, REFRESH_INTERVAL_MS)
+        }
+    }
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             if (configs == null) return
             updateActiveApps(configs)
+            updateLastUpdated()
         }
     }
 
@@ -53,8 +68,15 @@ class MainActivity : AppCompatActivity() {
             text = "Refresh"
             setOnClickListener {
                 updateActiveApps(audioManager.activePlaybackConfigurations)
+                updateLastUpdated()
                 updatePresetApps()
             }
+        }
+
+        lastUpdatedView = TextView(this).apply {
+            text = "Last updated: -"
+            textSize = 12f
+            setPadding(0, 8, 0, 8)
         }
 
         val activeTitle = TextView(this).apply {
@@ -86,6 +108,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(refreshButton)
+        root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
         root.addView(presetTitle)
@@ -107,9 +130,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
+        handler.post(refreshRunnable)
     }
 
     override fun onPause() {
+        handler.removeCallbacks(refreshRunnable)
         audioManager.unregisterAudioPlaybackCallback(playbackCallback)
         super.onPause()
     }
@@ -235,6 +260,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateLastUpdated() {
+        val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
+        lastUpdatedView.text = "Last updated: $time"
+    }
+
     private fun resolveIcon(packageName: String) = try {
         val appInfo = packageManager.getApplicationInfo(packageName, 0)
         packageManager.getApplicationIcon(appInfo)
@@ -250,4 +280,8 @@ class MainActivity : AppCompatActivity() {
         val packageName: String,
         val label: String,
     )
+
+    companion object {
+        private const val REFRESH_INTERVAL_MS = 2000L
+    }
 }

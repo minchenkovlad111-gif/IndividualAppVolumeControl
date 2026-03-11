@@ -10,6 +10,7 @@
 - Added basic UI with active session list and preset list sliders.
 - Added app icons, active indicators, and preset search filter.
 - Added hidden API bypass attempts via VMRuntime and Settings.Global.
+- Added periodic refresh and last-updated indicator in the UI.
 
 ## Last updated
 - 2026-03-11
