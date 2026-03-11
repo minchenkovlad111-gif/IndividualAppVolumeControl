@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var presetSearch: EditText
     private lateinit var showAllAppsToggle: CheckBox
     private lateinit var lastUpdatedView: TextView
+    private lateinit var activeTitle: TextView
     private var presetEntries: List<AppEntry> = emptyList()
     private var activePackages: Set<String> = emptySet()
     private val iconCache = mutableMapOf<String, Drawable>()
@@ -115,7 +116,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 8, 0, 8)
         }
 
-        val activeTitle = TextView(this).apply {
+        activeTitle = TextView(this).apply {
             text = "Active audio"
             textSize = 16f
             setPadding(0, 24, 0, 8)
@@ -196,6 +197,7 @@ class MainActivity : AppCompatActivity() {
             .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
             .sortedBy { it.label.lowercase() }
         activePackages = packages.map { it.packageName }.toSet()
+        activeTitle.text = "Active audio (${packages.size})"
 
         if (packages.isEmpty()) {
             activeContainer.addView(buildEmptyRow("No active audio sessions."))

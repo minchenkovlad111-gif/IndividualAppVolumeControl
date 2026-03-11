@@ -38,6 +38,7 @@
 - Added app version info to diagnostics.
 - Added label ellipsize for long app names.
 - Added notification channel description.
+- Added active session count in UI header.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
