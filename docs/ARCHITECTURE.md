@@ -4,14 +4,21 @@
 - System-privileged app: monitors active audio playback and applies per-app volume via hidden APIs.
 - Magisk module: installs the app into `/system/priv-app/` and supplies `privapp-permissions`.
 - Diagnostics UI: shows last apply stats, errors, and hidden API policy values.
-- Preset UI: per-app sliders with import/export via clipboard.
+- Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
+- Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
 2. For each active playback configuration, resolve package name.
-3. Lookup per-app volume in `VolumeStore`.
+3. Resolve per-profile user id from the playback UID.
+4. Lookup per-app volume in `VolumeStore` using `u<userId>:<package>` keys (fall back to global package key).
 4. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
    - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.
+
+## Profiles + presets
+- Presets are stored per package, with optional profile keys (`u<userId>:<package>`).
+- The UI can filter active/preset lists by profile while still honoring global presets.
+- Active timestamps are tracked to support app info popups.
 
 ## Hidden API strategy
 - Attempt `VMRuntime.setHiddenApiExemptions` to relax reflection limits.

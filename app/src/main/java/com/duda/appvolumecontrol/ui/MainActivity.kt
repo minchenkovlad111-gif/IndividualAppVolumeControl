@@ -6,25 +6,33 @@ import android.media.AudioPlaybackConfiguration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
+import android.os.UserManager
 import android.view.Gravity
 import android.view.View
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
+import android.widget.AdapterView
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.text.TextUtils
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
+import com.duda.appvolumecontrol.core.ActiveAppStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
@@ -34,19 +42,28 @@ import java.util.Locale
 import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
-    private val uiPrefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
     private lateinit var audioManager: AudioManager
     private lateinit var volumeStore: VolumeStore
+    private lateinit var activeStore: ActiveAppStore
     private lateinit var activeContainer: LinearLayout
     private lateinit var presetContainer: LinearLayout
     private lateinit var presetSearch: EditText
-    private lateinit var showAllAppsToggle: CheckBox
     private lateinit var clearFilterButton: Button
+    private lateinit var manageAppsButton: Button
     private lateinit var lastUpdatedView: TextView
     private lateinit var activeTitle: TextView
     private lateinit var presetTitle: TextView
+    private lateinit var profileSpinner: Spinner
+    private lateinit var profileAdapter: ArrayAdapter<String>
     private var presetEntries: List<AppEntry> = emptyList()
-    private var activePackages: Set<String> = emptySet()
+    private var activeEntries: List<AppEntry> = emptyList()
+    private var activeKeys: Set<String> = emptySet()
+    private var activePackagesByUser: Map<String, Set<Int?>> = emptyMap()
+    private var profileOptions: List<ProfileOption> = emptyList()
+    private var selectedProfileUserId: Int? = null
+    private var profileUpdating: Boolean = false
+    private val activeSince = mutableMapOf<String, Long>()
+    private val lastNonZeroVolumes = mutableMapOf<String, Float>()
     private val iconCache = mutableMapOf<String, Drawable>()
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
@@ -69,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         audioManager = getSystemService(AudioManager::class.java)
         volumeStore = VolumeStore(this)
+        activeStore = ActiveAppStore(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -84,6 +102,43 @@ class MainActivity : AppCompatActivity() {
             text = "Quick start:\n1) Install the Magisk module and reboot.\n2) Play audio in an app.\n3) Move the slider for that app."
             textSize = 13f
             setPadding(0, 8, 0, 8)
+        }
+
+        val profileLabel = TextView(this).apply {
+            text = "Profile"
+            textSize = 13f
+        }
+
+        profileAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, mutableListOf("All profiles")).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        profileSpinner = Spinner(this).apply {
+            adapter = profileAdapter
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (profileUpdating) return
+                    val option = profileOptions.getOrNull(position) ?: ProfileOption(null, "All profiles")
+                    selectedProfileUserId = option.userId
+                    updateActiveApps(audioManager.activePlaybackConfigurations)
+                    updatePresetApps()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+        }
+
+        val profileRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 8, 0, 8)
+            addView(profileLabel)
+            addView(profileSpinner)
         }
 
         val refreshButton = Button(this).apply {
@@ -113,8 +168,8 @@ class MainActivity : AppCompatActivity() {
         val boostActiveButton = Button(this).apply {
             text = "Make active loud"
             setOnClickListener {
-                for (packageName in activePackages) {
-                    volumeStore.setVolume(packageName, 1f)
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 1f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
                 PlaybackControllerService.requestReapply(this@MainActivity)
@@ -124,8 +179,8 @@ class MainActivity : AppCompatActivity() {
         val muteActiveButton = Button(this).apply {
             text = "Mute active"
             setOnClickListener {
-                for (packageName in activePackages) {
-                    volumeStore.setVolume(packageName, 0f)
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 0f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
                 PlaybackControllerService.requestReapply(this@MainActivity)
@@ -135,8 +190,8 @@ class MainActivity : AppCompatActivity() {
         val halfActiveButton = Button(this).apply {
             text = "Active half"
             setOnClickListener {
-                for (packageName in activePackages) {
-                    volumeStore.setVolume(packageName, 0.5f)
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 0.5f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
                 PlaybackControllerService.requestReapply(this@MainActivity)
@@ -197,30 +252,22 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 24, 0, 8)
         }
 
-        showAllAppsToggle = CheckBox(this).apply {
-            text = "Show all apps"
-            isChecked = uiPrefs.getBoolean(KEY_SHOW_ALL, false)
-            setOnCheckedChangeListener { _, isChecked ->
-                uiPrefs.edit().putBoolean(KEY_SHOW_ALL, isChecked).apply()
-                loadPresetApps(isChecked)
-                updatePresetApps()
+        manageAppsButton = Button(this).apply {
+            text = "Manage apps"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, ManageAppsActivity::class.java))
             }
-        }
-        val showAllAppsHint = TextView(this).apply {
-            text = "Tip: Showing all apps can be slower."
-            textSize = 12f
-            setPadding(0, 0, 0, 8)
         }
 
         presetSearch = EditText(this).apply {
-            hint = "Filter apps"
+            hint = "Search saved apps"
             textSize = 14f
             setPadding(16, 8, 16, 8)
             addTextChangedListener { updatePresetApps(it?.toString().orEmpty()) }
         }
 
         clearFilterButton = Button(this).apply {
-            text = "Clear filter"
+            text = "Clear search"
             setOnClickListener { presetSearch.setText("") }
         }
 
@@ -230,6 +277,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(quickStart)
+        root.addView(profileRow)
         root.addView(refreshButton)
         root.addView(resetButton)
         root.addView(boostActiveButton)
@@ -242,8 +290,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeTitle)
         root.addView(activeContainer)
         root.addView(presetTitle)
-        root.addView(showAllAppsToggle)
-        root.addView(showAllAppsHint)
+        root.addView(manageAppsButton)
         root.addView(presetSearch)
         root.addView(clearFilterButton)
         root.addView(presetContainer)
@@ -256,7 +303,7 @@ class MainActivity : AppCompatActivity() {
 
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
         updateActiveApps(audioManager.activePlaybackConfigurations)
-        loadPresetApps(showAllAppsToggle.isChecked)
+        loadPresetApps()
         updatePresetApps()
     }
 
@@ -264,6 +311,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         maybeRequestNotifications()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
+        loadPresetApps()
+        updatePresetApps()
         handler.post(refreshRunnable)
     }
 
@@ -275,61 +324,68 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateActiveApps(configs: List<AudioPlaybackConfiguration>) {
         activeContainer.removeAllViews()
-        val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
-            .distinct()
-            .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
-            .sortedBy { it.label.lowercase() }
-        activePackages = packages.map { it.packageName }.toSet()
-        activeTitle.text = "Active audio (${packages.size})"
+        val now = System.currentTimeMillis()
+        val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
+        for (config in configs) {
+            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            val uid = PlaybackUtils.getClientUid(config)
+            val userId = PlaybackUtils.getUserIdFromUid(uid)
+            val key = VolumeStore.VolumeKey(packageName, userId)
+            counts[key] = (counts[key] ?: 0) + 1
+        }
 
-        if (packages.isEmpty()) {
-            activePackages = emptySet()
+        activeEntries = counts.map { (key, count) ->
+            AppEntry(key, resolveLabel(key.packageName), count)
+        }.sortedBy { it.label.lowercase() }
+        activeKeys = activeEntries.map { it.key.storageKey() }.toSet()
+        activePackagesByUser = counts.keys.groupBy { it.packageName }
+            .mapValues { entry -> entry.value.map { it.userId }.toSet() }
+
+        updateActiveSince(counts.keys, now)
+        updateProfileOptions()
+
+        val filtered = filterActiveEntries(activeEntries)
+        activeTitle.text = buildActiveTitle(filtered.size)
+
+        if (filtered.isEmpty()) {
             activeContainer.addView(buildEmptyRow("No active audio. Start playing music or video."))
             updatePresetApps()
             return
         }
 
-        for (entry in packages) {
-            activeContainer.addView(buildVolumeRow(entry.packageName, entry.label, true))
+        for (entry in filtered) {
+            activeContainer.addView(buildVolumeRow(entry, true))
         }
         updatePresetApps()
     }
 
-    private fun loadPresetApps(showAll: Boolean) {
-        val packages = if (showAll) {
-            packageManager.getInstalledApplications(0).map { it.packageName }
-        } else {
-            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-            packageManager.queryIntentActivities(mainIntent, 0).map { it.activityInfo.packageName }
-        }
-
-        presetEntries = packages
-            .distinct()
-            .map { packageName -> AppEntry(packageName, resolveLabel(packageName)) }
+    private fun loadPresetApps() {
+        val entries = volumeStore.listPresetEntries()
+        presetEntries = entries
+            .distinctBy { it.storageKey() }
+            .map { key -> AppEntry(key, resolveLabel(key.packageName), 0) }
             .sortedBy { it.label.lowercase() }
     }
 
     private fun updatePresetApps(filter: String = presetSearch.text?.toString().orEmpty()) {
         presetContainer.removeAllViews()
-        if (presetEntries.isEmpty()) {
-            loadPresetApps(showAllAppsToggle.isChecked)
-        }
+        loadPresetApps()
+        updateProfileOptions()
         val trimmedFilter = filter.trim().lowercase()
+        val filtered = filterPresetEntries(presetEntries)
         val packages = if (trimmedFilter.isBlank()) {
-            presetEntries
+            filtered
         } else {
-            presetEntries.filter {
+            filtered.filter {
                 it.label.lowercase().contains(trimmedFilter) ||
-                    it.packageName.lowercase().contains(trimmedFilter)
+                    it.key.packageName.lowercase().contains(trimmedFilter)
             }
         }
         presetTitle.text = "Saved volumes (${packages.size})"
 
         if (packages.isEmpty()) {
             val message = if (trimmedFilter.isBlank()) {
-                "No apps available."
+                "No saved apps yet. Use Manage apps to add."
             } else {
                 "No matching apps."
             }
@@ -338,21 +394,36 @@ class MainActivity : AppCompatActivity() {
         }
 
         val sorted = packages.sortedWith(
-            compareByDescending<AppEntry> { activePackages.contains(it.packageName) }
+            compareByDescending<AppEntry> { isEntryActive(it) }
                 .thenBy { it.label.lowercase() }
         )
 
         for (entry in sorted) {
-            val isActive = activePackages.contains(entry.packageName)
-            presetContainer.addView(buildVolumeRow(entry.packageName, entry.label, isActive))
+            val isActive = isEntryActive(entry)
+            presetContainer.addView(buildVolumeRow(entry, isActive))
         }
     }
 
-    private fun buildVolumeRow(packageName: String, label: String, isActive: Boolean): View {
+    private fun buildVolumeRow(entry: AppEntry, isActive: Boolean): View {
         val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 12, 0, 12)
+        }
+
+        val headerRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 8, 0, 8)
+        }
+
+        val indicator = View(this).apply {
+            val size = dpToPx(10)
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginEnd = dpToPx(8)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(if (isActive) Color.parseColor("#2E7D32") else Color.parseColor("#9E9E9E"))
+            }
         }
 
         val iconView = ImageView(this).apply {
@@ -360,33 +431,85 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(size, size).apply {
                 marginEnd = dpToPx(12)
             }
-            setImageDrawable(resolveIcon(packageName))
+            setImageDrawable(resolveIcon(entry.key.packageName))
+        }
+
+        val nameContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
 
         val nameView = TextView(this).apply {
-            text = label
+            text = entry.label
             textSize = 14f
-            isSingleLine = true
+            maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener {
+                showAppInfo(entry, isActive)
+            }
             setOnLongClickListener {
-                copyToClipboard(packageName)
+                copyToClipboard(entry.key.packageName)
                 true
             }
         }
 
-        val activeBadge = TextView(this).apply {
-            text = "ACTIVE"
+        val profileView = TextView(this).apply {
+            text = buildProfileLabel(entry.key.userId)
             textSize = 12f
-            setPadding(dpToPx(6), dpToPx(2), dpToPx(6), dpToPx(2))
-            visibility = if (isActive) View.VISIBLE else View.GONE
+            setTextColor(Color.parseColor("#616161"))
+            visibility = if (shouldShowProfile(entry.key.userId)) View.VISIBLE else View.GONE
         }
 
-        val stored = volumeStore.getVolume(packageName) ?: 1f
+        nameContainer.addView(nameView)
+        nameContainer.addView(profileView)
+
+        val countView = TextView(this).apply {
+            text = "x${entry.activeCount}"
+            textSize = 12f
+            setPadding(dpToPx(6), 0, dpToPx(6), 0)
+            visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
+        }
+
+        val stored = volumeStore.getVolume(entry.key) ?: 1f
         val valueView = TextView(this).apply {
             text = "${(stored * 100).toInt()}%"
             textSize = 12f
             setPadding(dpToPx(8), 0, dpToPx(8), 0)
+        }
+
+        var sliderRef: SeekBar? = null
+        lateinit var muteButton: ImageButton
+
+        val updateMuteIcon: (Float) -> Unit = { volume ->
+            muteButton.setImageResource(
+                if (volume <= 0f) android.R.drawable.ic_lock_silent_mode
+                else android.R.drawable.ic_lock_silent_mode_off
+            )
+        }
+
+        muteButton = ImageButton(this).apply {
+            background = null
+            layoutParams = LinearLayout.LayoutParams(dpToPx(32), dpToPx(32)).apply {
+                marginStart = dpToPx(4)
+            }
+            setOnClickListener {
+                val currentVolume = volumeStore.getVolume(entry.key) ?: 1f
+                if (currentVolume > 0f) {
+                    lastNonZeroVolumes[entry.key.storageKey()] = currentVolume
+                    volumeStore.setVolume(entry.key, 0f)
+                    valueView.text = "0%"
+                    sliderRef?.progress = 0
+                    updateMuteIcon(0f)
+                } else {
+                    val restored = lastNonZeroVolumes[entry.key.storageKey()] ?: 1f
+                    volumeStore.setVolume(entry.key, restored)
+                    val percent = (restored * 100).toInt()
+                    valueView.text = "$percent%"
+                    sliderRef?.progress = percent
+                    updateMuteIcon(restored)
+                }
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
         }
 
         val slider = SeekBar(this).apply {
@@ -397,9 +520,13 @@ class MainActivity : AppCompatActivity() {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (!fromUser) return
                     val volume = progress / 100f
-                    volumeStore.setVolume(packageName, volume)
+                    volumeStore.setVolume(entry.key, volume)
                     PlaybackControllerService.requestReapply(this@MainActivity)
                     valueView.text = "$progress%"
+                    if (volume > 0f) {
+                        lastNonZeroVolumes[entry.key.storageKey()] = volume
+                    }
+                    updateMuteIcon(volume)
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
@@ -408,22 +535,27 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
-        val muteButton = Button(this).apply {
-            text = "Mute"
-            setOnClickListener {
-                volumeStore.setVolume(packageName, 0f)
-                valueView.text = "0%"
-                slider.progress = 0
-                PlaybackControllerService.requestReapply(this@MainActivity)
-            }
+        sliderRef = slider
+
+        updateMuteIcon(stored)
+
+        val sliderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(56), dpToPx(6), 0, 0)
         }
 
-        row.addView(iconView)
-        row.addView(nameView)
-        row.addView(activeBadge)
-        row.addView(muteButton)
-        row.addView(valueView)
-        row.addView(slider)
+        sliderRow.addView(slider)
+        sliderRow.addView(valueView)
+
+        headerRow.addView(indicator)
+        headerRow.addView(iconView)
+        headerRow.addView(nameContainer)
+        headerRow.addView(countView)
+        headerRow.addView(muteButton)
+
+        row.addView(headerRow)
+        row.addView(sliderRow)
         return row
     }
 
@@ -444,9 +576,189 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateActiveSince(keys: Set<VolumeStore.VolumeKey>, now: Long) {
+        val activeKeyStrings = keys.map { it.storageKey() }.toSet()
+        val toRemove = activeSince.keys.filterNot { activeKeyStrings.contains(it) }
+        for (key in toRemove) {
+            activeSince.remove(key)
+        }
+        for (key in keys) {
+            if (!activeSince.containsKey(key.storageKey())) {
+                activeSince[key.storageKey()] = now
+            }
+            activeStore.recordActive(key, now)
+        }
+    }
+
+    private fun updateProfileOptions() {
+        val userIds = mutableSetOf<Int>()
+        activeEntries.mapNotNullTo(userIds) { it.key.userId }
+        presetEntries.mapNotNullTo(userIds) { it.key.userId }
+        currentUserId()?.let { userIds.add(it) }
+
+        val userManager = getSystemService(UserManager::class.java)
+        val profiles = runCatching { userManager.userProfiles }.getOrNull().orEmpty()
+        for (handle in profiles) {
+            getUserId(handle)?.let { userIds.add(it) }
+        }
+
+        val options = mutableListOf(ProfileOption(null, "All profiles"))
+        for (userId in userIds.sorted()) {
+            options.add(ProfileOption(userId, buildProfileLabel(userId)))
+        }
+
+        if (options == profileOptions) return
+        profileOptions = options
+        profileUpdating = true
+        profileAdapter.clear()
+        profileAdapter.addAll(options.map { it.label })
+        profileAdapter.notifyDataSetChanged()
+        val selectedIndex = options.indexOfFirst { it.userId == selectedProfileUserId }
+            .takeIf { it >= 0 } ?: 0
+        selectedProfileUserId = options.getOrNull(selectedIndex)?.userId
+        profileSpinner.setSelection(selectedIndex)
+        profileUpdating = false
+    }
+
+    private fun filterActiveEntries(entries: List<AppEntry>): List<AppEntry> {
+        val userId = selectedProfileUserId ?: return entries
+        return entries.filter { it.key.userId == userId }
+    }
+
+    private fun filterPresetEntries(entries: List<AppEntry>): List<AppEntry> {
+        val userId = selectedProfileUserId ?: return entries
+        return entries.filter { it.key.userId == userId || it.key.userId == null }
+    }
+
+    private fun isEntryActive(entry: AppEntry): Boolean {
+        return if (entry.key.userId == null) {
+            isActiveForGlobal(entry.key.packageName)
+        } else {
+            activeKeys.contains(entry.key.storageKey())
+        }
+    }
+
+    private fun isActiveForGlobal(packageName: String): Boolean {
+        val userIds = activePackagesByUser[packageName] ?: return false
+        return if (selectedProfileUserId == null) {
+            userIds.isNotEmpty()
+        } else {
+            userIds.contains(selectedProfileUserId)
+        }
+    }
+
+    private fun buildActiveTitle(count: Int): String {
+        val label = selectedProfileUserId?.let { " (${buildProfileLabel(it)})" }.orEmpty()
+        return "Active audio ($count)$label"
+    }
+
+    private fun buildProfileLabel(userId: Int?): String {
+        if (userId == null) return "All profiles"
+        val current = currentUserId()
+        val isManaged = isManagedProfile(userId)
+        return when {
+            current != null && userId == current -> "Personal (u$userId)"
+            isManaged -> "Work (u$userId)"
+            else -> "User u$userId"
+        }
+    }
+
+    private fun shouldShowProfile(userId: Int?): Boolean {
+        if (userId != null) return true
+        return selectedProfileUserId != null
+    }
+
+    private fun showAppInfo(entry: AppEntry, isActive: Boolean) {
+        val key = entry.key
+        val infoLines = mutableListOf<String>()
+        infoLines.add("Package: ${key.packageName}")
+        infoLines.add("Profile: ${buildProfileLabel(key.userId)}")
+        if (entry.activeCount > 1) {
+            infoLines.add("Active instances: ${entry.activeCount}")
+        }
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        val packageInfo = try {
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                packageManager.getPackageInfo(
+                    key.packageName,
+                    PackageManager.PackageInfoFlags.of(0L)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(key.packageName, 0)
+            }
+        } catch (_: Exception) {
+            null
+        }
+
+        val installTime = packageInfo?.firstInstallTime
+        val updateTime = packageInfo?.lastUpdateTime
+        if (installTime != null && installTime > 0L) {
+            infoLines.add("Installed: ${formatTime(installTime, dateFormat)}")
+        }
+        if (updateTime != null && updateTime > 0L) {
+            infoLines.add("Updated: ${formatTime(updateTime, dateFormat)}")
+        }
+
+        val activeSinceTime = activeSince[key.storageKey()]
+        val stored = activeStore.getInfo(key)
+        if (isActive && activeSinceTime != null) {
+            infoLines.add("Active since: ${formatTime(activeSinceTime, dateFormat)}")
+        } else {
+            stored?.lastActiveTime?.let {
+                infoLines.add("Last active: ${formatTime(it, dateFormat)}")
+            }
+        }
+        stored?.firstActiveTime?.let {
+            infoLines.add("First active: ${formatTime(it, dateFormat)}")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(entry.label)
+            .setMessage(infoLines.joinToString("\n"))
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Copy package") { _, _ ->
+                copyToClipboard(key.packageName)
+            }
+            .show()
+    }
+
+    private fun formatTime(value: Long, dateFormat: SimpleDateFormat): String {
+        return dateFormat.format(Date(value))
+    }
+
+    private fun currentUserId(): Int? {
+        return PlaybackUtils.getUserIdFromUid(Process.myUid())
+    }
+
+    private fun getUserId(handle: android.os.UserHandle): Int? {
+        return try {
+            val method = android.os.UserHandle::class.java.getDeclaredMethod("getIdentifier")
+            method.isAccessible = true
+            method.invoke(handle) as? Int
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun isManagedProfile(userId: Int): Boolean {
+        val userManager = getSystemService(UserManager::class.java)
+        return try {
+            val method = UserManager::class.java.getDeclaredMethod(
+                "isManagedProfile",
+                Int::class.javaPrimitiveType
+            )
+            method.isAccessible = true
+            method.invoke(userManager, userId) as? Boolean ?: false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun updateLastUpdated() {
         val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-        lastUpdatedView.text = "Last updated: $time | Active: ${activePackages.size}"
+        lastUpdatedView.text = "Last updated: $time | Active: ${activeEntries.size}"
     }
 
     private fun maybeRequestNotifications() {
@@ -483,14 +795,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private data class AppEntry(
-        val packageName: String,
+        val key: VolumeStore.VolumeKey,
+        val label: String,
+        val activeCount: Int = 0,
+    )
+
+    private data class ProfileOption(
+        val userId: Int?,
         val label: String,
     )
 
     companion object {
         private const val REFRESH_INTERVAL_MS = 2000L
-        private const val PREFS_NAME = "ui_prefs"
-        private const val KEY_SHOW_ALL = "show_all_apps"
         private const val REQUEST_NOTIFICATIONS = 100
     }
 }

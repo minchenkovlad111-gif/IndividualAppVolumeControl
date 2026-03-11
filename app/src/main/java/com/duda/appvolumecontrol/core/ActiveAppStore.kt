@@ -1,0 +1,34 @@
+package com.duda.appvolumecontrol.core
+
+import android.content.Context
+
+class ActiveAppStore(context: Context) {
+    private val prefs = context.getSharedPreferences("active_app_store", Context.MODE_PRIVATE)
+
+    fun recordActive(key: VolumeStore.VolumeKey, timestamp: Long = System.currentTimeMillis()) {
+        val storageKey = key.storageKey()
+        if (!prefs.contains(firstKey(storageKey))) {
+            prefs.edit().putLong(firstKey(storageKey), timestamp).apply()
+        }
+        prefs.edit().putLong(lastKey(storageKey), timestamp).apply()
+    }
+
+    fun getInfo(key: VolumeStore.VolumeKey): ActiveInfo? {
+        val storageKey = key.storageKey()
+        val first = prefs.getLong(firstKey(storageKey), 0L)
+        val last = prefs.getLong(lastKey(storageKey), 0L)
+        if (first <= 0L && last <= 0L) return null
+        return ActiveInfo(
+            firstActiveTime = if (first > 0L) first else null,
+            lastActiveTime = if (last > 0L) last else null,
+        )
+    }
+
+    data class ActiveInfo(
+        val firstActiveTime: Long?,
+        val lastActiveTime: Long?,
+    )
+
+    private fun firstKey(storageKey: String): String = "${storageKey}:first_active"
+    private fun lastKey(storageKey: String): String = "${storageKey}:last_active"
+}

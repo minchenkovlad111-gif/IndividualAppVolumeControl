@@ -6,6 +6,7 @@ Presets can be exported/imported via the Diagnostics screen using JSON.
 - JSON object with package names as keys.
 - Values are floats between 0.0 and 1.0.
 - Metadata keys start with `_` and are ignored on import.
+- Profile-specific presets use the key format `u<userId>:<package>`.
 
 Example:
 ```
@@ -14,7 +15,8 @@ Example:
   "_exported_at": 1710170000000,
   "_preset_count": 2,
   "com.example.music": 0.7,
-  "com.example.podcast": 1.0
+  "com.example.podcast": 1.0,
+  "u10:com.example.workmusic": 0.6
 }
 ```
 
@@ -22,3 +24,4 @@ Example:
 - Import merges by default; use "Import replace" to clear existing presets first.
 - Values outside 0.0–1.0 are clamped.
 - `_preset_count` is optional metadata for readability and is ignored on import.
+- If a profile-specific key is missing, the app falls back to the global package preset.

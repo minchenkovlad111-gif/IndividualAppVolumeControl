@@ -17,6 +17,11 @@
 - Validate required permissions on at least one AOSP-based and one OEM device.
 - Capture logs from the diagnostics screen and document known failures.
 
+## UX ideas to validate
+- Volume-button overlay listing active apps (AudioHQ-style) for quick control.
+- Optional persistent notification or quick settings tile for jumping into the app.
+- Profile-aware app lists for work/personal separation.
+
 ## Links
 - See sources referenced in the project issue description.
 - https://developer.android.com/guide/app-compatibility/restrictions-non-sdk-interfaces

@@ -51,6 +51,30 @@ object PlaybackUtils {
         }
     }
 
+    fun getClientUid(config: AudioPlaybackConfiguration): Int? {
+        return try {
+            val uidMethod = clientUidMethod ?: return null
+            uidMethod.invoke(config) as? Int
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to resolve client uid", t)
+            null
+        }
+    }
+
+    fun getUserIdFromUid(uid: Int?): Int? {
+        if (uid == null) return null
+        return try {
+            val method = android.os.UserHandle::class.java.getDeclaredMethod(
+                "getUserId",
+                Int::class.javaPrimitiveType
+            )
+            method.isAccessible = true
+            method.invoke(null, uid) as? Int
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     fun applyVolumeToPlayer(config: AudioPlaybackConfiguration, volume: Float): Boolean {
         return try {
             val method = playerProxyMethod ?: return false

@@ -67,12 +67,15 @@ class PlaybackControllerService : Service() {
         diagnosticsStore.recordLastActive(configs.size)
         var appliedCount = 0
         val activeKeys = mutableSetOf<String>()
-        val activePackages = mutableSetOf<String>()
+        val activeEntries = mutableSetOf<String>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            activePackages.add(packageName)
-            val desiredVolume = volumeStore.getVolume(packageName) ?: 1f
-            val key = "${packageName}:${config.hashCode()}"
+            val uid = PlaybackUtils.getClientUid(config)
+            val userId = PlaybackUtils.getUserIdFromUid(uid)
+            val volumeKey = VolumeStore.VolumeKey(packageName, userId)
+            activeEntries.add(volumeKey.storageKey())
+            val desiredVolume = volumeStore.getVolume(volumeKey) ?: 1f
+            val key = "${volumeKey.storageKey()}:${config.hashCode()}"
             activeKeys.add(key)
             val current = lastApplied[key]
             if (current != null && current == desiredVolume) continue
@@ -87,7 +90,7 @@ class PlaybackControllerService : Service() {
         }
         lastApplied.keys.retainAll(activeKeys)
         diagnosticsStore.recordLastApply(appliedCount)
-        updateNotification(activePackages.size)
+        updateNotification(activeEntries.size)
     }
 
     private fun safeApplyVolumes(configs: List<AudioPlaybackConfiguration>) {

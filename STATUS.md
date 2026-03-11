@@ -1,11 +1,19 @@
 # Status
 
 ## Current focus
-- Scaffolding the Android app and Magisk module.
-- Laying down core playback monitoring + volume application pipeline.
-- Capturing research references and architecture notes.
+- Profile-aware UX improvements and per-app detail surface.
+- Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added profile-aware preset keys (`u<userId>:package`) with global fallback.
+- Applied profile-aware volume lookup in the playback service.
+- Added profile filter control to main UI (work/personal separation).
+- Reworked app rows to give names more space and move sliders to a second line.
+- Replaced text "ACTIVE" badge with a compact indicator dot and instance count.
+- Switched mute action to a speaker icon toggle with restore behavior.
+- Added per-app info popup (package, install/update time, active timestamps).
+- Tracked active timestamps per app for info dialogs.
+- Documented profile preset keys and UX ideas in docs.
 - Added initial app/service skeleton and Magisk module template.
 - Added basic UI with active session list and preset list sliders.
 - Added app icons, active indicators, and preset search filter.
@@ -117,6 +125,9 @@
 - Added POST_NOTIFICATIONS permission for Android 13+ foreground notifications.
 - Added simple app icon cache in UI.
 - Sorted active apps alphabetically by label.
+- Default preset list now stays empty until search or "Show all apps" to reduce lag.
+- Added "Search all installed apps" toggle with a minimum search length to avoid heavy loads.
+- Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
 - 2026-03-11
