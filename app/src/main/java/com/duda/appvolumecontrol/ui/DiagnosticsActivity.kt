@@ -144,11 +144,13 @@ class DiagnosticsActivity : AppCompatActivity() {
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
         val (versionName, versionCode) = getAppVersion()
+        val targetSdk = appInfo.targetSdkVersion
 
         val lines = listOf(
             "SDK: ${android.os.Build.VERSION.SDK_INT}",
             "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
             "App version: $versionName ($versionCode)",
+            "Target SDK: $targetSdk",
             "System app: $isSystemApp",
             "Privileged app: $isPrivApp",
             "Last error: ${snapshot.lastError ?: "-"}",
