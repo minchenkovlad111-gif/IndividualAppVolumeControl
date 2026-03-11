@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
+import android.text.TextUtils
 import android.graphics.drawable.Drawable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
@@ -270,6 +271,8 @@ class MainActivity : AppCompatActivity() {
         val nameView = TextView(this).apply {
             text = label
             textSize = 14f
+            isSingleLine = true
+            ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
 
