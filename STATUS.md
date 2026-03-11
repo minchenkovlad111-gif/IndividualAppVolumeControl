@@ -71,6 +71,7 @@
 - Sorted preset export keys for readability.
 - Added toast confirmation for diagnostics report copy.
 - Added toast confirmation for package copy.
+- Clarified privileged vs runtime permissions in permissions doc.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
