@@ -223,7 +223,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        for (entry in packages) {
+        val sorted = packages.sortedWith(
+            compareByDescending<AppEntry> { activePackages.contains(it.packageName) }
+                .thenBy { it.label.lowercase() }
+        )
+
+        for (entry in sorted) {
             val isActive = activePackages.contains(entry.packageName)
             presetContainer.addView(buildVolumeRow(entry.packageName, entry.label, isActive))
         }

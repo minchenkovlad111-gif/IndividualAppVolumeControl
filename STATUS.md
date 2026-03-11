@@ -27,6 +27,7 @@
 - Added live active package list to diagnostics report.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
+- Preset list now prioritizes active apps.
 - Sorted active apps alphabetically by label.
 
 ## Last updated
