@@ -3,7 +3,7 @@
 A root-required Android app + Magisk module for per-app volume control, designed for Android 15 and intended to support older versions where possible.
 
 ## Status
-- Early scaffolding: core service, hidden API access attempt, and Magisk module skeleton.
+- Core service, UI controls, diagnostics screen, and Magisk module packaging script in place.
 
 ## Repository layout
 - `app/`: Android app (system/privileged app)
@@ -15,7 +15,7 @@ A root-required Android app + Magisk module for per-app volume control, designed
 ## Quick start
 - Build the app APK (see `docs/BUILD.md`).
 - Place the APK at `module/system/priv-app/AppVolumeControl/AppVolumeControl.apk`.
-- Zip the `module/` folder and install via Magisk.
+- Zip the `module/` folder and install via Magisk (or run `module/package.sh`).
 
 ## Notes
 - The app relies on hidden audio APIs to set per-player volume and therefore needs root + privileged installation.
