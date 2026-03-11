@@ -199,6 +199,11 @@ class MainActivity : AppCompatActivity() {
                 updatePresetApps()
             }
         }
+        val showAllAppsHint = TextView(this).apply {
+            text = "Tip: Showing all apps can be slower."
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
 
         presetSearch = EditText(this).apply {
             hint = "Filter apps"
@@ -230,6 +235,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeContainer)
         root.addView(presetTitle)
         root.addView(showAllAppsToggle)
+        root.addView(showAllAppsHint)
         root.addView(presetSearch)
         root.addView(clearFilterButton)
         root.addView(presetContainer)
