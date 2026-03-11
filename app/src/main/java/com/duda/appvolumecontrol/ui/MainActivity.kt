@@ -82,7 +82,6 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 updateActiveApps(audioManager.activePlaybackConfigurations)
                 updateLastUpdated()
-                updatePresetApps()
             }
         }
 
@@ -91,7 +90,6 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 volumeStore.clearAll()
                 updateActiveApps(audioManager.activePlaybackConfigurations)
-                updatePresetApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -103,7 +101,6 @@ class MainActivity : AppCompatActivity() {
                     volumeStore.setVolume(packageName, 1f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
-                updatePresetApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -115,7 +112,6 @@ class MainActivity : AppCompatActivity() {
                     volumeStore.setVolume(packageName, 0f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
-                updatePresetApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -127,7 +123,6 @@ class MainActivity : AppCompatActivity() {
                     volumeStore.setVolume(packageName, 0.5f)
                 }
                 updateActiveApps(audioManager.activePlaybackConfigurations)
-                updatePresetApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }

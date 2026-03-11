@@ -82,6 +82,7 @@
 - Refresh diagnostics after preset export/share to show updated timestamps.
 - Use reflection for privileged flag check in diagnostics.
 - Sorted active packages in diagnostics report.
+- Removed redundant preset refresh calls in main UI actions.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
