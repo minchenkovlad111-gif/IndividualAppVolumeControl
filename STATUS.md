@@ -23,6 +23,7 @@
 - Preset list now refreshes active badges when playback changes.
 - Added per-app mute button in the UI.
 - Added reset button to clear all stored presets.
+- Added device/app flags to diagnostics report.
 
 ## Last updated
 - 2026-03-11

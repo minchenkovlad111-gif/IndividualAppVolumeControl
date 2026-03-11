@@ -96,8 +96,15 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
+        val appInfo = applicationInfo
+        val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
+        val isPrivApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_PRIVILEGED) != 0
 
         val lines = listOf(
+            "SDK: ${android.os.Build.VERSION.SDK_INT}",
+            "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+            "System app: $isSystemApp",
+            "Privileged app: $isPrivApp",
             "Last error: ${snapshot.lastError ?: "-"}",
             "Last error time: $lastErrorTime",
             "Last apply count: ${snapshot.lastApplyCount}",
