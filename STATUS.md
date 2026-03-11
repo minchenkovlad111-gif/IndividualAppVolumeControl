@@ -70,6 +70,7 @@
 - Documented setVolume fallback in architecture notes.
 - Sorted preset export keys for readability.
 - Added toast confirmation for diagnostics report copy.
+- Added toast confirmation for package copy.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.

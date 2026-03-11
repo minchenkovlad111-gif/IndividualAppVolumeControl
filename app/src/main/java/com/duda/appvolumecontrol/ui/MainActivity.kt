@@ -28,6 +28,7 @@ import com.duda.appvolumecontrol.service.PlaybackControllerService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
     private val uiPrefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
@@ -405,6 +406,7 @@ class MainActivity : AppCompatActivity() {
     private fun copyToClipboard(text: String) {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("package", text))
+        Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun dpToPx(value: Int): Int {
