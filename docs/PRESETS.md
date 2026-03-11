@@ -21,3 +21,4 @@ Example:
 ## Notes
 - Import merges by default; use "Import replace" to clear existing presets first.
 - Values outside 0.0–1.0 are clamped.
+- `_preset_count` is optional metadata for readability and is ignored on import.
