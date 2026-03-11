@@ -47,7 +47,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         val helper = TextView(this).apply {
-            text = "If something does not work, tap \"Copy report\" and share it."
+            text = "If something does not work, tap \"Copy report\" and share it.\n" +
+                "Look for \"Ready to control volume: yes\"."
             textSize = 13f
             setPadding(0, 8, 0, 8)
         }

@@ -105,6 +105,7 @@
 - Added a hint for the "Show all apps" toggle.
 - Clarified empty active-audio message for kids.
 - Renamed presets section to "Saved volumes".
+- Added readiness hint text in diagnostics screen.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
