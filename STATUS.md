@@ -21,6 +21,7 @@
 - Added volume percentage labels next to sliders.
 - Marked active apps within the presets list.
 - Preset list now refreshes active badges when playback changes.
+- Added per-app mute button in the UI.
 
 ## Last updated
 - 2026-03-11

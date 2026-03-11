@@ -256,9 +256,20 @@ class MainActivity : AppCompatActivity() {
             })
         }
 
+        val muteButton = Button(this).apply {
+            text = "Mute"
+            setOnClickListener {
+                volumeStore.setVolume(packageName, 0f)
+                valueView.text = "0%"
+                slider.progress = 0
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
         row.addView(iconView)
         row.addView(nameView)
         row.addView(activeBadge)
+        row.addView(muteButton)
         row.addView(valueView)
         row.addView(slider)
         return row
