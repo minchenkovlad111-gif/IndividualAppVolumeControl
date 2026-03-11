@@ -225,9 +225,15 @@ class MainActivity : AppCompatActivity() {
             visibility = if (isActive) View.VISIBLE else View.GONE
         }
 
+        val stored = volumeStore.getVolume(packageName) ?: 1f
+        val valueView = TextView(this).apply {
+            text = "${(stored * 100).toInt()}%"
+            textSize = 12f
+            setPadding(dpToPx(8), 0, dpToPx(8), 0)
+        }
+
         val slider = SeekBar(this).apply {
             max = 100
-            val stored = volumeStore.getVolume(packageName) ?: 1f
             progress = (stored * 100).toInt()
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -236,6 +242,7 @@ class MainActivity : AppCompatActivity() {
                     val volume = progress / 100f
                     volumeStore.setVolume(packageName, volume)
                     PlaybackControllerService.requestReapply(this@MainActivity)
+                    valueView.text = "$progress%"
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
@@ -247,6 +254,7 @@ class MainActivity : AppCompatActivity() {
         row.addView(iconView)
         row.addView(nameView)
         row.addView(activeBadge)
+        row.addView(valueView)
         row.addView(slider)
         return row
     }

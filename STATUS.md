@@ -18,6 +18,7 @@
 - Added diagnostics self-test action and service dump logging.
 - Added diagnostics report copy/share actions.
 - Documented offline Gradle distribution seeding.
+- Added volume percentage labels next to sliders.
 
 ## Last updated
 - 2026-03-11
