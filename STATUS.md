@@ -76,6 +76,7 @@
 - Avoided hidden SDK constants in diagnostics so builds succeed.
 - Ran assembleDebug; build succeeds with compileSdk 35 warning on AGP 8.5.2.
 - Removed redundant initializers in hidden API helper.
+- Suppressed compileSdk 35 AGP warning in gradle.properties.
 - Added toggle to include all installed apps in presets list.
 - Added permissions reference doc.
 - Preset list now prioritizes active apps.
