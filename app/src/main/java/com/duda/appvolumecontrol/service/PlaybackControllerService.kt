@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.content.pm.ServiceInfo
+import android.app.PendingIntent
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -128,11 +129,29 @@ class PlaybackControllerService : Service() {
             manager.createNotificationChannel(channel)
         }
         val detail = if (activeCount >= 0) "Active apps: $activeCount" else "Managing per-app volume"
+        val overlayIntent = Intent(this, VolumeOverlayService::class.java).apply {
+            action = VolumeOverlayService.ACTION_SHOW
+        }
+        val overlayPending = PendingIntent.getService(
+            this,
+            0,
+            overlayIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("App Volume Control")
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())
             .build()
+    }
+
+    private fun pendingIntentImmutable(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_IMMUTABLE
+        } else {
+            0
+        }
     }
 
     private fun updateNotification(activeCount: Int) {

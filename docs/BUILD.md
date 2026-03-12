@@ -11,7 +11,7 @@
 - If you see wrapper download errors in restricted environments, run with `GRADLE_USER_HOME=/tmp/gradle`.
 - The wrapper needs to download the Gradle distribution; pre-seed `GRADLE_USER_HOME` if network access is blocked.
 - Offline seeding: run `./gradlew --version` once on a machine with network, then copy the resulting `GRADLE_USER_HOME/wrapper/dists/gradle-8.13-bin/` folder into the offline environment.
-- AGP 8.5.2 is tested up to compileSdk 34; the warning is suppressed via `android.suppressUnsupportedCompileSdk=35` in `gradle.properties`.
+- AGP 8.13.2 is used and is compatible with compileSdk 35 (no suppression needed).
 
 ## Module packaging
 1. Build the APK.

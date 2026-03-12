@@ -6,8 +6,6 @@ import android.media.AudioPlaybackConfiguration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.Process
-import android.os.UserManager
 import android.view.Gravity
 import android.view.View
 import android.content.ClipData
@@ -28,14 +26,19 @@ import android.text.TextUtils
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.Color
+import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
+import android.widget.CheckBox
 import com.duda.appvolumecontrol.core.ActiveAppStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.OverlayPrefs
+import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
+import com.duda.appvolumecontrol.service.VolumeOverlayService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,6 +58,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var presetTitle: TextView
     private lateinit var profileSpinner: Spinner
     private lateinit var profileAdapter: ArrayAdapter<String>
+    private lateinit var overlayPrefs: OverlayPrefs
+    private lateinit var overlayStatusView: TextView
+    private lateinit var overlayToggle: CheckBox
+    private lateinit var overlayShowButton: Button
+    private lateinit var overlayPermissionButton: Button
+    private var overlayUpdating: Boolean = false
     private var presetEntries: List<AppEntry> = emptyList()
     private var activeEntries: List<AppEntry> = emptyList()
     private var activeKeys: Set<String> = emptySet()
@@ -87,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         audioManager = getSystemService(AudioManager::class.java)
         volumeStore = VolumeStore(this)
         activeStore = ActiveAppStore(this)
+        overlayPrefs = OverlayPrefs(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -230,6 +240,51 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val overlayTitle = TextView(this).apply {
+            text = "Overlay controls"
+            textSize = 16f
+            setPadding(0, 24, 0, 8)
+        }
+
+        overlayStatusView = TextView(this).apply {
+            text = "Overlay permission: checking..."
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
+
+        overlayPermissionButton = Button(this).apply {
+            text = "Grant overlay permission"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, OverlayPermissionActivity::class.java))
+            }
+        }
+
+        overlayShowButton = Button(this).apply {
+            text = "Show overlay now"
+            setOnClickListener {
+                val intent = Intent(this@MainActivity, VolumeOverlayService::class.java)
+                intent.action = VolumeOverlayService.ACTION_SHOW
+                startService(intent)
+            }
+        }
+
+        overlayToggle = CheckBox(this).apply {
+            text = "Enable volume-button overlay"
+            isChecked = overlayPrefs.isOverlayEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                if (overlayUpdating) return@setOnCheckedChangeListener
+                overlayPrefs.setOverlayEnabled(isChecked)
+                val intent = Intent(this@MainActivity, VolumeOverlayService::class.java)
+                intent.action = if (isChecked) {
+                    VolumeOverlayService.ACTION_START_WATCH
+                } else {
+                    VolumeOverlayService.ACTION_STOP_WATCH
+                }
+                startService(intent)
+                updateOverlayStatus()
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -286,6 +341,11 @@ class MainActivity : AppCompatActivity() {
         root.addView(diagnosticsButton)
         root.addView(helpButton)
         root.addView(checkButton)
+        root.addView(overlayTitle)
+        root.addView(overlayStatusView)
+        root.addView(overlayPermissionButton)
+        root.addView(overlayShowButton)
+        root.addView(overlayToggle)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
@@ -302,6 +362,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(scroll)
 
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
+        updateOverlayStatus()
         updateActiveApps(audioManager.activePlaybackConfigurations)
         loadPresetApps()
         updatePresetApps()
@@ -310,6 +371,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         maybeRequestNotifications()
+        updateOverlayStatus()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         loadPresetApps()
         updatePresetApps()
@@ -454,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val profileView = TextView(this).apply {
-            text = buildProfileLabel(entry.key.userId)
+            text = ProfileUtils.buildProfileLabel(this@MainActivity, entry.key.userId)
             textSize = 12f
             setTextColor(Color.parseColor("#616161"))
             visibility = if (shouldShowProfile(entry.key.userId)) View.VISIBLE else View.GONE
@@ -594,17 +656,11 @@ class MainActivity : AppCompatActivity() {
         val userIds = mutableSetOf<Int>()
         activeEntries.mapNotNullTo(userIds) { it.key.userId }
         presetEntries.mapNotNullTo(userIds) { it.key.userId }
-        currentUserId()?.let { userIds.add(it) }
-
-        val userManager = getSystemService(UserManager::class.java)
-        val profiles = runCatching { userManager.userProfiles }.getOrNull().orEmpty()
-        for (handle in profiles) {
-            getUserId(handle)?.let { userIds.add(it) }
-        }
 
         val options = mutableListOf(ProfileOption(null, "All profiles"))
-        for (userId in userIds.sorted()) {
-            options.add(ProfileOption(userId, buildProfileLabel(userId)))
+        val profileIds = ProfileUtils.collectUserIds(this, userIds)
+        for (userId in profileIds) {
+            options.add(ProfileOption(userId, ProfileUtils.buildProfileLabel(this, userId)))
         }
 
         if (options == profileOptions) return
@@ -648,19 +704,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun buildActiveTitle(count: Int): String {
-        val label = selectedProfileUserId?.let { " (${buildProfileLabel(it)})" }.orEmpty()
+        val label = selectedProfileUserId?.let { " (${ProfileUtils.buildProfileLabel(this, it)})" }.orEmpty()
         return "Active audio ($count)$label"
-    }
-
-    private fun buildProfileLabel(userId: Int?): String {
-        if (userId == null) return "All profiles"
-        val current = currentUserId()
-        val isManaged = isManagedProfile(userId)
-        return when {
-            current != null && userId == current -> "Personal (u$userId)"
-            isManaged -> "Work (u$userId)"
-            else -> "User u$userId"
-        }
     }
 
     private fun shouldShowProfile(userId: Int?): Boolean {
@@ -672,7 +717,7 @@ class MainActivity : AppCompatActivity() {
         val key = entry.key
         val infoLines = mutableListOf<String>()
         infoLines.add("Package: ${key.packageName}")
-        infoLines.add("Profile: ${buildProfileLabel(key.userId)}")
+        infoLines.add("Profile: ${ProfileUtils.buildProfileLabel(this, key.userId)}")
         if (entry.activeCount > 1) {
             infoLines.add("Active instances: ${entry.activeCount}")
         }
@@ -728,33 +773,6 @@ class MainActivity : AppCompatActivity() {
         return dateFormat.format(Date(value))
     }
 
-    private fun currentUserId(): Int? {
-        return PlaybackUtils.getUserIdFromUid(Process.myUid())
-    }
-
-    private fun getUserId(handle: android.os.UserHandle): Int? {
-        return try {
-            val method = android.os.UserHandle::class.java.getDeclaredMethod("getIdentifier")
-            method.isAccessible = true
-            method.invoke(handle) as? Int
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun isManagedProfile(userId: Int): Boolean {
-        val userManager = getSystemService(UserManager::class.java)
-        return try {
-            val method = UserManager::class.java.getDeclaredMethod(
-                "isManagedProfile",
-                Int::class.javaPrimitiveType
-            )
-            method.isAccessible = true
-            method.invoke(userManager, userId) as? Boolean ?: false
-        } catch (_: Exception) {
-            false
-        }
-    }
 
     private fun updateLastUpdated() {
         val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
@@ -792,6 +810,38 @@ class MainActivity : AppCompatActivity() {
 
     private fun dpToPx(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private fun updateOverlayStatus() {
+        val canDraw = canDrawOverlays()
+        overlayStatusView.text = if (canDraw) {
+            "Overlay permission: granted"
+        } else {
+            "Overlay permission: not granted"
+        }
+        overlayPermissionButton.isEnabled = !canDraw
+        overlayShowButton.isEnabled = canDraw
+        if (!canDraw && overlayPrefs.isOverlayEnabled()) {
+            overlayPrefs.setOverlayEnabled(false)
+            val intent = Intent(this, VolumeOverlayService::class.java)
+            intent.action = VolumeOverlayService.ACTION_STOP_WATCH
+            startService(intent)
+        }
+        overlayUpdating = true
+        val desired = overlayPrefs.isOverlayEnabled() && canDraw
+        if (overlayToggle.isChecked != desired) {
+            overlayToggle.isChecked = desired
+        }
+        overlayToggle.isEnabled = canDraw
+        overlayUpdating = false
+    }
+
+    private fun canDrawOverlays(): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(this)
+        } else {
+            true
+        }
     }
 
     private data class AppEntry(

@@ -15,8 +15,12 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.Spinner
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
+import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 
 class ManageAppsActivity : AppCompatActivity() {
@@ -27,8 +31,14 @@ class ManageAppsActivity : AppCompatActivity() {
     private lateinit var packageInput: EditText
     private lateinit var volumeInput: EditText
     private lateinit var searchAllToggle: CheckBox
+    private lateinit var profileSpinner: Spinner
+    private lateinit var profileAdapter: ArrayAdapter<String>
+    private lateinit var profileHint: TextView
     private var searchEntries: List<AppEntry> = emptyList()
     private var searchLoadedFromAll: Boolean = false
+    private var profileOptions: List<ProfileOption> = emptyList()
+    private var selectedProfileUserId: Int? = null
+    private var profileUpdating: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +58,50 @@ class ManageAppsActivity : AppCompatActivity() {
             text = "Add apps here to show them in Saved volumes on the main screen."
             textSize = 13f
             setPadding(0, 8, 0, 16)
+        }
+
+        val profileLabel = TextView(this).apply {
+            text = "Profile"
+            textSize = 13f
+        }
+
+        profileAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, mutableListOf("All profiles")).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        profileSpinner = Spinner(this).apply {
+            adapter = profileAdapter
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    if (profileUpdating) return
+                    val option = profileOptions.getOrNull(position) ?: ProfileOption(null, "All profiles")
+                    selectedProfileUserId = option.userId
+                    updateProfileHint()
+                    refreshSavedList()
+                    updateSearchResults()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+        }
+
+        val profileRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8)
+            addView(profileLabel)
+            addView(profileSpinner)
+        }
+
+        profileHint = TextView(this).apply {
+            text = "Adding presets for: All profiles"
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
         }
 
         val manualTitle = TextView(this).apply {
@@ -121,6 +175,8 @@ class ManageAppsActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(description)
+        root.addView(profileRow)
+        root.addView(profileHint)
         root.addView(manualTitle)
         root.addView(packageInput)
         root.addView(volumeInput)
@@ -138,6 +194,8 @@ class ManageAppsActivity : AppCompatActivity() {
         }
 
         setContentView(scroll)
+        updateProfileOptions()
+        updateProfileHint()
         refreshSavedList()
         updateSearchResults()
     }
@@ -149,10 +207,11 @@ class ManageAppsActivity : AppCompatActivity() {
             return
         }
         val volume = parseVolumeInput(volumeInput.text?.toString().orEmpty()) ?: return
-        volumeStore.setVolume(packageName, volume, null)
+        volumeStore.setVolume(packageName, volume, selectedProfileUserId)
         packageInput.setText("")
         volumeInput.setText("")
         Toast.makeText(this, "Added $packageName", Toast.LENGTH_SHORT).show()
+        updateProfileOptions()
         refreshSavedList()
         updateSearchResults()
     }
@@ -184,12 +243,12 @@ class ManageAppsActivity : AppCompatActivity() {
             return
         }
 
-        val savedPackages = volumeStore.listPresetEntries()
-            .filter { it.userId == null }
-            .map { it.packageName }
+        val savedKeys = volumeStore.listPresetEntries()
+            .map { it.storageKey() }
             .toSet()
         for (entry in filtered.sortedBy { it.label.lowercase() }) {
-            val isSaved = savedPackages.contains(entry.packageName)
+            val key = VolumeStore.VolumeKey(entry.packageName, selectedProfileUserId).storageKey()
+            val isSaved = savedKeys.contains(key)
             searchContainer.addView(buildSearchRow(entry, isSaved))
         }
     }
@@ -210,13 +269,18 @@ class ManageAppsActivity : AppCompatActivity() {
 
     private fun refreshSavedList() {
         savedContainer.removeAllViews()
-        val saved = volumeStore.listPresetEntries().filter { it.userId == null }
-        if (saved.isEmpty()) {
+        val saved = volumeStore.listPresetEntries()
+        val filtered = if (selectedProfileUserId == null) {
+            saved
+        } else {
+            saved.filter { it.userId == selectedProfileUserId }
+        }
+        if (filtered.isEmpty()) {
             savedContainer.addView(buildEmptyRow("No saved apps yet."))
             return
         }
-        for (entry in saved) {
-            savedContainer.addView(buildSavedRow(entry.packageName, resolveLabel(entry.packageName)))
+        for (entry in filtered) {
+            savedContainer.addView(buildSavedRow(entry, resolveLabel(entry.packageName)))
         }
     }
 
@@ -244,8 +308,9 @@ class ManageAppsActivity : AppCompatActivity() {
             isEnabled = !isSaved
             setOnClickListener {
                 val volume = parseVolumeInput(volumeInput.text?.toString().orEmpty()) ?: return@setOnClickListener
-                volumeStore.setVolume(entry.packageName, volume, null)
+                volumeStore.setVolume(entry.packageName, volume, selectedProfileUserId)
                 Toast.makeText(this@ManageAppsActivity, "Added ${entry.packageName}", Toast.LENGTH_SHORT).show()
+                updateProfileOptions()
                 refreshSavedList()
                 updateSearchResults()
             }
@@ -256,11 +321,16 @@ class ManageAppsActivity : AppCompatActivity() {
         return row
     }
 
-    private fun buildSavedRow(packageName: String, label: String): View {
+    private fun buildSavedRow(entry: VolumeStore.VolumeKey, label: String): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 8, 0, 8)
+        }
+
+        val nameContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
 
         val nameView = TextView(this).apply {
@@ -268,24 +338,33 @@ class ManageAppsActivity : AppCompatActivity() {
             textSize = 14f
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnLongClickListener {
-                copyToClipboard(packageName)
+                copyToClipboard(entry.packageName)
                 true
             }
         }
 
+        val profileView = TextView(this).apply {
+            text = ProfileUtils.buildProfileLabel(this@ManageAppsActivity, entry.userId)
+            textSize = 12f
+            setTextColor(0xFF616161.toInt())
+        }
+
+        nameContainer.addView(nameView)
+        nameContainer.addView(profileView)
+
         val deleteButton = Button(this).apply {
             text = "Remove"
             setOnClickListener {
-                volumeStore.removePreset(packageName, null)
-                Toast.makeText(this@ManageAppsActivity, "Removed $packageName", Toast.LENGTH_SHORT).show()
+                volumeStore.removePreset(entry.packageName, entry.userId)
+                Toast.makeText(this@ManageAppsActivity, "Removed ${entry.packageName}", Toast.LENGTH_SHORT).show()
+                updateProfileOptions()
                 refreshSavedList()
                 updateSearchResults()
             }
         }
 
-        row.addView(nameView)
+        row.addView(nameContainer)
         row.addView(deleteButton)
         return row
     }
@@ -323,8 +402,37 @@ class ManageAppsActivity : AppCompatActivity() {
         Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
     }
 
+    private fun updateProfileOptions() {
+        val savedUserIds = volumeStore.listPresetEntries().mapNotNull { it.userId }
+        val options = mutableListOf(ProfileOption(null, "All profiles"))
+        val profileIds = ProfileUtils.collectUserIds(this, savedUserIds + listOfNotNull(selectedProfileUserId))
+        for (userId in profileIds) {
+            options.add(ProfileOption(userId, ProfileUtils.buildProfileLabel(this, userId)))
+        }
+        if (options == profileOptions) return
+        profileOptions = options
+        profileUpdating = true
+        profileAdapter.clear()
+        profileAdapter.addAll(options.map { it.label })
+        profileAdapter.notifyDataSetChanged()
+        val selectedIndex = options.indexOfFirst { it.userId == selectedProfileUserId }
+            .takeIf { it >= 0 } ?: 0
+        selectedProfileUserId = options.getOrNull(selectedIndex)?.userId
+        profileSpinner.setSelection(selectedIndex)
+        profileUpdating = false
+    }
+
+    private fun updateProfileHint() {
+        profileHint.text = "Adding presets for: ${ProfileUtils.buildProfileLabel(this, selectedProfileUserId)}"
+    }
+
     private data class AppEntry(
         val packageName: String,
+        val label: String,
+    )
+
+    private data class ProfileOption(
+        val userId: Int?,
         val label: String,
     )
 

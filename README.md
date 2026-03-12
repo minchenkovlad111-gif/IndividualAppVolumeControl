@@ -8,6 +8,9 @@ A root-required Android app + Magisk module for per-app volume control, designed
 ## Features
 - Active playback list with per-app volume sliders.
 - Preset list with search, quick actions, and import/export.
+- Volume-button overlay with per-app sliders (requires overlay permission).
+- Quick settings tile + notification action to open the overlay.
+- Manage Apps screen to add presets per profile (work/personal).
 - Diagnostics screen with permission and hidden API status.
 
 ## Repository layout
