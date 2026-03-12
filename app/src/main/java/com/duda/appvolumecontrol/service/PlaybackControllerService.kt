@@ -13,9 +13,11 @@ import android.os.IBinder
 import android.util.Log
 import android.content.pm.ServiceInfo
 import android.app.PendingIntent
+import android.widget.RemoteViews
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import com.duda.appvolumecontrol.R
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -27,6 +29,8 @@ class PlaybackControllerService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
+    private var lastNotificationEntries: List<NotificationEntry> = emptyList()
+    private var lastNotificationSignature: String? = null
     private var callMuteActive: Boolean = false
     private var telephonyCallback: TelephonyCallback? = null
     private var phoneStateListener: PhoneStateListener? = null
@@ -82,12 +86,14 @@ class PlaybackControllerService : Service() {
         val routeDetails = mutableListOf<String>()
         val activeKeys = mutableSetOf<String>()
         val activeEntries = mutableSetOf<String>()
+        val activeVolumeKeys = mutableSetOf<VolumeStore.VolumeKey>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
             val uid = PlaybackUtils.getClientUid(config)
             val userId = PlaybackUtils.getUserIdFromUid(uid)
             val volumeKey = VolumeStore.VolumeKey(packageName, userId)
             activeEntries.add(volumeKey.storageKey())
+            activeVolumeKeys.add(volumeKey)
             val desiredVolume = if (callMuteActive) 0f else (volumeStore.getVolume(volumeKey) ?: 1f)
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${config.hashCode()}"
@@ -138,6 +144,7 @@ class PlaybackControllerService : Service() {
                 details = routeDetails.joinToString(",")
             )
         }
+        lastNotificationEntries = buildNotificationEntries(activeVolumeKeys)
         updateNotification(activeEntries.size)
     }
 
@@ -185,14 +192,17 @@ class PlaybackControllerService : Service() {
             overlayIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
         )
-        return Notification.Builder(this, CHANNEL_ID)
+        val notification = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("IndividualAppAudioVolumeControl")
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())
-            .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            notification.setCustomBigContentView(buildBigRemoteViews())
+        }
+        return notification.build()
     }
 
     private fun pendingIntentImmutable(): Int {
@@ -204,10 +214,119 @@ class PlaybackControllerService : Service() {
     }
 
     private fun updateNotification(activeCount: Int) {
-        if (activeCount == lastNotifiedCount) return
+        val signature = buildNotificationSignature()
+        if (activeCount == lastNotifiedCount && signature == lastNotificationSignature) return
         lastNotifiedCount = activeCount
+        lastNotificationSignature = signature
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification(activeCount))
+    }
+
+    private fun buildNotificationSignature(): String {
+        if (lastNotificationEntries.isEmpty()) return ""
+        return lastNotificationEntries.joinToString("|") { entry ->
+            val userPart = entry.userId?.toString() ?: "x"
+            "${entry.packageName}@$userPart:${entry.percent}"
+        }
+    }
+
+    private fun buildBigRemoteViews(): RemoteViews {
+        val views = RemoteViews(packageName, R.layout.notification_volume_big)
+        val entries = lastNotificationEntries
+        bindNotificationRow(views, 0, entries.getOrNull(0))
+        bindNotificationRow(views, 1, entries.getOrNull(1))
+        bindNotificationRow(views, 2, entries.getOrNull(2))
+        return views
+    }
+
+    private fun bindNotificationRow(views: RemoteViews, index: Int, entry: NotificationEntry?) {
+        val rowId = when (index) {
+            0 -> R.id.notif_row_1
+            1 -> R.id.notif_row_2
+            else -> R.id.notif_row_3
+        }
+        val appId = when (index) {
+            0 -> R.id.notif_app_1
+            1 -> R.id.notif_app_2
+            else -> R.id.notif_app_3
+        }
+        val valueId = when (index) {
+            0 -> R.id.notif_value_1
+            1 -> R.id.notif_value_2
+            else -> R.id.notif_value_3
+        }
+        val minusId = when (index) {
+            0 -> R.id.notif_minus_1
+            1 -> R.id.notif_minus_2
+            else -> R.id.notif_minus_3
+        }
+        val plusId = when (index) {
+            0 -> R.id.notif_plus_1
+            1 -> R.id.notif_plus_2
+            else -> R.id.notif_plus_3
+        }
+
+        if (entry == null) {
+            views.setViewVisibility(rowId, android.view.View.GONE)
+            return
+        }
+        views.setViewVisibility(rowId, android.view.View.VISIBLE)
+        views.setTextViewText(appId, entry.label)
+        views.setTextViewText(valueId, "${entry.percent}%")
+        views.setOnClickPendingIntent(
+            minusId,
+            buildAdjustPendingIntent(entry, -NOTIF_VOLUME_STEP, index * 2)
+        )
+        views.setOnClickPendingIntent(
+            plusId,
+            buildAdjustPendingIntent(entry, NOTIF_VOLUME_STEP, index * 2 + 1)
+        )
+    }
+
+    private fun buildAdjustPendingIntent(
+        entry: NotificationEntry,
+        delta: Float,
+        requestCode: Int
+    ): PendingIntent {
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_ADJUST
+            putExtra(NotificationActionReceiver.EXTRA_PACKAGE, entry.packageName)
+            putExtra(
+                NotificationActionReceiver.EXTRA_USER_ID,
+                entry.userId ?: NotificationActionReceiver.USER_ID_NONE
+            )
+            putExtra(NotificationActionReceiver.EXTRA_DELTA, delta)
+        }
+        return PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+    }
+
+    private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): List<NotificationEntry> {
+        if (keys.isEmpty()) return emptyList()
+        return keys.map { key ->
+            val label = resolveLabel(key.packageName)
+            val volume = volumeStore.getVolume(key) ?: 1f
+            NotificationEntry(
+                packageName = key.packageName,
+                userId = key.userId,
+                label = label,
+                percent = (volume * 100).toInt().coerceIn(0, 100)
+            )
+        }.sortedBy { it.label.lowercase() }
+            .take(NOTIF_MAX_ROWS)
+    }
+
+    private fun resolveLabel(packageName: String): String {
+        return try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        } catch (_: Exception) {
+            packageName
+        }
     }
 
     private fun setupCallStateListener() {
@@ -275,6 +394,8 @@ class PlaybackControllerService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_REAPPLY = "com.duda.appvolumecontrol.action.REAPPLY"
         const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
+        private const val NOTIF_MAX_ROWS = 3
+        private const val NOTIF_VOLUME_STEP = 0.05f
 
         fun requestReapply(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
@@ -288,4 +409,11 @@ class PlaybackControllerService : Service() {
             context.startForegroundService(intent)
         }
     }
+
+    private data class NotificationEntry(
+        val packageName: String,
+        val userId: Int?,
+        val label: String,
+        val percent: Int,
+    )
 }

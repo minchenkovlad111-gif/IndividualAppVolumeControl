@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notif_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/notif_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Per-app volume"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/notif_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap + or - to adjust"
+        android:textSize="11sp"
+        android:paddingBottom="6dp" />
+
+    <LinearLayout
+        android:id="@+id/notif_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/notif_app_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="App"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/notif_value_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100%"
+            android:textSize="12sp"
+            android:paddingEnd="6dp" />
+
+        <TextView
+            android:id="@+id/notif_minus_1"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="-"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+
+        <TextView
+            android:id="@+id/notif_plus_1"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:text="+"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/notif_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/notif_app_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="App"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/notif_value_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100%"
+            android:textSize="12sp"
+            android:paddingEnd="6dp" />
+
+        <TextView
+            android:id="@+id/notif_minus_2"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="-"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+
+        <TextView
+            android:id="@+id/notif_plus_2"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:text="+"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/notif_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/notif_app_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="App"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/notif_value_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100%"
+            android:textSize="12sp"
+            android:paddingEnd="6dp" />
+
+        <TextView
+            android:id="@+id/notif_minus_3"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="-"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+
+        <TextView
+            android:id="@+id/notif_plus_3"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:text="+"
+            android:textSize="16sp"
+            android:background="@android:drawable/btn_default_small" />
+    </LinearLayout>
+</LinearLayout>

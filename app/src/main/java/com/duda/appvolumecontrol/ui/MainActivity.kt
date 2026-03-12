@@ -129,6 +129,11 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 8, 0, 8)
         }
 
+        val moduleHelpButton = Button(this).apply {
+            text = "Install module (Magisk)"
+            setOnClickListener { showModuleHelp() }
+        }
+
         controlStatusView = TextView(this).apply {
             textSize = 12f
             setPadding(0, 0, 0, 8)
@@ -384,6 +389,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(quickStart)
+        root.addView(moduleHelpButton)
         root.addView(controlStatusView)
         root.addView(profileRow)
         root.addView(refreshButton)
@@ -987,10 +993,31 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun copyToClipboard(text: String) {
+    private fun copyToClipboard(text: String, label: String = "Package") {
         val manager = getSystemService(ClipboardManager::class.java)
-        manager.setPrimaryClip(ClipData.newPlainText("package", text))
-        Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
+        manager.setPrimaryClip(ClipData.newPlainText("clipboard", text))
+        Toast.makeText(this, "$label copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showModuleHelp() {
+        val moduleName = "IndividualAppAudioVolumeControl-magisk.zip"
+        val message = "System/privileged install is required for per-app volume control.\n\n" +
+            "Steps:\n" +
+            "1) Install the Magisk module ($moduleName).\n" +
+            "2) Reboot your device.\n" +
+            "3) Open Setup Check to verify Ready: YES.\n\n" +
+            "Directly copying the app into /system is not supported from the app."
+        AlertDialog.Builder(this)
+            .setTitle("Install via Magisk")
+            .setMessage(message)
+            .setPositiveButton("Copy module name") { _, _ ->
+                copyToClipboard(moduleName, "Module name")
+            }
+            .setNeutralButton("Copy package") { _, _ ->
+                copyToClipboard(packageName, "Package")
+            }
+            .setNegativeButton("OK", null)
+            .show()
     }
 
     private fun dpToPx(value: Int): Int {

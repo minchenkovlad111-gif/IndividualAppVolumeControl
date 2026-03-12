@@ -5,6 +5,9 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added Magisk install helper button with copyable module/package info.
+- Added prototype notification with per-app +/- controls (up to 3 active apps).
+- Updated notification refresh to track per-app volume changes.
 - Allow sliders to stay interactive even when controls are not ready (store presets with warning).
 - Added overlay auto-hide preference and toggles in main UI + overlay header.
 - Expanded overlay watcher to react to any stream volume changes (multi-stream signature) for better OEM volume-key detection.

@@ -11,6 +11,7 @@
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.
 - Call state listener: mutes active playback during ringing/off-hook calls.
+- Foreground notification: persistent status with quick per-app +/- controls (prototype).
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
