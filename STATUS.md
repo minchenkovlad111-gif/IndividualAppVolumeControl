@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added hidden API retry + error details to Diagnostics for easier policy validation.
 - Added app icons and long-press package copy in the overlay rows.
 - Expanded Diagnostics to report requested/granted permission status and missing critical permissions.
 - Added overlay watcher diagnostics (signals, show reason, last active count) to aid Android 12-15 validation.

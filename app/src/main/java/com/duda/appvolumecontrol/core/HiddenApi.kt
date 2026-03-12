@@ -11,6 +11,8 @@ object HiddenApi {
     fun tryAllowHiddenApiAccess(context: Context) {
         var vmRuntimeOk: Boolean?
         var policyOk: Boolean?
+        var vmRuntimeError: String? = null
+        var policyError: String? = null
 
         try {
             val vmRuntimeClass = Class.forName("dalvik.system.VMRuntime")
@@ -26,6 +28,7 @@ object HiddenApi {
         } catch (t: Throwable) {
             Log.w(TAG, "Hidden API exemption via VMRuntime failed", t)
             vmRuntimeOk = false
+            vmRuntimeError = t.javaClass.simpleName + ": " + (t.message ?: "unknown")
         }
 
         try {
@@ -44,8 +47,9 @@ object HiddenApi {
         } catch (t: Throwable) {
             Log.w(TAG, "Hidden API policy update failed", t)
             policyOk = false
+            policyError = t.javaClass.simpleName + ": " + (t.message ?: "unknown")
         }
 
-        DiagnosticsStore(context).recordHiddenApiAttempt(vmRuntimeOk, policyOk)
+        DiagnosticsStore(context).recordHiddenApiAttempt(vmRuntimeOk, policyOk, vmRuntimeError, policyError)
     }
 }

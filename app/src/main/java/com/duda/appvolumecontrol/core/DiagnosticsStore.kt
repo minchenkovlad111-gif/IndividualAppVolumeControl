@@ -89,13 +89,24 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
-    fun recordHiddenApiAttempt(vmRuntimeOk: Boolean?, policyOk: Boolean?) {
+    fun recordHiddenApiAttempt(
+        vmRuntimeOk: Boolean?,
+        policyOk: Boolean?,
+        vmRuntimeError: String? = null,
+        policyError: String? = null,
+    ) {
         val editor = prefs.edit()
         if (vmRuntimeOk != null) {
             editor.putInt(KEY_HIDDEN_API_VM_OK, if (vmRuntimeOk) 1 else 0)
         }
         if (policyOk != null) {
             editor.putInt(KEY_HIDDEN_API_POLICY_OK, if (policyOk) 1 else 0)
+        }
+        if (vmRuntimeError != null) {
+            editor.putString(KEY_HIDDEN_API_VM_ERROR, vmRuntimeError)
+        }
+        if (policyError != null) {
+            editor.putString(KEY_HIDDEN_API_POLICY_ERROR, policyError)
         }
         editor.putLong(KEY_HIDDEN_API_TIME, System.currentTimeMillis())
         editor.apply()
@@ -141,6 +152,8 @@ class DiagnosticsStore(context: Context) {
             overlayShowTime = prefs.getLong(KEY_OVERLAY_SHOW_TIME, 0L),
             hiddenApiVmRuntimeOk = prefs.getInt(KEY_HIDDEN_API_VM_OK, -1),
             hiddenApiPolicyOk = prefs.getInt(KEY_HIDDEN_API_POLICY_OK, -1),
+            hiddenApiVmRuntimeError = prefs.getString(KEY_HIDDEN_API_VM_ERROR, null),
+            hiddenApiPolicyError = prefs.getString(KEY_HIDDEN_API_POLICY_ERROR, null),
             hiddenApiTime = prefs.getLong(KEY_HIDDEN_API_TIME, 0L),
             lastImportCount = prefs.getInt(KEY_LAST_IMPORT_COUNT, 0),
             lastImportTime = prefs.getLong(KEY_LAST_IMPORT_TIME, 0L),
@@ -174,6 +187,8 @@ class DiagnosticsStore(context: Context) {
         val overlayShowTime: Long,
         val hiddenApiVmRuntimeOk: Int,
         val hiddenApiPolicyOk: Int,
+        val hiddenApiVmRuntimeError: String?,
+        val hiddenApiPolicyError: String?,
         val hiddenApiTime: Long,
         val lastImportCount: Int,
         val lastImportTime: Long,
@@ -207,6 +222,8 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_OVERLAY_SHOW_TIME = "overlay_show_time"
         private const val KEY_HIDDEN_API_VM_OK = "hidden_api_vm_ok"
         private const val KEY_HIDDEN_API_POLICY_OK = "hidden_api_policy_ok"
+        private const val KEY_HIDDEN_API_VM_ERROR = "hidden_api_vm_error"
+        private const val KEY_HIDDEN_API_POLICY_ERROR = "hidden_api_policy_error"
         private const val KEY_HIDDEN_API_TIME = "hidden_api_time"
         private const val KEY_LAST_IMPORT_COUNT = "last_import_count"
         private const val KEY_LAST_IMPORT_TIME = "last_import_time"

@@ -16,6 +16,7 @@
 - Confirm `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()` are callable on each target.
 - Validate required permissions on at least one AOSP-based and one OEM device.
 - Capture logs from the diagnostics screen and document known failures.
+- Use "Retry hidden API" in Diagnostics to capture VMRuntime/policy error details per device.
 
 ## UX ideas to validate
 - Volume-button overlay listing active apps (AudioHQ-style) for quick control.

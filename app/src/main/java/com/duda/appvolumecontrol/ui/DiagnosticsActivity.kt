@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
@@ -62,6 +63,15 @@ class DiagnosticsActivity : AppCompatActivity() {
             text = "Self-test"
             setOnClickListener {
                 PlaybackControllerService.requestDiagnosticsDump(this@DiagnosticsActivity)
+                refresh()
+            }
+        }
+
+        val hiddenApiButton = Button(this).apply {
+            text = "Retry hidden API"
+            setOnClickListener {
+                HiddenApi.tryAllowHiddenApiAccess(this@DiagnosticsActivity)
+                Toast.makeText(this@DiagnosticsActivity, "Hidden API attempt recorded", Toast.LENGTH_SHORT).show()
                 refresh()
             }
         }
@@ -114,6 +124,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(helper)
         root.addView(refreshButton)
         root.addView(selfTestButton)
+        root.addView(hiddenApiButton)
         root.addView(copyButton)
         root.addView(shareButton)
         root.addView(exportButton)
@@ -234,6 +245,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last export time: $lastExportTime",
             "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
             "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
+            "Hidden API VMRuntime error: ${snapshot.hiddenApiVmRuntimeError ?: "-"}",
+            "Hidden API policy error: ${snapshot.hiddenApiPolicyError ?: "-"}",
             "Hidden API last attempt: $hiddenApiTime",
             "hidden_api_policy: ${hiddenApiPolicy ?: "-"}",
             "hidden_api_policy_pre_p_apps: ${hiddenApiPolicyPreP ?: "-"}",
