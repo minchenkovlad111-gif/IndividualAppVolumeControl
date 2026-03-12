@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added control readiness gating with gray-out states in main UI and overlay.
 - Added overlay auto-refresh toggle in main UI.
 - Added tick markers + snap-to-segment resistance to main UI sliders.
 - Added overlay refresh button and auto-refresh toggle to keep active app list current.

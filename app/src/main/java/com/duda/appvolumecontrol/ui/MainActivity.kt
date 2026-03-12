@@ -39,6 +39,7 @@ import com.duda.appvolumecontrol.core.ActiveAppStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.ProfileUtils
+import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.service.VolumeOverlayService
@@ -69,6 +70,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
     private var overlayUpdating: Boolean = false
+    private lateinit var controlStatusView: TextView
+    private var controlsEnabled: Boolean = true
     private var presetEntries: List<AppEntry> = emptyList()
     private var activeEntries: List<AppEntry> = emptyList()
     private var activeKeys: Set<String> = emptySet()
@@ -117,6 +120,11 @@ class MainActivity : AppCompatActivity() {
             text = "Quick start:\n1) Install the Magisk module and reboot.\n2) Play audio in an app.\n3) Move the slider for that app."
             textSize = 13f
             setPadding(0, 8, 0, 8)
+        }
+
+        controlStatusView = TextView(this).apply {
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
         }
 
         val profileLabel = TextView(this).apply {
@@ -345,6 +353,7 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(quickStart)
+        root.addView(controlStatusView)
         root.addView(profileRow)
         root.addView(refreshButton)
         root.addView(resetButton)
@@ -376,6 +385,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(scroll)
 
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
+        updateControlStatus()
         updateOverlayStatus()
         updateActiveApps(audioManager.activePlaybackConfigurations)
         loadPresetApps()
@@ -385,6 +395,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         maybeRequestNotifications()
+        updateControlStatus()
         updateOverlayStatus()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         loadPresetApps()
@@ -667,6 +678,13 @@ class MainActivity : AppCompatActivity() {
 
         row.addView(headerRow)
         row.addView(sliderRow)
+
+        if (!controlsEnabled) {
+            row.alpha = 0.5f
+            slider.isEnabled = false
+            muteButton.isEnabled = false
+        }
+
         return row
     }
 
@@ -901,6 +919,17 @@ class MainActivity : AppCompatActivity() {
         }
         overlayToggle.isEnabled = canDraw
         overlayUpdating = false
+    }
+
+    private fun updateControlStatus() {
+        val ready = SetupStatus.isControlReady(this)
+        controlsEnabled = ready
+        controlStatusView.text = if (ready) {
+            "Controls: ready"
+        } else {
+            "Controls: disabled (open Setup Check)"
+        }
+        controlStatusView.setTextColor(if (ready) 0xFF1B5E20.toInt() else 0xFFB71C1C.toInt())
     }
 
     private fun canDrawOverlays(): Boolean {

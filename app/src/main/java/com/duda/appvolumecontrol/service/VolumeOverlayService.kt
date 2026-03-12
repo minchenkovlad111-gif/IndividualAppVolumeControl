@@ -34,6 +34,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.ProfileUtils
+import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
@@ -49,11 +50,13 @@ class VolumeOverlayService : Service() {
     private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
     private var overlayView: View? = null
     private var listContainer: LinearLayout? = null
+    private var statusView: TextView? = null
     private var isWatching: Boolean = false
     private var lastStreamVolume: Int = -1
     private var stopAfterHide: Boolean = false
     private var autoHideEnabled: Boolean = true
     private var activeSignature: String? = null
+    private var controlsEnabled: Boolean = true
     private val lastNonZeroVolumes = mutableMapOf<String, Float>()
 
     private val hideRunnable = Runnable {
@@ -254,7 +257,15 @@ class VolumeOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
         }
 
+        statusView = TextView(this).apply {
+            textSize = 12f
+            setTextColor(Color.parseColor("#B71C1C"))
+            setPadding(0, dpToPx(6), 0, dpToPx(6))
+            visibility = View.GONE
+        }
+
         root.addView(headerRow)
+        root.addView(statusView)
         root.addView(listContainer)
         overlayView = root
         return root
@@ -263,6 +274,15 @@ class VolumeOverlayService : Service() {
     private fun populateList() {
         val container = listContainer ?: return
         container.removeAllViews()
+        controlsEnabled = SetupStatus.isControlReady(this)
+        statusView?.let { status ->
+            if (controlsEnabled) {
+                status.visibility = View.GONE
+            } else {
+                status.text = "Controls disabled (open Setup Check)"
+                status.visibility = View.VISIBLE
+            }
+        }
         val entries = loadActiveEntries()
         if (entries.isEmpty()) {
             container.addView(buildEmptyRow("No active audio."))
@@ -448,6 +468,13 @@ class VolumeOverlayService : Service() {
         card.addView(headerRow)
         card.addView(sliderRow)
         row.addView(card)
+
+        if (!controlsEnabled) {
+            row.alpha = 0.5f
+            slider.isEnabled = false
+            muteButton.isEnabled = false
+        }
+
         return row
     }
 
