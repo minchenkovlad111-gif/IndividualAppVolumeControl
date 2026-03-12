@@ -28,6 +28,7 @@ import android.view.WindowManager
 import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -39,6 +40,8 @@ import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import android.graphics.drawable.Drawable
+import android.widget.Toast
 import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
 import com.duda.appvolumecontrol.ui.SeekBarTicksView
 import kotlin.math.abs
@@ -62,6 +65,7 @@ class VolumeOverlayService : Service() {
     private var controlsEnabled: Boolean = true
     private val lastNonZeroVolumes = mutableMapOf<String, Float>()
     private var lastShowReason: String = DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
+    private val iconCache = mutableMapOf<String, Drawable>()
 
     private val hideRunnable = Runnable {
         removeOverlay()
@@ -345,12 +349,23 @@ class VolumeOverlayService : Service() {
             gravity = Gravity.CENTER_VERTICAL
         }
 
+        val iconView = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(20), dpToPx(20)).apply {
+                marginEnd = dpToPx(6)
+            }
+            setImageDrawable(resolveIcon(entry.key.packageName))
+        }
+
         val nameView = TextView(this).apply {
             text = entry.label
             textSize = 13f
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnLongClickListener {
+                copyToClipboard(entry.key.packageName)
+                true
+            }
         }
 
         val profileView = TextView(this).apply {
@@ -368,6 +383,7 @@ class VolumeOverlayService : Service() {
             visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
         }
 
+        headerRow.addView(iconView)
         headerRow.addView(nameView)
         headerRow.addView(profileView)
         headerRow.addView(countView)
@@ -599,6 +615,21 @@ class VolumeOverlayService : Service() {
         } catch (_: Exception) {
             packageName
         }
+    }
+
+    private fun resolveIcon(packageName: String): Drawable? {
+        return iconCache[packageName] ?: try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationIcon(appInfo).also { iconCache[packageName] = it }
+        } catch (_: Exception) {
+            getDrawable(android.R.drawable.sym_def_app_icon)
+        }
+    }
+
+    private fun copyToClipboard(text: String) {
+        val manager = getSystemService(android.content.ClipboardManager::class.java)
+        manager.setPrimaryClip(android.content.ClipData.newPlainText("package", text))
+        Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun buildLayoutParams(): WindowManager.LayoutParams {

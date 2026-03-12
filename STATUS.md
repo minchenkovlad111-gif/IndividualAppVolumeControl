@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added app icons and long-press package copy in the overlay rows.
 - Expanded Diagnostics to report requested/granted permission status and missing critical permissions.
 - Added overlay watcher diagnostics (signals, show reason, last active count) to aid Android 12-15 validation.
 - Added per-app marker/segment configs with Manage Apps editor, export/import support, and slider rendering in main UI + overlay.
