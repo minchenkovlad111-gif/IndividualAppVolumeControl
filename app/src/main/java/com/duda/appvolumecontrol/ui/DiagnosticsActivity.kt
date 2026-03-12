@@ -31,6 +31,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     private lateinit var contentView: TextView
     private var lastReport: String = ""
     private var lastCompatibilityRow: String = ""
+    private var lastBundle: String = ""
     private lateinit var volumeStore: VolumeStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,9 +88,19 @@ class DiagnosticsActivity : AppCompatActivity() {
             setOnClickListener { copyCompatibilityRow() }
         }
 
+        val copyBundleButton = Button(this).apply {
+            text = "Copy bundle"
+            setOnClickListener { copyBundle() }
+        }
+
         val shareButton = Button(this).apply {
             text = "Share report"
             setOnClickListener { shareReport() }
+        }
+
+        val shareBundleButton = Button(this).apply {
+            text = "Share bundle"
+            setOnClickListener { shareBundle() }
         }
 
         val exportButton = Button(this).apply {
@@ -133,7 +144,9 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(hiddenApiButton)
         root.addView(copyButton)
         root.addView(copyCompatibilityButton)
+        root.addView(copyBundleButton)
         root.addView(shareButton)
+        root.addView(shareBundleButton)
         root.addView(exportButton)
         root.addView(importButton)
         root.addView(importReplaceButton)
@@ -276,6 +289,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             snapshot.hiddenApiVmRuntimeOk,
             snapshot.hiddenApiPolicyOk
         )
+        lastBundle = buildBundle()
     }
 
     private fun readGlobalInt(key: String): Int? {
@@ -309,6 +323,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("compatibility", lastCompatibilityRow))
         Toast.makeText(this, "Compatibility row copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun copyBundle() {
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("bundle", lastBundle))
+        Toast.makeText(this, "Bundle copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun exportPresets() {
@@ -370,6 +390,14 @@ class DiagnosticsActivity : AppCompatActivity() {
         startActivity(Intent.createChooser(sendIntent, "Share diagnostics"))
     }
 
+    private fun shareBundle() {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, lastBundle)
+        }
+        startActivity(Intent.createChooser(sendIntent, "Share bundle"))
+    }
+
     private fun isPrivilegedApp(appInfo: ApplicationInfo): Boolean {
         return try {
             val field = ApplicationInfo::class.java.getDeclaredField("FLAG_PRIVILEGED").apply {
@@ -395,6 +423,20 @@ class DiagnosticsActivity : AppCompatActivity() {
         val perApp = "unknown"
         val notes = "fill in"
         return listOf(device, androidVersion, priv, vm, policy, perApp, notes).joinToString(", ")
+    }
+
+    private fun buildBundle(): String {
+        val presets = volumeStore.exportJson()
+        return listOf(
+            "=== Diagnostics ===",
+            lastReport,
+            "",
+            "=== Presets ===",
+            presets,
+            "",
+            "=== Compatibility Row ===",
+            lastCompatibilityRow,
+        ).joinToString("\n")
     }
 
     private fun getAppVersion(): Pair<String, Long> {
