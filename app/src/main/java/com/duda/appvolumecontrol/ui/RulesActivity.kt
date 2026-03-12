@@ -26,6 +26,7 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var volumeStore: VolumeStore
     private lateinit var groupContainer: LinearLayout
     private lateinit var ruleContainer: LinearLayout
+    private var installedAppsCache: List<AppEntry>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -290,11 +291,21 @@ class RulesActivity : AppCompatActivity() {
             hint = "Packages (comma or space separated)"
             minLines = 3
         }
+        val pickButton = Button(this).apply {
+            text = "Pick apps"
+            setOnClickListener {
+                val initial = parseTargets(packagesInput.text?.toString().orEmpty())
+                showPackagePicker("Pick group apps", initial) { selected ->
+                    packagesInput.setText(selected.joinToString(", ") { it.storageKey() })
+                }
+            }
+        }
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 16, 24, 0)
             addView(nameInput)
             addView(packagesInput)
+            addView(pickButton)
         }
         AlertDialog.Builder(this)
             .setTitle("Add group")
@@ -333,11 +344,21 @@ class RulesActivity : AppCompatActivity() {
             minLines = 3
             setText(group.packages.joinToString(", ") { it.storageKey() })
         }
+        val pickButton = Button(this).apply {
+            text = "Pick apps"
+            setOnClickListener {
+                val initial = parseTargets(packagesInput.text?.toString().orEmpty())
+                showPackagePicker("Pick group apps", initial) { selected ->
+                    packagesInput.setText(selected.joinToString(", ") { it.storageKey() })
+                }
+            }
+        }
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 16, 24, 0)
             addView(nameInput)
             addView(packagesInput)
+            addView(pickButton)
         }
         AlertDialog.Builder(this)
             .setTitle("Edit group")
@@ -389,9 +410,27 @@ class RulesActivity : AppCompatActivity() {
             hint = "Any active packages (comma separated)"
             minLines = 2
         }
+        val anyPickButton = Button(this).apply {
+            text = "Pick any-active apps"
+            setOnClickListener {
+                val initial = parseTargets(anyActiveInput.text?.toString().orEmpty())
+                showPackagePicker("Pick any-active apps", initial) { selected ->
+                    anyActiveInput.setText(selected.joinToString(", ") { it.storageKey() })
+                }
+            }
+        }
         val allActiveInput = EditText(this).apply {
             hint = "All active packages (comma separated)"
             minLines = 2
+        }
+        val allPickButton = Button(this).apply {
+            text = "Pick all-active apps"
+            setOnClickListener {
+                val initial = parseTargets(allActiveInput.text?.toString().orEmpty())
+                showPackagePicker("Pick all-active apps", initial) { selected ->
+                    allActiveInput.setText(selected.joinToString(", ") { it.storageKey() })
+                }
+            }
         }
         val daysInput = EditText(this).apply {
             hint = "Time days (1-7, optional)"
@@ -412,6 +451,15 @@ class RulesActivity : AppCompatActivity() {
         val targetPackagesInput = EditText(this).apply {
             hint = "Target packages (comma separated if no group id)"
             minLines = 2
+        }
+        val targetPickButton = Button(this).apply {
+            text = "Pick target apps"
+            setOnClickListener {
+                val initial = parseTargets(targetPackagesInput.text?.toString().orEmpty())
+                showPackagePicker("Pick target apps", initial) { selected ->
+                    targetPackagesInput.setText(selected.joinToString(", ") { it.storageKey() })
+                }
+            }
         }
         val volumeInput = EditText(this).apply {
             hint = "Volume percent (0-100)"
@@ -439,7 +487,9 @@ class RulesActivity : AppCompatActivity() {
             addView(priorityInput)
             addView(enabledToggle)
             addView(anyActiveInput)
+            addView(anyPickButton)
             addView(allActiveInput)
+            addView(allPickButton)
             addView(daysInput)
             addView(startInput)
             addView(endInput)
@@ -447,6 +497,7 @@ class RulesActivity : AppCompatActivity() {
             addView(groupTargetInput)
             addView(groupHint)
             addView(targetPackagesInput)
+            addView(targetPickButton)
             addView(volumeInput)
         }
 
@@ -662,4 +713,165 @@ class RulesActivity : AppCompatActivity() {
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+
+    private fun showPackagePicker(
+        title: String,
+        initial: List<RuleTarget>,
+        onResult: (List<RuleTarget>) -> Unit,
+    ) {
+        val allApps = loadInstalledApps()
+        val selected = initial.map { it.packageName }.toMutableSet()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 0)
+        }
+        val searchInput = EditText(this).apply {
+            hint = "Search apps"
+        }
+        val selectedTitle = TextView(this).apply {
+            text = "Selected"
+            textSize = 13f
+            setPadding(0, 8, 0, 8)
+        }
+        val selectedContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val resultsTitle = TextView(this).apply {
+            text = "Results"
+            textSize = 13f
+            setPadding(0, 8, 0, 8)
+        }
+        val resultsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val scroll = ScrollView(this).apply {
+            addView(resultsContainer)
+        }
+
+        root.addView(searchInput)
+        root.addView(selectedTitle)
+        root.addView(selectedContainer)
+        root.addView(resultsTitle)
+        root.addView(scroll)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(root)
+            .setPositiveButton("Use selection") { _, _ ->
+                val targets = selected.sorted().map { RuleTarget(it, null) }
+                onResult(targets)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        fun renderSelected() {
+            selectedContainer.removeAllViews()
+            if (selected.isEmpty()) {
+                selectedContainer.addView(buildEmptyRow("None selected."))
+                return
+            }
+            for (pkg in selected.sorted()) {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 4, 0, 4)
+                }
+                val name = TextView(this).apply {
+                    text = resolveLabel(pkg)
+                    textSize = 13f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                val remove = Button(this).apply {
+                    text = "Remove"
+                    setOnClickListener {
+                        selected.remove(pkg)
+                        renderSelected()
+                        renderResults()
+                    }
+                }
+                row.addView(name)
+                row.addView(remove)
+                selectedContainer.addView(row)
+            }
+        }
+
+        fun renderResults() {
+            resultsContainer.removeAllViews()
+            val query = searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
+            val filtered = if (query.isBlank()) {
+                allApps
+            } else {
+                allApps.filter {
+                    it.label.lowercase().contains(query) || it.packageName.lowercase().contains(query)
+                }
+            }
+            if (filtered.isEmpty()) {
+                resultsContainer.addView(buildEmptyRow("No matching apps."))
+                return
+            }
+            for (entry in filtered.sortedBy { it.label.lowercase() }) {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 4, 0, 4)
+                }
+                val name = TextView(this).apply {
+                    text = entry.label
+                    textSize = 13f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                val action = Button(this).apply {
+                    val isSelected = selected.contains(entry.packageName)
+                    text = if (isSelected) "Remove" else "Add"
+                    setOnClickListener {
+                        if (selected.contains(entry.packageName)) {
+                            selected.remove(entry.packageName)
+                        } else {
+                            selected.add(entry.packageName)
+                        }
+                        renderSelected()
+                        renderResults()
+                    }
+                }
+                row.addView(name)
+                row.addView(action)
+                resultsContainer.addView(row)
+            }
+        }
+
+        searchInput.addTextChangedListener { renderResults() }
+        renderSelected()
+        renderResults()
+        dialog.show()
+    }
+
+    private fun loadInstalledApps(): List<AppEntry> {
+        val cached = installedAppsCache
+        if (cached != null) return cached
+        val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN, null).apply {
+            addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        }
+        val packages = packageManager.queryIntentActivities(mainIntent, 0)
+            .map { it.activityInfo.packageName }
+            .distinct()
+        val entries = packages.map { pkg ->
+            AppEntry(pkg, resolveLabel(pkg))
+        }
+        installedAppsCache = entries
+        return entries
+    }
+
+    private fun resolveLabel(packageName: String): String {
+        return try {
+            val info = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(info)?.toString() ?: packageName
+        } catch (_: Exception) {
+            packageName
+        }
+    }
+
+    private data class AppEntry(
+        val packageName: String,
+        val label: String,
+    )
 }
