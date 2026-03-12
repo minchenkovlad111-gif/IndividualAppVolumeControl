@@ -59,5 +59,6 @@ android {
 dependencies {
     add("modernImplementation", "androidx.core:core-ktx:1.13.1")
     add("modernImplementation", "androidx.appcompat:appcompat:1.7.0")
+    add("modernImplementation", "com.google.android.gms:play-services-location:21.1.0")
     add("legacyImplementation", "androidx.appcompat:appcompat:1.4.2")
 }

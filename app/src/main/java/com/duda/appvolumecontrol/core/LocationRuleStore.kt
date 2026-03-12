@@ -70,6 +70,14 @@ class LocationRuleStore(context: Context) {
         prefs.edit().putBoolean(KEY_BACKGROUND_ENABLED, enabled).apply()
     }
 
+    fun isGeofencingEnabled(): Boolean {
+        return prefs.getBoolean(KEY_GEOFENCING_ENABLED, false)
+    }
+
+    fun setGeofencingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_GEOFENCING_ENABLED, enabled).apply()
+    }
+
     data class LocationRule(
         val id: String,
         val latitude: Double,
@@ -105,5 +113,6 @@ class LocationRuleStore(context: Context) {
         private const val KEY_LAST_FIX_TIME = "last_fix_time"
         private const val KEY_LOCATIONS = "locations"
         private const val KEY_BACKGROUND_ENABLED = "background_updates_enabled"
+        private const val KEY_GEOFENCING_ENABLED = "geofencing_enabled"
     }
 }

@@ -79,5 +79,8 @@
         <receiver
             android:name=".service.LocationUpdateReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".service.GeofenceReceiver"
+            android:exported="false" />
     </application>
 </manifest>

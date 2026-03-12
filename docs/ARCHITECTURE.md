@@ -15,6 +15,7 @@
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
 - Location updates can run in the background via a broadcast receiver when enabled and permitted.
+- Optional geofencing is handled via Play services and updates the current location id on entry/exit.
 - Build flavors: modern (API 26+) full feature set; legacy (API 16-25) presets/diagnostics only with warning banner.
 
 ## Data flow

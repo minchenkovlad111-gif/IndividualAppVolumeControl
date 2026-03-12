@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added optional geofencing support (Play services) with a UI toggle and diagnostics reporting.
 - Added optional background location updates via a broadcast receiver and toggle.
 - Added legacy flavor with a minimal presets/diagnostics UI and a warning banner for API 16-25 devices.
 - Added real location support: stored locations with live GPS/network updates and location permissions.

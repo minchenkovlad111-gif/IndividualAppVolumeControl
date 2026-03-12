@@ -243,6 +243,9 @@ class DiagnosticsActivity : AppCompatActivity() {
         val locationCount = locationStore.listLocations().size
         val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat)
         val backgroundLocationEnabled = if (locationStore.isBackgroundUpdatesEnabled()) "enabled" else "disabled"
+        val geofencingEnabled = if (locationStore.isGeofencingEnabled()) "enabled" else "disabled"
+        val geofencingAvailable = com.duda.appvolumecontrol.core.GeofenceRuleManager(this).isAvailable()
+        val geofencingStatus = if (geofencingAvailable) geofencingEnabled else "unavailable"
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = isPrivilegedApp(appInfo)
@@ -299,6 +302,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",
             "Background location updates: $backgroundLocationEnabled",
+            "Geofencing: $geofencingStatus",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",

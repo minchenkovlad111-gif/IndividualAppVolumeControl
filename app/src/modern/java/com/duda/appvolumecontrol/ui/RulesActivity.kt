@@ -34,6 +34,7 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var locationContainer: LinearLayout
     private lateinit var locationInput: EditText
     private lateinit var locationBackgroundToggle: CheckBox
+    private lateinit var locationGeofenceToggle: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,6 +109,31 @@ class RulesActivity : AppCompatActivity() {
                 }
             }
         }
+        locationGeofenceToggle = CheckBox(this).apply {
+            text = "Enable geofencing (Play services)"
+            isChecked = locationStore.isGeofencingEnabled()
+            setOnCheckedChangeListener { _, checked ->
+                if (checked) {
+                    val geofenceManager = com.duda.appvolumecontrol.core.GeofenceRuleManager(this@RulesActivity)
+                    if (!geofenceManager.isAvailable()) {
+                        Toast.makeText(
+                            this@RulesActivity,
+                            "Play services not available for geofencing",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        locationStore.setGeofencingEnabled(false)
+                        locationGeofenceToggle.isChecked = false
+                        return@setOnCheckedChangeListener
+                    }
+                }
+                locationStore.setGeofencingEnabled(checked)
+                if (checked) {
+                    requestBackgroundLocationPermission()
+                } else {
+                    com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
+                }
+            }
+        }
         locationButtons.addView(locationSave)
         locationButtons.addView(locationClear)
         locationButtons.addView(locationPermission)
@@ -115,6 +141,7 @@ class RulesActivity : AppCompatActivity() {
         locationRow.addView(locationInput)
         locationRow.addView(locationHint)
         locationRow.addView(locationBackgroundToggle)
+        locationRow.addView(locationGeofenceToggle)
         locationRow.addView(locationButtons)
 
         val locationTitle = TextView(this).apply {
@@ -842,6 +869,7 @@ class RulesActivity : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 val updated = locationStore.listLocations().filterNot { it.id == location.id }
                 locationStore.setLocations(updated)
+                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
                 refresh()
             }
             .setNegativeButton("Cancel", null)
@@ -915,6 +943,7 @@ class RulesActivity : AppCompatActivity() {
                     }
                 }
                 locationStore.setLocations(updated)
+                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
                 refresh()
             }
             .setNegativeButton("Cancel", null)
@@ -987,6 +1016,8 @@ class RulesActivity : AppCompatActivity() {
             } else {
                 locationStore.setBackgroundUpdatesEnabled(false)
                 locationBackgroundToggle.isChecked = false
+                locationStore.setGeofencingEnabled(false)
+                locationGeofenceToggle.isChecked = false
             }
         }
     }

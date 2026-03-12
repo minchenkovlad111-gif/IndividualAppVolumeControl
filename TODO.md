@@ -6,7 +6,7 @@
 4. Validate hidden API policy keys and behavior on Android 12-15.
 5. Verify behavior on Android 12-15 and document compatibility.
 6. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-7. Rules editor enhancements: geofencing for location rules.
+7. Rules editor enhancements: geofencing for location rules. (done)
 8. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
 9. Audio routing between apps (virtual output sources and sinks).
 10. Network audio routing (send/receive per-app audio streams over LAN).

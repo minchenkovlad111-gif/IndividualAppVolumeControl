@@ -20,6 +20,7 @@ import android.telephony.TelephonyManager
 import com.duda.appvolumecontrol.R
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
+import com.duda.appvolumecontrol.core.GeofenceRuleManager
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.RulesEngine
 import com.duda.appvolumecontrol.core.VolumeStore
@@ -32,6 +33,7 @@ class PlaybackControllerService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
+    private val geofenceRuleManager by lazy { GeofenceRuleManager(this) }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
@@ -52,6 +54,7 @@ class PlaybackControllerService : Service() {
         HiddenApi.tryAllowHiddenApiAccess(this)
         RulesEngine.setLocationIdProvider { locationRuleStore.getCurrentLocationId() }
         locationRuleManager.start()
+        geofenceRuleManager.syncGeofences()
         val notification = buildNotification(-1)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -79,7 +82,10 @@ class PlaybackControllerService : Service() {
             ACTION_REAPPLY -> safeApplyVolumes(audioManager.activePlaybackConfigurations)
             ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
             ACTION_LOCATION_REFRESH -> locationRuleManager.start()
-            ACTION_LOCATION_SYNC -> locationRuleManager.syncBackgroundUpdates()
+            ACTION_LOCATION_SYNC -> {
+                locationRuleManager.syncBackgroundUpdates()
+                geofenceRuleManager.syncGeofences()
+            }
         }
         return START_STICKY
     }
