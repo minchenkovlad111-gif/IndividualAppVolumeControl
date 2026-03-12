@@ -2,6 +2,7 @@ package com.duda.appvolumecontrol.core
 
 import android.content.pm.PackageManager
 import android.media.AudioPlaybackConfiguration
+import android.media.AudioDeviceInfo
 import android.util.Log
 
 object PlaybackUtils {
@@ -112,6 +113,28 @@ object PlaybackUtils {
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set player volume", t)
+            false
+        }
+    }
+
+    fun applyPreferredDeviceToPlayer(
+        config: AudioPlaybackConfiguration,
+        device: AudioDeviceInfo
+    ): Boolean {
+        return try {
+            val method = playerProxyMethod ?: return false
+            val playerProxy = method.invoke(config) ?: return false
+            val proxyClass = playerProxy.javaClass
+            val preferred = runCatching {
+                proxyClass.getDeclaredMethod("setPreferredDevice", AudioDeviceInfo::class.java)
+            }.getOrElse {
+                proxyClass.getDeclaredMethod("setDevice", AudioDeviceInfo::class.java)
+            }
+            preferred.isAccessible = true
+            preferred.invoke(playerProxy, device)
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to set preferred device", t)
             false
         }
     }

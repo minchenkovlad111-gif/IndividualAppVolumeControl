@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added per-app output device selection and storage; apply preferred output device when possible.
 - Renamed app/module display name and Magisk packaging paths to IndividualAppAudioVolumeControl.
 - Updated compatibility validation workflow to use Diagnostics bundle + hidden API retry.
 - Improved compatibility row format (markdown table-ready with Android version).

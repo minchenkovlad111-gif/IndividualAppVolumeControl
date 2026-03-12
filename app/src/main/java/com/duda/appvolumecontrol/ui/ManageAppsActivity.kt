@@ -24,6 +24,8 @@ import androidx.core.widget.addTextChangedListener
 import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 
 class ManageAppsActivity : AppCompatActivity() {
     private lateinit var volumeStore: VolumeStore
@@ -363,6 +365,14 @@ class ManageAppsActivity : AppCompatActivity() {
             }
         }
 
+        val hasOutput = volumeStore.getOutputDevice(entry) != null
+        val outputButton = Button(this).apply {
+            text = if (hasOutput) "Output ✓" else "Output"
+            setOnClickListener {
+                showOutputDialog(entry, label)
+            }
+        }
+
         val deleteButton = Button(this).apply {
             text = "Remove"
             setOnClickListener {
@@ -376,6 +386,7 @@ class ManageAppsActivity : AppCompatActivity() {
 
         row.addView(nameContainer)
         row.addView(markerButton)
+        row.addView(outputButton)
         row.addView(deleteButton)
         return row
     }
@@ -563,6 +574,74 @@ class ManageAppsActivity : AppCompatActivity() {
         return normalized
     }
 
+    private fun showOutputDialog(entry: VolumeStore.VolumeKey, label: String) {
+        val audioManager = getSystemService(AudioManager::class.java)
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .filter { it.isSink }
+            .sortedWith(compareBy({ audioTypeLabel(it.type) }, { it.productName?.toString().orEmpty() }))
+        val options = mutableListOf<OutputOption>()
+        options.add(OutputOption(null, "Default/system"))
+        for (device in devices) {
+            val name = device.productName?.toString().orEmpty().ifBlank { "Unknown" }
+            val typeLabel = audioTypeLabel(device.type)
+            val address = device.address.takeIf { it.isNotBlank() }
+            val labelText = if (address == null) {
+                "$name • $typeLabel"
+            } else {
+                "$name • $typeLabel • $address"
+            }
+            options.add(
+                OutputOption(
+                    VolumeStore.OutputDevice(device.type, address, name),
+                    labelText
+                )
+            )
+        }
+
+        val current = volumeStore.getOutputDevice(entry)
+        val selectedIndex = options.indexOfFirst { option ->
+            val device = option.device ?: return@indexOfFirst current == null
+            current != null && device.type == current.type && device.address == current.address
+        }.takeIf { it >= 0 } ?: 0
+
+        var chosenIndex = selectedIndex
+        val labels = options.map { it.label }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Output device for $label")
+            .setSingleChoiceItems(labels, selectedIndex) { _, which ->
+                chosenIndex = which
+            }
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Set") { _, _ ->
+                val selection = options.getOrNull(chosenIndex)?.device
+                volumeStore.setOutputDevice(entry, selection)
+                Toast.makeText(this, "Output updated", Toast.LENGTH_SHORT).show()
+                refreshSavedList()
+                updateSearchResults()
+            }
+            .show()
+    }
+
+    private fun audioTypeLabel(type: Int): String {
+        return when (type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth A2DP"
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth SCO"
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Earpiece"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Speaker"
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired headphones"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headset"
+            AudioDeviceInfo.TYPE_USB_DEVICE -> "USB device"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> "USB headset"
+            AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB accessory"
+            AudioDeviceInfo.TYPE_HDMI -> "HDMI"
+            AudioDeviceInfo.TYPE_HDMI_ARC -> "HDMI ARC"
+            AudioDeviceInfo.TYPE_HDMI_EARC -> "HDMI eARC"
+            AudioDeviceInfo.TYPE_LINE_ANALOG -> "Line out"
+            AudioDeviceInfo.TYPE_LINE_DIGITAL -> "Line digital"
+            else -> "Type $type"
+        }
+    }
+
     private data class AppEntry(
         val packageName: String,
         val label: String,
@@ -570,6 +649,11 @@ class ManageAppsActivity : AppCompatActivity() {
 
     private data class ProfileOption(
         val userId: Int?,
+        val label: String,
+    )
+
+    private data class OutputOption(
+        val device: VolumeStore.OutputDevice?,
         val label: String,
     )
 

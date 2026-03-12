@@ -8,6 +8,7 @@ Presets can be exported/imported via the Diagnostics screen using JSON.
 - Metadata keys start with `_` and are ignored on import.
 - Profile-specific presets use the key format `u<userId>:<package>`.
 - Optional marker configs are stored under `_marker_configs` keyed by the same storage key.
+- Optional output configs are stored under `_output_configs` keyed by the same storage key.
 
 Example:
 ```
@@ -26,6 +27,13 @@ Example:
       ]
     }
   },
+  "_output_configs": {
+    "com.example.music": {
+      "type": 8,
+      "address": "00:11:22:33:44:55",
+      "name": "BT Headphones"
+    }
+  },
   "com.example.music": 0.7,
   "com.example.podcast": 1.0,
   "u10:com.example.workmusic": 0.6
@@ -37,4 +45,5 @@ Example:
 - Values outside 0.0–1.0 are clamped.
 - `_preset_count` is optional metadata for readability and is ignored on import.
 - `_marker_configs` is optional; invalid entries are ignored on import.
+- `_output_configs` is optional; invalid entries are ignored on import.
 - If a profile-specific key is missing, the app falls back to the global package preset.

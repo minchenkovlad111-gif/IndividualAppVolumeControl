@@ -23,6 +23,7 @@
 ## Profiles + presets
 - Presets are stored per package, with optional profile keys (`u<userId>:<package>`).
 - Marker configs are stored per preset key and rendered as per-app markers/segments on sliders.
+- Output device configs are stored per preset key and applied per active player when possible.
 - The UI can filter active/preset lists by profile while still honoring global presets.
 - Manage Apps lets you choose the profile before creating or removing presets.
 - Active timestamps are tracked to support app info popups.

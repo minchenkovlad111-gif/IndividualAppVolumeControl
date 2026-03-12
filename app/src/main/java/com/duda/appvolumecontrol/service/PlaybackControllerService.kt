@@ -76,6 +76,7 @@ class PlaybackControllerService : Service() {
             val volumeKey = VolumeStore.VolumeKey(packageName, userId)
             activeEntries.add(volumeKey.storageKey())
             val desiredVolume = volumeStore.getVolume(volumeKey) ?: 1f
+            val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${config.hashCode()}"
             activeKeys.add(key)
             val current = lastApplied[key]
@@ -87,6 +88,22 @@ class PlaybackControllerService : Service() {
                 appliedCount += 1
             } else {
                 Log.w(TAG, "Failed to apply volume for $packageName")
+            }
+
+            if (outputDevice != null) {
+                val deviceInfo = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                    .firstOrNull { info ->
+                        info.type == outputDevice.type &&
+                            (outputDevice.address.isNullOrBlank() || info.address == outputDevice.address)
+                    }
+                if (deviceInfo != null) {
+                    val routed = PlaybackUtils.applyPreferredDeviceToPlayer(config, deviceInfo)
+                    if (!routed) {
+                        Log.w(TAG, "Failed to apply preferred output device for $packageName")
+                    }
+                } else {
+                    Log.w(TAG, "Preferred output device not found for $packageName")
+                }
             }
         }
         lastApplied.keys.retainAll(activeKeys)

@@ -60,6 +60,7 @@ class VolumeStore(context: Context) {
         prefs.edit()
             .remove(buildKey(packageName, userId))
             .remove(markerPrefsKey(key))
+            .remove(outputPrefsKey(key))
             .apply()
     }
 
@@ -84,6 +85,29 @@ class VolumeStore(context: Context) {
 
     fun clearMarkerConfig(key: VolumeKey) {
         prefs.edit().remove(markerPrefsKey(key)).apply()
+    }
+
+    fun getOutputDevice(key: VolumeKey): OutputDevice? {
+        val raw = prefs.getString(outputPrefsKey(key), null)
+        val parsed = parseOutputDevice(raw)
+        if (parsed != null) return parsed
+        if (key.userId != null) {
+            val fallback = prefs.getString(outputPrefsKey(VolumeKey(key.packageName, null)), null)
+            return parseOutputDevice(fallback)
+        }
+        return null
+    }
+
+    fun setOutputDevice(key: VolumeKey, device: OutputDevice?) {
+        if (device == null) {
+            clearOutputDevice(key)
+            return
+        }
+        prefs.edit().putString(outputPrefsKey(key), device.toJson().toString()).apply()
+    }
+
+    fun clearOutputDevice(key: VolumeKey) {
+        prefs.edit().remove(outputPrefsKey(key)).apply()
     }
 
     fun exportJson(): String {
@@ -115,6 +139,21 @@ class VolumeStore(context: Context) {
                 obj.put("_marker_configs", markerObj)
             }
         }
+        val outputEntries = prefs.all.keys
+            .filter { it.startsWith(OUTPUT_PREFIX) }
+            .sorted()
+        if (outputEntries.isNotEmpty()) {
+            val outputObj = JSONObject()
+            for (outputKey in outputEntries) {
+                val storedKey = outputKey.removePrefix(OUTPUT_PREFIX)
+                val raw = prefs.getString(outputKey, null) ?: continue
+                val config = parseOutputDevice(raw) ?: continue
+                outputObj.put(storedKey, config.toJson())
+            }
+            if (outputObj.length() > 0) {
+                obj.put("_output_configs", outputObj)
+            }
+        }
         return obj.toString(2)
     }
 
@@ -140,6 +179,17 @@ class VolumeStore(context: Context) {
                 val raw = markerObj.optJSONObject(storageKey) ?: continue
                 val config = parseMarkerConfig(raw.toString()) ?: continue
                 editor.putString(MARKER_PREFIX + storageKey, config.toJson().toString())
+            }
+        }
+        val outputObj = obj.optJSONObject("_output_configs")
+        if (outputObj != null) {
+            val keys = outputObj.keys()
+            while (keys.hasNext()) {
+                val storageKey = keys.next()
+                if (storageKey.isBlank()) continue
+                val raw = outputObj.optJSONObject(storageKey) ?: continue
+                val config = parseOutputDevice(raw) ?: continue
+                editor.putString(OUTPUT_PREFIX + storageKey, config.toJson().toString())
             }
         }
         editor.apply()
@@ -198,8 +248,27 @@ class VolumeStore(context: Context) {
         }
     }
 
+    data class OutputDevice(
+        val type: Int,
+        val address: String?,
+        val name: String?,
+    ) {
+        fun toJson(): JSONObject {
+            val obj = JSONObject()
+            obj.put("type", type)
+            if (!address.isNullOrBlank()) {
+                obj.put("address", address)
+            }
+            if (!name.isNullOrBlank()) {
+                obj.put("name", name)
+            }
+            return obj
+        }
+    }
+
     companion object {
         private const val MARKER_PREFIX = "_markers:"
+        private const val OUTPUT_PREFIX = "_output:"
 
         fun buildKey(packageName: String, userId: Int?): String {
             return if (userId == null) packageName else "u${userId}:${packageName}"
@@ -220,6 +289,10 @@ class VolumeStore(context: Context) {
 
         private fun markerPrefsKey(key: VolumeKey): String {
             return MARKER_PREFIX + key.storageKey()
+        }
+
+        private fun outputPrefsKey(key: VolumeKey): String {
+            return OUTPUT_PREFIX + key.storageKey()
         }
 
         private fun parseMarkerConfig(raw: String?): MarkerConfig? {
@@ -252,6 +325,20 @@ class VolumeStore(context: Context) {
             }
             if (markers.isEmpty() && segments.isEmpty()) return null
             return MarkerConfig(markers, segments)
+        }
+
+        private fun parseOutputDevice(raw: String?): OutputDevice? {
+            if (raw.isNullOrBlank()) return null
+            val obj = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+            return parseOutputDevice(obj)
+        }
+
+        private fun parseOutputDevice(obj: JSONObject): OutputDevice? {
+            val type = obj.optInt("type", -1)
+            if (type <= 0) return null
+            val address = obj.optString("address").takeIf { it.isNotBlank() }
+            val name = obj.optString("name").takeIf { it.isNotBlank() }
+            return OutputDevice(type, address, name)
         }
     }
 }
