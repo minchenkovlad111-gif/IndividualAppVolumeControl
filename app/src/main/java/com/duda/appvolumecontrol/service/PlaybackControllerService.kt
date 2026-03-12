@@ -24,12 +24,14 @@ import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.RulesEngine
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.LocationRuleStore
+import com.duda.appvolumecontrol.core.LocationRuleManager
 
 class PlaybackControllerService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
+    private val locationRuleManager by lazy { LocationRuleManager(this) }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
@@ -49,6 +51,7 @@ class PlaybackControllerService : Service() {
         super.onCreate()
         HiddenApi.tryAllowHiddenApiAccess(this)
         RulesEngine.setLocationIdProvider { locationRuleStore.getCurrentLocationId() }
+        locationRuleManager.start()
         val notification = buildNotification(-1)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -65,6 +68,7 @@ class PlaybackControllerService : Service() {
     }
 
     override fun onDestroy() {
+        locationRuleManager.stop()
         teardownCallStateListener()
         audioManager.unregisterAudioPlaybackCallback(playbackCallback)
         super.onDestroy()
@@ -74,6 +78,7 @@ class PlaybackControllerService : Service() {
         when (intent?.action) {
             ACTION_REAPPLY -> safeApplyVolumes(audioManager.activePlaybackConfigurations)
             ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
+            ACTION_LOCATION_REFRESH -> locationRuleManager.start()
         }
         return START_STICKY
     }
@@ -419,6 +424,7 @@ class PlaybackControllerService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_REAPPLY = "com.duda.appvolumecontrol.action.REAPPLY"
         const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
+        const val ACTION_LOCATION_REFRESH = "com.duda.appvolumecontrol.action.LOCATION_REFRESH"
         private const val NOTIF_MAX_ROWS = 3
         private const val NOTIF_VOLUME_STEP = 0.05f
 
@@ -431,6 +437,12 @@ class PlaybackControllerService : Service() {
         fun requestDiagnosticsDump(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
             intent.action = ACTION_DIAGNOSTICS_DUMP
+            context.startForegroundService(intent)
+        }
+
+        fun requestLocationRefresh(context: Context) {
+            val intent = Intent(context, PlaybackControllerService::class.java)
+            intent.action = ACTION_LOCATION_REFRESH
             context.startForegroundService(intent)
         }
     }

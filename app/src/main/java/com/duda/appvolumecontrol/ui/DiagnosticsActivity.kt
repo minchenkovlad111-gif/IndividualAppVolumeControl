@@ -240,6 +240,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val ruleSummary = buildRuleSummary(enabledRules)
         val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
         val locationId = locationStore.getCurrentLocationId() ?: "-"
+        val locationCount = locationStore.listLocations().size
+        val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat)
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = isPrivilegedApp(appInfo)
@@ -293,6 +295,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Rules enabled/total: ${enabledRules.size}/${rules.size}",
             "Rule names: $ruleSummary",
             "Current location id: $locationId",
+            "Locations stored: $locationCount",
+            "Last location fix: $lastFixTime",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",
@@ -619,6 +623,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             PermissionStatus(Manifest.permission.BLUETOOTH, required = false),
             PermissionStatus(Manifest.permission.BLUETOOTH_CONNECT, required = false),
             PermissionStatus(Manifest.permission.READ_PHONE_STATE, required = false),
+            PermissionStatus(Manifest.permission.ACCESS_FINE_LOCATION, required = false),
+            PermissionStatus(Manifest.permission.ACCESS_COARSE_LOCATION, required = false),
         )
         return all.map { status ->
             val requestedFlag = requested.contains(status.name)

@@ -10,7 +10,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
+import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.Rule
 import com.duda.appvolumecontrol.core.RuleAction
@@ -28,6 +31,8 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var ruleContainer: LinearLayout
     private var installedAppsCache: List<AppEntry>? = null
     private lateinit var locationStore: com.duda.appvolumecontrol.core.LocationRuleStore
+    private lateinit var locationContainer: LinearLayout
+    private lateinit var locationInput: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,10 +60,14 @@ class RulesActivity : AppCompatActivity() {
             setPadding(0, 0, 0, 8)
         }
         val locationLabel = TextView(this).apply {
-            text = "Current location id"
+            text = "Current location id (auto)"
             textSize = 13f
         }
-        val locationInput = EditText(this).apply {
+        val locationHint = TextView(this).apply {
+            text = "Set/clear to override until the next location fix."
+            textSize = 12f
+        }
+        locationInput = EditText(this).apply {
             hint = "home, office, etc"
             setText(locationStore.getCurrentLocationId().orEmpty())
         }
@@ -82,11 +91,30 @@ class RulesActivity : AppCompatActivity() {
                 Toast.makeText(this@RulesActivity, "Location id cleared", Toast.LENGTH_SHORT).show()
             }
         }
+        val locationPermission = Button(this).apply {
+            text = "Grant location permission"
+            setOnClickListener { requestLocationPermission() }
+        }
         locationButtons.addView(locationSave)
         locationButtons.addView(locationClear)
+        locationButtons.addView(locationPermission)
         locationRow.addView(locationLabel)
         locationRow.addView(locationInput)
+        locationRow.addView(locationHint)
         locationRow.addView(locationButtons)
+
+        val locationTitle = TextView(this).apply {
+            text = "Locations"
+            textSize = 16f
+            setPadding(0, 16, 0, 8)
+        }
+        val addLocationButton = Button(this).apply {
+            text = "Add location"
+            setOnClickListener { showAddLocationDialog() }
+        }
+        locationContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
 
         val addGroupButton = Button(this).apply {
             text = "Add group"
@@ -121,6 +149,9 @@ class RulesActivity : AppCompatActivity() {
         root.addView(header)
         root.addView(helper)
         root.addView(locationRow)
+        root.addView(locationTitle)
+        root.addView(addLocationButton)
+        root.addView(locationContainer)
         root.addView(addGroupButton)
         root.addView(addRuleButton)
         root.addView(groupTitle)
@@ -139,15 +170,25 @@ class RulesActivity : AppCompatActivity() {
     private fun refresh() {
         val groups = volumeStore.listRuleGroups()
         val rules = volumeStore.listRules()
+        val locations = locationStore.listLocations()
 
         groupContainer.removeAllViews()
         ruleContainer.removeAllViews()
+        locationContainer.removeAllViews()
 
         if (groups.isEmpty()) {
             groupContainer.addView(buildEmptyRow("No groups yet"))
         } else {
             for (group in groups) {
                 groupContainer.addView(buildGroupRow(group))
+            }
+        }
+
+        if (locations.isEmpty()) {
+            locationContainer.addView(buildEmptyRow("No locations yet"))
+        } else {
+            for (location in locations) {
+                locationContainer.addView(buildLocationRow(location))
             }
         }
 
@@ -256,6 +297,39 @@ class RulesActivity : AppCompatActivity() {
         row.addView(headerRow)
         row.addView(detail)
         row.addView(actionDetail)
+        row.addView(actions)
+        return row
+    }
+
+    private fun buildLocationRow(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 8, 0, 8)
+        }
+        val name = TextView(this).apply {
+            text = location.id
+            textSize = 15f
+        }
+        val detail = TextView(this).apply {
+            text = "Lat ${location.latitude}, Lon ${location.longitude}, Radius ${location.radiusMeters}m"
+            textSize = 12f
+        }
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val editButton = Button(this).apply {
+            text = "Edit"
+            setOnClickListener { showEditLocationDialog(location) }
+        }
+        val deleteButton = Button(this).apply {
+            text = "Delete"
+            setOnClickListener { confirmDeleteLocation(location) }
+        }
+        actions.addView(editButton)
+        actions.addView(deleteButton)
+        row.addView(name)
+        row.addView(detail)
         row.addView(actions)
         return row
     }
@@ -747,6 +821,130 @@ class RulesActivity : AppCompatActivity() {
         return ids
     }
 
+    private fun confirmDeleteLocation(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete location")
+            .setMessage("Delete ${location.id}?")
+            .setPositiveButton("Delete") { _, _ ->
+                val updated = locationStore.listLocations().filterNot { it.id == location.id }
+                locationStore.setLocations(updated)
+                refresh()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showAddLocationDialog() {
+        showLocationDialog(existing = null)
+    }
+
+    private fun showEditLocationDialog(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule) {
+        showLocationDialog(existing = location)
+    }
+
+    private fun showLocationDialog(existing: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule?) {
+        val idInput = EditText(this).apply {
+            hint = "Location id"
+            setText(existing?.id.orEmpty())
+        }
+        val latInput = EditText(this).apply {
+            hint = "Latitude"
+            setText(existing?.latitude?.toString().orEmpty())
+        }
+        val lonInput = EditText(this).apply {
+            hint = "Longitude"
+            setText(existing?.longitude?.toString().orEmpty())
+        }
+        val radiusInput = EditText(this).apply {
+            hint = "Radius meters"
+            setText(existing?.radiusMeters?.toString().orEmpty())
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 0)
+            addView(idInput)
+            addView(latInput)
+            addView(lonInput)
+            addView(radiusInput)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(if (existing == null) "Add location" else "Edit location")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val id = idInput.text?.toString()?.trim().orEmpty()
+                val lat = latInput.text?.toString()?.toDoubleOrNull()
+                val lon = lonInput.text?.toString()?.toDoubleOrNull()
+                val radius = radiusInput.text?.toString()?.toDoubleOrNull()
+                if (id.isBlank()) {
+                    toast("Location id required")
+                    return@setPositiveButton
+                }
+                if (lat == null || lon == null || radius == null) {
+                    toast("Latitude, longitude, and radius required")
+                    return@setPositiveButton
+                }
+                if (radius <= 0.0) {
+                    toast("Radius must be > 0")
+                    return@setPositiveButton
+                }
+                val entry = com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule(
+                    id = id,
+                    latitude = lat,
+                    longitude = lon,
+                    radiusMeters = radius,
+                )
+                val updated = if (existing == null) {
+                    locationStore.listLocations() + entry
+                } else {
+                    locationStore.listLocations().map { stored ->
+                        if (stored.id == existing.id) entry else stored
+                    }
+                }
+                locationStore.setLocations(updated)
+                refresh()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun requestLocationPermission() {
+        val fine = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val coarse = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (fine || coarse) {
+            Toast.makeText(this, "Location permission already granted", Toast.LENGTH_SHORT).show()
+            return
+        }
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            ),
+            REQUEST_LOCATION_PERMISSION,
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+            Toast.makeText(
+                this,
+                if (granted) "Location permission granted" else "Location permission denied",
+                Toast.LENGTH_SHORT
+            ).show()
+            if (granted) {
+                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationRefresh(this)
+            }
+        }
+    }
+
     private fun normalizeVolume(value: Float): Float {
         return min(1f, max(0f, value))
     }
@@ -805,84 +1003,86 @@ class RulesActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .create()
 
-        fun renderSelected() {
-            selectedContainer.removeAllViews()
-            if (selected.isEmpty()) {
-                selectedContainer.addView(buildEmptyRow("None selected."))
-                return
-            }
-            for (pkg in selected.sorted()) {
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 4, 0, 4)
+        val renderer = object {
+            fun renderSelected() {
+                selectedContainer.removeAllViews()
+                if (selected.isEmpty()) {
+                    selectedContainer.addView(buildEmptyRow("None selected."))
+                    return
                 }
-                val name = TextView(this).apply {
-                    text = resolveLabel(pkg)
-                    textSize = 13f
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                }
-                val remove = Button(this).apply {
-                    text = "Remove"
-                    setOnClickListener {
-                        selected.remove(pkg)
-                        renderSelected()
-                        renderResults()
+                for (pkg in selected.sorted()) {
+                    val row = LinearLayout(this@RulesActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(0, 4, 0, 4)
                     }
-                }
-                row.addView(name)
-                row.addView(remove)
-                selectedContainer.addView(row)
-            }
-        }
-
-        fun renderResults() {
-            resultsContainer.removeAllViews()
-            val query = searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
-            val filtered = if (query.isBlank()) {
-                allApps
-            } else {
-                allApps.filter {
-                    it.label.lowercase().contains(query) || it.packageName.lowercase().contains(query)
-                }
-            }
-            if (filtered.isEmpty()) {
-                resultsContainer.addView(buildEmptyRow("No matching apps."))
-                return
-            }
-            for (entry in filtered.sortedBy { it.label.lowercase() }) {
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 4, 0, 4)
-                }
-                val name = TextView(this).apply {
-                    text = entry.label
-                    textSize = 13f
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                }
-                val action = Button(this).apply {
-                    val isSelected = selected.contains(entry.packageName)
-                    text = if (isSelected) "Remove" else "Add"
-                    setOnClickListener {
-                        if (selected.contains(entry.packageName)) {
-                            selected.remove(entry.packageName)
-                        } else {
-                            selected.add(entry.packageName)
+                    val name = TextView(this@RulesActivity).apply {
+                        text = resolveLabel(pkg)
+                        textSize = 13f
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    val remove = Button(this@RulesActivity).apply {
+                        text = "Remove"
+                        setOnClickListener {
+                            selected.remove(pkg)
+                            renderSelected()
+                            renderResults()
                         }
-                        renderSelected()
-                        renderResults()
+                    }
+                    row.addView(name)
+                    row.addView(remove)
+                    selectedContainer.addView(row)
+                }
+            }
+
+            fun renderResults() {
+                resultsContainer.removeAllViews()
+                val query = searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
+                val filtered = if (query.isBlank()) {
+                    allApps
+                } else {
+                    allApps.filter {
+                        it.label.lowercase().contains(query) || it.packageName.lowercase().contains(query)
                     }
                 }
-                row.addView(name)
-                row.addView(action)
-                resultsContainer.addView(row)
+                if (filtered.isEmpty()) {
+                    resultsContainer.addView(buildEmptyRow("No matching apps."))
+                    return
+                }
+                for (entry in filtered.sortedBy { it.label.lowercase() }) {
+                    val row = LinearLayout(this@RulesActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(0, 4, 0, 4)
+                    }
+                    val name = TextView(this@RulesActivity).apply {
+                        text = entry.label
+                        textSize = 13f
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    val action = Button(this@RulesActivity).apply {
+                        val isSelected = selected.contains(entry.packageName)
+                        text = if (isSelected) "Remove" else "Add"
+                        setOnClickListener {
+                            if (selected.contains(entry.packageName)) {
+                                selected.remove(entry.packageName)
+                            } else {
+                                selected.add(entry.packageName)
+                            }
+                            renderSelected()
+                            renderResults()
+                        }
+                    }
+                    row.addView(name)
+                    row.addView(action)
+                    resultsContainer.addView(row)
+                }
             }
         }
 
-        searchInput.addTextChangedListener { renderResults() }
-        renderSelected()
-        renderResults()
+        searchInput.doAfterTextChanged { renderer.renderResults() }
+        renderer.renderSelected()
+        renderer.renderResults()
         dialog.show()
     }
 
@@ -915,4 +1115,8 @@ class RulesActivity : AppCompatActivity() {
         val packageName: String,
         val label: String,
     )
+
+    companion object {
+        private const val REQUEST_LOCATION_PERMISSION = 2101
+    }
 }

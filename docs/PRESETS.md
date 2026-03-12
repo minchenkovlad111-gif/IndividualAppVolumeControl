@@ -75,4 +75,4 @@ Example:
 - `_rule_groups` is optional; invalid entries are ignored on import.
 - `_rules` is optional; invalid entries are ignored on import.
 - If a profile-specific key is missing, the app falls back to the global package preset.
-- Location rule conditions are matched against a stored current location id (manual stub).
+- Location rule conditions are matched against a current location id derived from live location updates.

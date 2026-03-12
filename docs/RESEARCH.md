@@ -38,8 +38,9 @@
 - Document that per-app volume is only supported on API 26+ and requires privileged install.
 
 ## Location rules plan
-- Phase 1: manual location id stored in prefs and used for rule matching (developer/test mode).
-- Phase 2: integrate Android location services and/or geofencing with runtime permissions.
+- Phase 1: store locations (lat/lon/radius) and request live updates with runtime permissions.
+- Phase 2: add geofencing and background handling as needed.
+- Note: current implementation uses LocationManager GPS/Network updates while the foreground service is running.
 
 ## Links
 - See sources referenced in the project issue description.
