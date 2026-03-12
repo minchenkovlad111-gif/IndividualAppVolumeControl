@@ -25,6 +25,9 @@ A root-required Android app + Magisk module for per-app volume control, designed
 ## Quick start
 - Build the app APK (see `docs/BUILD.md`).
 - Place the APK at `module/system/priv-app/IndividualAppAudioVolumeControl/IndividualAppAudioVolumeControl.apk`.
+  - Magisk installs modules under `/data/adb/modules/<module>/`.
+  - This maps to `/data/adb/modules/<module>/system/priv-app/IndividualAppAudioVolumeControl/IndividualAppAudioVolumeControl.apk`,
+    which Magisk overlays into the system partition at boot (typically `/system/priv-app/` or `/system_ext/priv-app/`).
 - Zip the `module/` folder and install via Magisk (or run `module/package.sh`).
 
 ## Notes

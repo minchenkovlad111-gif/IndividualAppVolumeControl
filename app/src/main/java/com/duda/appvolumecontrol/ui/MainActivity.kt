@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lastUpdatedView: TextView
     private lateinit var activeTitle: TextView
     private lateinit var presetTitle: TextView
+    private lateinit var outputOnlyToggle: CheckBox
     private lateinit var profileSpinner: Spinner
     private lateinit var profileAdapter: ArrayAdapter<String>
     private lateinit var overlayPrefs: OverlayPrefs
@@ -336,6 +337,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        outputOnlyToggle = CheckBox(this).apply {
+            text = "Only show output-routed apps"
+            isChecked = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(KEY_OUTPUT_ONLY, false)
+            setOnCheckedChangeListener { _, isChecked ->
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .edit().putBoolean(KEY_OUTPUT_ONLY, isChecked).apply()
+                updatePresetApps()
+            }
+        }
+
         presetSearch = EditText(this).apply {
             hint = "Search saved apps"
             textSize = 14f
@@ -375,6 +387,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeContainer)
         root.addView(presetTitle)
         root.addView(manageAppsButton)
+        root.addView(outputOnlyToggle)
         root.addView(presetSearch)
         root.addView(clearFilterButton)
         root.addView(presetContainer)
@@ -761,8 +774,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun filterPresetEntries(entries: List<AppEntry>): List<AppEntry> {
-        val userId = selectedProfileUserId ?: return entries
-        return entries.filter { it.key.userId == userId || it.key.userId == null }
+        val userId = selectedProfileUserId
+        val outputOnly = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(KEY_OUTPUT_ONLY, false)
+        return entries.filter { entry ->
+            val matchesProfile = if (userId == null) true else entry.key.userId == userId || entry.key.userId == null
+            val matchesOutput = if (!outputOnly) true else volumeStore.getOutputDevice(entry.key) != null
+            matchesProfile && matchesOutput
+        }
     }
 
     private fun isEntryActive(entry: AppEntry): Boolean {
@@ -997,5 +1016,7 @@ class MainActivity : AppCompatActivity() {
         private const val SNAP_THRESHOLD = 2
         private const val SNAP_DELTA_MAX = 2
         private const val SNAP_TIME_MIN_MS = 50L
+        private const val PREFS_NAME = "ui_prefs"
+        private const val KEY_OUTPUT_ONLY = "show_output_only"
     }
 }
