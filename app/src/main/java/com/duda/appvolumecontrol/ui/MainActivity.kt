@@ -200,39 +200,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val boostActiveButton = Button(this).apply {
-            text = "Make active loud"
-            setOnClickListener {
-                for (entry in activeEntries) {
-                    volumeStore.setVolume(entry.key, 1f)
-                }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
-                PlaybackControllerService.requestReapply(this@MainActivity)
-            }
-        }
-
-        val muteActiveButton = Button(this).apply {
-            text = "Mute active"
-            setOnClickListener {
-                for (entry in activeEntries) {
-                    volumeStore.setVolume(entry.key, 0f)
-                }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
-                PlaybackControllerService.requestReapply(this@MainActivity)
-            }
-        }
-
-        val halfActiveButton = Button(this).apply {
-            text = "Active half"
-            setOnClickListener {
-                for (entry in activeEntries) {
-                    volumeStore.setVolume(entry.key, 0.5f)
-                }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
-                PlaybackControllerService.requestReapply(this@MainActivity)
-            }
-        }
-
         val diagnosticsButton = Button(this).apply {
             text = "Diagnostics / report"
             setOnClickListener {
@@ -343,6 +310,65 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 24, 0, 8)
         }
 
+        val activeHeaderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val activeTitleParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        activeTitle.layoutParams = activeTitleParams
+
+        val activeAllLabel = TextView(this).apply {
+            text = "All:"
+            textSize = 12f
+            setPadding(0, 24, dpToPx(6), 8)
+        }
+
+        val activeMuteButton = Button(this).apply {
+            text = "0%"
+            textSize = 12f
+            setPadding(dpToPx(8), 0, dpToPx(8), 0)
+            setOnClickListener {
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 0f)
+                }
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
+        val activeHalfButton = Button(this).apply {
+            text = "50%"
+            textSize = 12f
+            setPadding(dpToPx(8), 0, dpToPx(8), 0)
+            setOnClickListener {
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 0.5f)
+                }
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
+        val activeLoudButton = Button(this).apply {
+            text = "100%"
+            textSize = 12f
+            setPadding(dpToPx(8), 0, dpToPx(8), 0)
+            setOnClickListener {
+                for (entry in activeEntries) {
+                    volumeStore.setVolume(entry.key, 1f)
+                }
+                updateActiveApps(audioManager.activePlaybackConfigurations)
+                PlaybackControllerService.requestReapply(this@MainActivity)
+            }
+        }
+
+        activeHeaderRow.addView(activeTitle)
+        activeHeaderRow.addView(activeAllLabel)
+        activeHeaderRow.addView(activeMuteButton)
+        activeHeaderRow.addView(activeHalfButton)
+        activeHeaderRow.addView(activeLoudButton)
+
         activeContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -394,9 +420,6 @@ class MainActivity : AppCompatActivity() {
         root.addView(profileRow)
         root.addView(refreshButton)
         root.addView(resetButton)
-        root.addView(boostActiveButton)
-        root.addView(muteActiveButton)
-        root.addView(halfActiveButton)
         root.addView(diagnosticsButton)
         root.addView(bluetoothPermissionButton)
         root.addView(helpButton)
@@ -409,7 +432,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayAutoToggle)
         root.addView(overlayAutoHideToggle)
         root.addView(lastUpdatedView)
-        root.addView(activeTitle)
+        root.addView(activeHeaderRow)
         root.addView(activeContainer)
         root.addView(presetTitle)
         root.addView(manageAppsButton)
