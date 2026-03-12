@@ -57,6 +57,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    add("modernImplementation", "androidx.core:core-ktx:1.13.1")
+    add("modernImplementation", "androidx.appcompat:appcompat:1.7.0")
+    add("legacyImplementation", "androidx.appcompat:appcompat:1.4.2")
 }
