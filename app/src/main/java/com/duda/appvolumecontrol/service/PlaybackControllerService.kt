@@ -135,10 +135,15 @@ class PlaybackControllerService : Service() {
 
             if (outputDevice != null) {
                 routeAttempted += 1
+                val matchAddress = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    outputDevice.address
+                } else {
+                    null
+                }
                 val deviceInfo = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
                     .firstOrNull { info ->
                         info.type == outputDevice.type &&
-                            (outputDevice.address.isNullOrBlank() || info.address == outputDevice.address)
+                            (matchAddress.isNullOrBlank() || info.address == matchAddress)
                     }
                 if (deviceInfo != null) {
                     val routed = PlaybackUtils.applyPreferredDeviceToPlayer(entry.config, deviceInfo)
