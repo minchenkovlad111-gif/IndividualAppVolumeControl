@@ -5,6 +5,13 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added binary probes (magisk/ksud) to root manager detection and surfaced probe info in install dialog.
+- Added module install dialog actions to try Magisk/KernelSU installs even when detection fails.
+- Added KernelSU Next package detection for root manager identification.
+- Added Diagnostics line to verify bundled module asset presence.
+- Bundled the Magisk module in app assets and added in-app install flow with Magisk/KernelSU detection.
+- Moved active volume quick-actions into the Active header row with compact 0/50/100 controls.
+- Expanded overlay watcher to observe multiple volume settings keys (System/Secure) and react to mute/ringer broadcasts; force overlay on observer/broadcast signals.
 - Added Magisk install helper button with copyable module/package info.
 - Added prototype notification with per-app +/- controls (up to 3 active apps).
 - Updated notification refresh to track per-app volume changes.
