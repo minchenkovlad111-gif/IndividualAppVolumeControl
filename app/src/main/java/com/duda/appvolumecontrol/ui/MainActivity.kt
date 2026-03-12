@@ -6,6 +6,7 @@ import android.media.AudioPlaybackConfiguration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
 import android.content.ClipData
@@ -18,6 +19,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
+import android.widget.FrameLayout
 import android.widget.AdapterView
 import android.widget.Spinner
 import android.widget.ArrayAdapter
@@ -32,6 +34,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
 import android.widget.CheckBox
+import android.view.HapticFeedbackConstants
 import com.duda.appvolumecontrol.core.ActiveAppStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.OverlayPrefs
@@ -39,10 +42,12 @@ import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.service.VolumeOverlayService
+import com.duda.appvolumecontrol.ui.SeekBarTicksView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.widget.Toast
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
     private lateinit var audioManager: AudioManager
@@ -285,6 +290,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val overlayAutoToggle = CheckBox(this).apply {
+            text = "Auto refresh overlay list"
+            isChecked = overlayPrefs.isAutoRefreshEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setAutoRefreshEnabled(isChecked)
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -346,6 +359,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayPermissionButton)
         root.addView(overlayShowButton)
         root.addView(overlayToggle)
+        root.addView(overlayAutoToggle)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
@@ -577,18 +591,33 @@ class MainActivity : AppCompatActivity() {
         val slider = SeekBar(this).apply {
             max = 100
             progress = (stored * 100).toInt()
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            var lastProgress = progress
+            var lastChangeTime = SystemClock.elapsedRealtime()
+            var ignoreNextProgrammatic = false
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (!fromUser) return
-                    val volume = progress / 100f
-                    volumeStore.setVolume(entry.key, volume)
-                    PlaybackControllerService.requestReapply(this@MainActivity)
-                    valueView.text = "$progress%"
-                    if (volume > 0f) {
-                        lastNonZeroVolumes[entry.key.storageKey()] = volume
+                    if (!fromUser) {
+                        if (ignoreNextProgrammatic) {
+                            ignoreNextProgrammatic = false
+                        }
+                        return
                     }
-                    updateMuteIcon(volume)
+                    val now = SystemClock.elapsedRealtime()
+                    val delta = abs(progress - lastProgress)
+                    val timeDelta = now - lastChangeTime
+                    lastProgress = progress
+                    lastChangeTime = now
+                    val snapped = snapToMarker(progress, delta, timeDelta)
+                    if (snapped != progress) {
+                        ignoreNextProgrammatic = true
+                        seekBar?.progress = snapped
+                        applyVolume(entry, snapped, valueView)
+                        updateMuteIcon(snapped / 100f)
+                        seekBar?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        return
+                    }
+                    applyVolume(entry, progress, valueView)
+                    updateMuteIcon(progress / 100f)
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
@@ -607,7 +636,27 @@ class MainActivity : AppCompatActivity() {
             setPadding(dpToPx(56), dpToPx(6), 0, 0)
         }
 
-        sliderRow.addView(slider)
+        val sliderFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val ticksView = SeekBarTicksView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(12),
+                Gravity.CENTER_VERTICAL
+            )
+        }
+
+        slider.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER_VERTICAL
+        )
+
+        sliderFrame.addView(ticksView)
+        sliderFrame.addView(slider)
+        sliderRow.addView(sliderFrame)
         sliderRow.addView(valueView)
 
         headerRow.addView(indicator)
@@ -812,6 +861,24 @@ class MainActivity : AppCompatActivity() {
         return (value * resources.displayMetrics.density).toInt()
     }
 
+    private fun applyVolume(entry: AppEntry, progress: Int, valueView: TextView) {
+        val displayProgress = progress.coerceIn(0, 100)
+        val volume = displayProgress / 100f
+        volumeStore.setVolume(entry.key, volume)
+        PlaybackControllerService.requestReapply(this@MainActivity)
+        valueView.text = "$displayProgress%"
+        if (volume > 0f) {
+            lastNonZeroVolumes[entry.key.storageKey()] = volume
+        }
+    }
+
+    private fun snapToMarker(progress: Int, delta: Int, timeDelta: Long): Int {
+        if (delta > SNAP_DELTA_MAX || timeDelta < SNAP_TIME_MIN_MS) return progress
+        val markers = arrayOf(0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100)
+        val nearest = markers.minByOrNull { abs(it - progress) } ?: progress
+        return if (abs(nearest - progress) <= SNAP_THRESHOLD) nearest else progress
+    }
+
     private fun updateOverlayStatus() {
         val canDraw = canDrawOverlays()
         overlayStatusView.text = if (canDraw) {
@@ -858,5 +925,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val REFRESH_INTERVAL_MS = 2000L
         private const val REQUEST_NOTIFICATIONS = 100
+        private const val SNAP_THRESHOLD = 2
+        private const val SNAP_DELTA_MAX = 2
+        private const val SNAP_TIME_MIN_MS = 50L
     }
 }

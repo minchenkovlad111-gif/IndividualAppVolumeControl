@@ -5,6 +5,8 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added overlay auto-refresh toggle in main UI.
+- Added tick markers + snap-to-segment resistance to main UI sliders.
 - Added overlay refresh button and auto-refresh toggle to keep active app list current.
 - Added mute/unmute icon button in overlay rows with restore behavior.
 - Added segmented tick markers and snap-to-segment resistance for overlay sliders.
