@@ -1105,7 +1105,7 @@ class RulesActivity : AppCompatActivity() {
     private fun resolveLabel(packageName: String): String {
         return try {
             val info = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(info)?.toString() ?: packageName
+            packageManager.getApplicationLabel(info).toString()
         } catch (_: Exception) {
             packageName
         }

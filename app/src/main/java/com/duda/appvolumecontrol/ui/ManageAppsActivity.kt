@@ -3,6 +3,7 @@ package com.duda.appvolumecontrol.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.text.TextUtils
@@ -585,7 +586,11 @@ class ManageAppsActivity : AppCompatActivity() {
         for (device in devices) {
             val name = device.productName?.toString().orEmpty().ifBlank { "Unknown" }
             val typeLabel = audioTypeLabel(device.type)
-            val address = device.address.takeIf { it.isNotBlank() }
+            val address = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                device.address.takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
             val labelText = if (address == null) {
                 "$name • $typeLabel"
             } else {
