@@ -1,5 +1,7 @@
 package com.duda.appvolumecontrol.service
 
+import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -18,7 +20,7 @@ class OverlayTileService : TileService() {
             val intent = Intent(this, OverlayPermissionActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                startActivityAndCollapse(intent)
+                startActivityAndCollapseCompat(intent)
             } else {
                 startActivity(intent)
             }
@@ -30,6 +32,22 @@ class OverlayTileService : TileService() {
             Settings.canDrawOverlays(this)
         } else {
             true
+        }
+    }
+
+    @SuppressLint("StartActivityAndCollapseDeprecated")
+    private fun startActivityAndCollapseCompat(intent: Intent) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val pending = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            startActivityAndCollapse(pending)
+        } else {
+            @Suppress("DEPRECATION")
+            startActivityAndCollapse(intent)
         }
     }
 }
