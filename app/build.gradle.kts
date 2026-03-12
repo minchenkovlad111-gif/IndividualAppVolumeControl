@@ -15,6 +15,28 @@ android {
         versionName = "0.1.0"
     }
 
+    flavorDimensions += "sdk"
+    productFlavors {
+        create("modern") {
+            dimension = "sdk"
+            minSdk = 26
+        }
+        create("legacy") {
+            dimension = "sdk"
+            minSdk = 16
+            versionNameSuffix = "-legacy"
+        }
+    }
+
+    sourceSets {
+        getByName("legacy") {
+            manifest.srcFile("src/legacy/AndroidManifest.xml")
+        }
+        getByName("modern") {
+            java.srcDir("src/modern/java")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

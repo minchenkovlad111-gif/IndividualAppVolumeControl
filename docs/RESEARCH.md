@@ -36,6 +36,7 @@
 - Gate controls based on `SDK_INT < 26`: hide active session list, disable per-app sliders, and show a single stream-level volume helper (optional).
 - Keep presets import/export working for migration when a user upgrades devices.
 - Document that per-app volume is only supported on API 26+ and requires privileged install.
+- Status: legacy flavor now ships a minimal presets + diagnostics UI with a warning banner.
 
 ## Location rules plan
 - Phase 1: store locations (lat/lon/radius) and request live updates with runtime permissions.

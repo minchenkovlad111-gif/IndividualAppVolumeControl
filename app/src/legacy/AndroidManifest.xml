@@ -1,0 +1,55 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application tools:node="merge">
+        <activity
+            android:name=".ui.MainActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ui.DiagnosticsActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ui.SetupCheckActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ui.ManageAppsActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ui.RulesActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ui.OverlayPermissionActivity"
+            tools:node="remove" />
+
+        <service
+            android:name=".service.PlaybackControllerService"
+            tools:node="remove" />
+        <receiver
+            android:name=".service.NotificationActionReceiver"
+            tools:node="remove" />
+        <service
+            android:name=".service.VolumeOverlayService"
+            tools:node="remove" />
+        <service
+            android:name=".service.OverlayTileService"
+            tools:node="remove" />
+        <receiver
+            android:name=".service.VolumeCommandReceiver"
+            tools:node="remove" />
+
+        <activity
+            android:name=".ui.LegacyMainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.LegacyPresetsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.LegacyDiagnosticsActivity"
+            android:exported="false" />
+    </application>
+</manifest>

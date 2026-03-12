@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added legacy flavor with a minimal presets/diagnostics UI and a warning banner for API 16-25 devices.
 - Added real location support: stored locations with live GPS/network updates and location permissions.
 - Added location list management UI and live location diagnostics.
 - Added app picker dialogs for rule/group package selection (search + multi-select).

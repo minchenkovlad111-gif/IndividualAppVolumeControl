@@ -14,6 +14,7 @@
 - Foreground notification: persistent status with quick per-app +/- controls (prototype).
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
+- Build flavors: modern (API 26+) full feature set; legacy (API 16-25) presets/diagnostics only with warning banner.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
