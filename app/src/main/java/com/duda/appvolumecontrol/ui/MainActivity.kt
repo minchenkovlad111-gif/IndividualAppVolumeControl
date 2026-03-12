@@ -558,6 +558,15 @@ class MainActivity : AppCompatActivity() {
             visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
         }
 
+        val outputBadge = TextView(this).apply {
+            val output = volumeStore.getOutputDevice(entry.key)
+            text = output?.name ?: "Output"
+            textSize = 11f
+            setPadding(dpToPx(6), 0, dpToPx(6), 0)
+            setTextColor(0xFF455A64.toInt())
+            visibility = if (output == null) View.GONE else View.VISIBLE
+        }
+
         val stored = volumeStore.getVolume(entry.key) ?: 1f
         val valueView = TextView(this).apply {
             text = "${(stored * 100).toInt()}%"
@@ -676,6 +685,7 @@ class MainActivity : AppCompatActivity() {
         headerRow.addView(iconView)
         headerRow.addView(nameContainer)
         headerRow.addView(countView)
+        headerRow.addView(outputBadge)
         headerRow.addView(muteButton)
 
         row.addView(headerRow)

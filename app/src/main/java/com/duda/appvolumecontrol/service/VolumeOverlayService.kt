@@ -383,10 +383,20 @@ class VolumeOverlayService : Service() {
             visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
         }
 
+        val outputBadge = TextView(this).apply {
+            val output = volumeStore.getOutputDevice(entry.key)
+            text = output?.name ?: "Output"
+            textSize = 10f
+            setPadding(dpToPx(6), 0, 0, 0)
+            setTextColor(Color.parseColor("#455A64"))
+            visibility = if (output == null) View.GONE else View.VISIBLE
+        }
+
         headerRow.addView(iconView)
         headerRow.addView(nameView)
         headerRow.addView(profileView)
         headerRow.addView(countView)
+        headerRow.addView(outputBadge)
 
         val stored = volumeStore.getVolume(entry.key) ?: 1f
         val valueView = TextView(this).apply {
