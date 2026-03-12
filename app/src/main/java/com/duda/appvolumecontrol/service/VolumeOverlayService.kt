@@ -59,7 +59,7 @@ class VolumeOverlayService : Service() {
     private var listContainer: LinearLayout? = null
     private var statusView: TextView? = null
     private var isWatching: Boolean = false
-    private var lastStreamVolume: Int = -1
+    private var lastVolumeSignature: String? = null
     private var stopAfterHide: Boolean = false
     private var autoHideEnabled: Boolean = true
     private var activeSignature: String? = null
@@ -93,13 +93,7 @@ class VolumeOverlayService : Service() {
     private val pollRunnable = object : Runnable {
         override fun run() {
             if (!isWatching) return
-            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            if (current != lastStreamVolume) {
-                lastStreamVolume = current
-                diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_POLL)
-                lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_POLL
-                showOverlay(stopWhenHidden = false, autoHide = true)
-            }
+            handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_POLL)
             handler.postDelayed(this, POLL_INTERVAL_MS)
         }
     }
@@ -113,14 +107,7 @@ class VolumeOverlayService : Service() {
     private val volumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != VOLUME_CHANGED_ACTION) return
-            val streamType = intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1)
-            if (streamType != AudioManager.STREAM_MUSIC) return
-            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            if (current == lastStreamVolume) return
-            lastStreamVolume = current
-            diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST)
-            lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST
-            showOverlay(stopWhenHidden = false, autoHide = true)
+            handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST)
         }
     }
 
@@ -163,7 +150,7 @@ class VolumeOverlayService : Service() {
         overlayPrefs.setOverlayEnabled(true)
         val uri = Settings.System.getUriFor(VOLUME_MUSIC_SETTING)
         contentResolver.registerContentObserver(uri, false, volumeObserver)
-        lastStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        lastVolumeSignature = currentVolumeSignature()
         val filter = IntentFilter(VOLUME_CHANGED_ACTION)
         registerReceiver(volumeReceiver, filter)
         isWatching = true
@@ -186,12 +173,16 @@ class VolumeOverlayService : Service() {
     }
 
     private fun onVolumeChanged() {
-        val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        if (current == lastStreamVolume) return
-        lastStreamVolume = current
-        diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER)
-        lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER
-        showOverlay(stopWhenHidden = false, autoHide = true)
+        handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER)
+    }
+
+    private fun handleVolumeSignal(reason: String) {
+        val signature = currentVolumeSignature()
+        if (signature == lastVolumeSignature) return
+        lastVolumeSignature = signature
+        diagnosticsStore.recordOverlaySignal(reason)
+        lastShowReason = reason
+        showOverlay(stopWhenHidden = false, autoHide = overlayPrefs.isAutoHideEnabled())
     }
 
     private fun showOverlay(stopWhenHidden: Boolean, autoHide: Boolean) {
@@ -263,6 +254,17 @@ class VolumeOverlayService : Service() {
             }
         }
 
+        val autoHideToggle = CheckBox(this).apply {
+            text = "Hide"
+            textSize = 12f
+            isChecked = overlayPrefs.isAutoHideEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setAutoHideEnabled(isChecked)
+                autoHideEnabled = isChecked
+                scheduleHideIfEnabled()
+            }
+        }
+
         val outputOnlyToggle = CheckBox(this).apply {
             text = "Output"
             textSize = 12f
@@ -282,6 +284,7 @@ class VolumeOverlayService : Service() {
         headerRow.addView(title)
         headerRow.addView(refreshButton)
         headerRow.addView(autoToggle)
+        headerRow.addView(autoHideToggle)
         headerRow.addView(outputOnlyToggle)
         headerRow.addView(closeButton)
 
@@ -530,12 +533,6 @@ class VolumeOverlayService : Service() {
         card.addView(sliderRow)
         row.addView(card)
 
-        if (!controlsEnabled) {
-            row.alpha = 0.5f
-            slider.isEnabled = false
-            muteButton.isEnabled = false
-        }
-
         return row
     }
 
@@ -581,6 +578,15 @@ class VolumeOverlayService : Service() {
             val userPart = entry.key.userId?.toString() ?: "x"
             "${entry.key.packageName}@$userPart:${entry.activeCount}"
         }
+    }
+
+    private fun currentVolumeSignature(): String {
+        val music = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val ring = audioManager.getStreamVolume(AudioManager.STREAM_RING)
+        val alarm = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+        val notification = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+        val system = audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM)
+        return "$music|$ring|$alarm|$notification|$system"
     }
 
     private fun snapToMarker(progress: Int, delta: Int, timeDelta: Long): Int {
@@ -706,6 +712,8 @@ class VolumeOverlayService : Service() {
             .setContentTitle("Volume overlay enabled")
             .setContentText("Shows per-app sliders when volume changes.")
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .addAction(Notification.Action.Builder(null, "Stop", stopPending).build())
             .build()
     }

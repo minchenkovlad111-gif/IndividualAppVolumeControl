@@ -21,6 +21,14 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_AUTO_REFRESH, enabled).apply()
     }
 
+    fun isAutoHideEnabled(): Boolean {
+        return prefs.getBoolean(KEY_AUTO_HIDE, true)
+    }
+
+    fun setAutoHideEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_HIDE, enabled).apply()
+    }
+
     fun isOutputOnlyEnabled(): Boolean {
         return prefs.getBoolean(KEY_OUTPUT_ONLY, false)
     }
@@ -32,6 +40,7 @@ class OverlayPrefs(context: Context) {
     companion object {
         private const val KEY_ENABLED = "overlay_enabled"
         private const val KEY_AUTO_REFRESH = "overlay_auto_refresh"
+        private const val KEY_AUTO_HIDE = "overlay_auto_hide"
         private const val KEY_OUTPUT_ONLY = "overlay_output_only"
     }
 }

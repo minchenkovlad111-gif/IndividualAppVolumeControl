@@ -13,6 +13,9 @@ import android.os.IBinder
 import android.util.Log
 import android.content.pm.ServiceInfo
 import android.app.PendingIntent
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyCallback
+import android.telephony.TelephonyManager
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -24,6 +27,9 @@ class PlaybackControllerService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
+    private var callMuteActive: Boolean = false
+    private var telephonyCallback: TelephonyCallback? = null
+    private var phoneStateListener: PhoneStateListener? = null
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
@@ -46,10 +52,12 @@ class PlaybackControllerService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
+        setupCallStateListener()
         safeApplyVolumes(audioManager.activePlaybackConfigurations)
     }
 
     override fun onDestroy() {
+        teardownCallStateListener()
         audioManager.unregisterAudioPlaybackCallback(playbackCallback)
         super.onDestroy()
     }
@@ -80,7 +88,7 @@ class PlaybackControllerService : Service() {
             val userId = PlaybackUtils.getUserIdFromUid(uid)
             val volumeKey = VolumeStore.VolumeKey(packageName, userId)
             activeEntries.add(volumeKey.storageKey())
-            val desiredVolume = volumeStore.getVolume(volumeKey) ?: 1f
+            val desiredVolume = if (callMuteActive) 0f else (volumeStore.getVolume(volumeKey) ?: 1f)
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${config.hashCode()}"
             activeKeys.add(key)
@@ -181,6 +189,8 @@ class PlaybackControllerService : Service() {
             .setContentTitle("IndividualAppAudioVolumeControl")
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())
             .build()
     }
@@ -198,6 +208,65 @@ class PlaybackControllerService : Service() {
         lastNotifiedCount = activeCount
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification(activeCount))
+    }
+
+    private fun setupCallStateListener() {
+        val telephonyManager = getSystemService(TelephonyManager::class.java) ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= 31) {
+                val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+                    override fun onCallStateChanged(state: Int) {
+                        handleCallState(state)
+                    }
+                }
+                telephonyManager.registerTelephonyCallback(mainExecutor, callback)
+                telephonyCallback = callback
+            } else {
+                @Suppress("DEPRECATION")
+                val listener = object : PhoneStateListener() {
+                    override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                        handleCallState(state)
+                    }
+                }
+                @Suppress("DEPRECATION")
+                telephonyManager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+                phoneStateListener = listener
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Call state listener unavailable", t)
+            diagnosticsStore.recordLastError("Call state listener unavailable: ${t.javaClass.simpleName}")
+        }
+    }
+
+    private fun teardownCallStateListener() {
+        val telephonyManager = getSystemService(TelephonyManager::class.java) ?: return
+        if (Build.VERSION.SDK_INT >= 31) {
+            val callback = telephonyCallback ?: return
+            telephonyManager.unregisterTelephonyCallback(callback)
+            telephonyCallback = null
+        } else {
+            @Suppress("DEPRECATION")
+            val listener = phoneStateListener ?: return
+            @Suppress("DEPRECATION")
+            telephonyManager.listen(listener, PhoneStateListener.LISTEN_NONE)
+            phoneStateListener = null
+        }
+    }
+
+    private fun handleCallState(state: Int) {
+        val label = when (state) {
+            TelephonyManager.CALL_STATE_IDLE -> "idle"
+            TelephonyManager.CALL_STATE_RINGING -> "ringing"
+            TelephonyManager.CALL_STATE_OFFHOOK -> "offhook"
+            else -> "unknown"
+        }
+        diagnosticsStore.recordCallState(label)
+        val shouldMute = state == TelephonyManager.CALL_STATE_RINGING ||
+            state == TelephonyManager.CALL_STATE_OFFHOOK
+        if (shouldMute != callMuteActive) {
+            callMuteActive = shouldMute
+            safeApplyVolumes(audioManager.activePlaybackConfigurations)
+        }
     }
 
     companion object {

@@ -6,19 +6,21 @@
 - Diagnostics UI: shows last apply stats, errors, and hidden API policy values.
 - Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
-- Overlay service: shows a floating per-app slider panel on volume-button changes.
-- Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, and optional auto-refresh.
+- Overlay service: shows a floating per-app slider panel on volume-button changes (broadcast + content observer + polling fallback).
+- Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, optional auto-refresh, and optional auto-hide.
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.
+- Call state listener: mutes active playback during ringing/off-hook calls.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
 2. For each active playback configuration, resolve package name.
 3. Resolve per-profile user id from the playback UID.
 4. Lookup per-app volume in `VolumeStore` using `u<userId>:<package>` keys (fall back to global package key).
-5. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
+5. If a call is ringing or active, temporarily force volume to 0 for all active players.
+6. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
    - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.
-6. When volume buttons change `STREAM_MUSIC`, `VolumeOverlayService` shows an overlay with active app sliders.
+7. When volume buttons change any stream volume, `VolumeOverlayService` shows an overlay with active app sliders.
 
 ## Profiles + presets
 - Presets are stored per package, with optional profile keys (`u<userId>:<package>`).

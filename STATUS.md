@@ -5,6 +5,13 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Allow sliders to stay interactive even when controls are not ready (store presets with warning).
+- Added overlay auto-hide preference and toggles in main UI + overlay header.
+- Expanded overlay watcher to react to any stream volume changes (multi-stream signature) for better OEM volume-key detection.
+- Marked foreground notifications as ongoing and only-alert-once.
+- Added a Diagnostics button to request Bluetooth permission (Android 12+).
+- Added a main screen Bluetooth permission button with App Info fallback when blocked.
+- Added call-state listener to mute active playback during ringing/offhook calls and log state in diagnostics.
 - Added Bluetooth codec info toast when selecting BT output devices.
 - Shared output type label helper across main list and overlay.
 - Added output type prefixes (BT/USB/etc) to output badges in main list and overlay.

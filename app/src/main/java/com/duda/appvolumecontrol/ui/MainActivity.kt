@@ -1,8 +1,10 @@
 package com.duda.appvolumecontrol.ui
 
+import android.Manifest
 import android.content.Intent
 import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -72,6 +74,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayToggle: CheckBox
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
+    private lateinit var overlayAutoHideToggle: CheckBox
+    private lateinit var bluetoothPermissionButton: Button
     private var overlayUpdating: Boolean = false
     private lateinit var controlStatusView: TextView
     private var controlsEnabled: Boolean = true
@@ -231,6 +235,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        bluetoothPermissionButton = Button(this).apply {
+            text = "Grant Bluetooth permission"
+            setOnClickListener { requestBluetoothPermission() }
+        }
+
         val helpButton = Button(this).apply {
             text = "Help"
             setOnClickListener {
@@ -309,6 +318,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        overlayAutoHideToggle = CheckBox(this).apply {
+            text = "Auto hide overlay"
+            isChecked = overlayPrefs.isAutoHideEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setAutoHideEnabled(isChecked)
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -375,6 +392,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(muteActiveButton)
         root.addView(halfActiveButton)
         root.addView(diagnosticsButton)
+        root.addView(bluetoothPermissionButton)
         root.addView(helpButton)
         root.addView(checkButton)
         root.addView(overlayTitle)
@@ -383,6 +401,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayShowButton)
         root.addView(overlayToggle)
         root.addView(overlayAutoToggle)
+        root.addView(overlayAutoHideToggle)
         root.addView(lastUpdatedView)
         root.addView(activeTitle)
         root.addView(activeContainer)
@@ -402,6 +421,7 @@ class MainActivity : AppCompatActivity() {
         startForegroundService(Intent(this, PlaybackControllerService::class.java))
         updateControlStatus()
         updateOverlayStatus()
+        updateBluetoothPermissionButton()
         updateActiveApps(audioManager.activePlaybackConfigurations)
         loadPresetApps()
         updatePresetApps()
@@ -412,6 +432,7 @@ class MainActivity : AppCompatActivity() {
         maybeRequestNotifications()
         updateControlStatus()
         updateOverlayStatus()
+        updateBluetoothPermissionButton()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         loadPresetApps()
         updatePresetApps()
@@ -459,6 +480,76 @@ class MainActivity : AppCompatActivity() {
             activeContainer.addView(buildVolumeRow(entry, true))
         }
         updatePresetApps()
+    }
+
+    private fun updateBluetoothPermissionButton() {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            bluetoothPermissionButton.isEnabled = false
+            bluetoothPermissionButton.text = "Bluetooth permission n/a"
+            return
+        }
+        val granted = checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+        bluetoothPermissionButton.isEnabled = !granted
+        bluetoothPermissionButton.text = if (granted) {
+            "Bluetooth permission granted"
+        } else {
+            "Grant Bluetooth permission"
+        }
+    }
+
+    private fun requestBluetoothPermission() {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            Toast.makeText(this, "Bluetooth permission not required on this Android version", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Bluetooth permission already granted", Toast.LENGTH_SHORT).show()
+            updateBluetoothPermissionButton()
+            return
+        }
+        requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_PERMISSION)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            Toast.makeText(
+                this,
+                if (granted) "Bluetooth permission granted" else "Bluetooth permission denied",
+                Toast.LENGTH_SHORT
+            ).show()
+            if (!granted &&
+                android.os.Build.VERSION.SDK_INT >= 31 &&
+                !shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT)
+            ) {
+                showBluetoothSettingsDialog()
+            }
+            updateBluetoothPermissionButton()
+        }
+    }
+
+    private fun showBluetoothSettingsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Bluetooth permission blocked")
+            .setMessage("Enable Bluetooth permission in system settings to read codec info.")
+            .setPositiveButton("Open settings") { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
     }
 
     private fun loadPresetApps() {
@@ -704,12 +795,6 @@ class MainActivity : AppCompatActivity() {
 
         row.addView(headerRow)
         row.addView(sliderRow)
-
-        if (!controlsEnabled) {
-            row.alpha = 0.5f
-            slider.isEnabled = false
-            muteButton.isEnabled = false
-        }
 
         return row
     }
@@ -1015,6 +1100,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val REFRESH_INTERVAL_MS = 2000L
         private const val REQUEST_NOTIFICATIONS = 100
+        private const val REQUEST_BLUETOOTH_PERMISSION = 101
         private const val SNAP_THRESHOLD = 2
         private const val SNAP_DELTA_MAX = 2
         private const val SNAP_TIME_MIN_MS = 50L
