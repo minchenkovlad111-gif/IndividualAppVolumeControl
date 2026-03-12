@@ -21,8 +21,17 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_AUTO_REFRESH, enabled).apply()
     }
 
+    fun isOutputOnlyEnabled(): Boolean {
+        return prefs.getBoolean(KEY_OUTPUT_ONLY, false)
+    }
+
+    fun setOutputOnlyEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_OUTPUT_ONLY, enabled).apply()
+    }
+
     companion object {
         private const val KEY_ENABLED = "overlay_enabled"
         private const val KEY_AUTO_REFRESH = "overlay_auto_refresh"
+        private const val KEY_OUTPUT_ONLY = "overlay_output_only"
     }
 }

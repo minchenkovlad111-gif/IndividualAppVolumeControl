@@ -262,6 +262,17 @@ class VolumeOverlayService : Service() {
             }
         }
 
+        val outputOnlyToggle = CheckBox(this).apply {
+            text = "Output"
+            textSize = 12f
+            isChecked = overlayPrefs.isOutputOnlyEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setOutputOnlyEnabled(isChecked)
+                populateList()
+                scheduleHideIfEnabled()
+            }
+        }
+
         val closeButton = Button(this).apply {
             text = "Close"
             setOnClickListener { removeOverlay() }
@@ -270,6 +281,7 @@ class VolumeOverlayService : Service() {
         headerRow.addView(title)
         headerRow.addView(refreshButton)
         headerRow.addView(autoToggle)
+        headerRow.addView(outputOnlyToggle)
         headerRow.addView(closeButton)
 
         listContainer = LinearLayout(this).apply {
@@ -302,7 +314,12 @@ class VolumeOverlayService : Service() {
                 status.visibility = View.VISIBLE
             }
         }
-        val entries = loadActiveEntries()
+        val outputOnly = overlayPrefs.isOutputOnlyEnabled()
+        val entries = if (outputOnly) {
+            loadActiveEntries().filter { volumeStore.getOutputDevice(it.key) != null }
+        } else {
+            loadActiveEntries()
+        }
         if (entries.isEmpty()) {
             container.addView(buildEmptyRow("No active audio."))
             return 0

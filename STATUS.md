@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added output-only filter toggle in main UI and overlay.
 - Clarified Magisk install/overlay path in README and module README.
 - Show selected output device badge in main list and overlay.
 - Added routing stats to Diagnostics and updated compatibility checklist to include output routing validation.
