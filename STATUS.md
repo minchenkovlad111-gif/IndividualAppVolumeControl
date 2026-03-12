@@ -1,10 +1,22 @@
 # Status
 
 ## Current focus
-- Profile-aware UX improvements and per-app detail surface.
+- Overlay UX refinements and feature gating groundwork.
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added overlay refresh button and auto-refresh toggle to keep active app list current.
+- Added mute/unmute icon button in overlay rows with restore behavior.
+- Added segmented tick markers and snap-to-segment resistance for overlay sliders.
+- Added overlay auto-refresh preference storage.
+- Made overlay watcher more reliable (volume broadcast + polling fallback) and kept manual overlay open until closed.
+- Updated Android Gradle Plugin to 8.13.2 and removed compileSdk 35 suppression.
+- Added volume-button overlay service with active-app sliders and auto-hide.
+- Added overlay watcher notification + preference toggle to show overlay on volume changes.
+- Added overlay permission screen and main UI controls for permission + enable/disable.
+- Added quick settings tile and notification action to open the overlay.
+- Extended Manage Apps to select profiles and store presets per profile explicitly.
+- Shared profile label utilities across UI + overlay.
 - Added profile-aware preset keys (`u<userId>:package`) with global fallback.
 - Applied profile-aware volume lookup in the playback service.
 - Added profile filter control to main UI (work/personal separation).
@@ -130,4 +142,4 @@
 - Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
-- 2026-03-11
+- 2026-03-12

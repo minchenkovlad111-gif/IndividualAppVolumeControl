@@ -1,0 +1,629 @@
+package com.duda.appvolumecontrol.service
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.database.ContentObserver
+import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
+import android.os.Build
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import android.os.SystemClock
+import android.provider.Settings
+import android.text.TextUtils
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.CheckBox
+import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.SeekBar
+import android.widget.TextView
+import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.ProfileUtils
+import com.duda.appvolumecontrol.core.VolumeStore
+import com.duda.appvolumecontrol.core.OverlayPrefs
+import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
+import com.duda.appvolumecontrol.ui.SeekBarTicksView
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
+class VolumeOverlayService : Service() {
+    private val handler = Handler(Looper.getMainLooper())
+    private val volumeStore by lazy { VolumeStore(this) }
+    private val overlayPrefs by lazy { OverlayPrefs(this) }
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+    private var overlayView: View? = null
+    private var listContainer: LinearLayout? = null
+    private var isWatching: Boolean = false
+    private var lastStreamVolume: Int = -1
+    private var stopAfterHide: Boolean = false
+    private var autoHideEnabled: Boolean = true
+    private var activeSignature: String? = null
+    private val lastNonZeroVolumes = mutableMapOf<String, Float>()
+
+    private val hideRunnable = Runnable {
+        removeOverlay()
+        if (stopAfterHide && !isWatching) {
+            stopAfterHide = false
+            stopSelf()
+        }
+    }
+
+    private val autoRefreshRunnable = object : Runnable {
+        override fun run() {
+            if (overlayView?.parent == null) return
+            if (overlayPrefs.isAutoRefreshEnabled()) {
+                val signature = buildActiveSignature()
+                if (signature != activeSignature) {
+                    activeSignature = signature
+                    populateList()
+                }
+            }
+            handler.postDelayed(this, AUTO_REFRESH_MS)
+        }
+    }
+
+    private val pollRunnable = object : Runnable {
+        override fun run() {
+            if (!isWatching) return
+            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (current != lastStreamVolume) {
+                lastStreamVolume = current
+                showOverlay(stopWhenHidden = false, autoHide = true)
+            }
+            handler.postDelayed(this, POLL_INTERVAL_MS)
+        }
+    }
+
+    private val volumeObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean) {
+            onVolumeChanged()
+        }
+    }
+
+    private val volumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != VOLUME_CHANGED_ACTION) return
+            val streamType = intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1)
+            if (streamType != AudioManager.STREAM_MUSIC) return
+            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (current == lastStreamVolume) return
+            lastStreamVolume = current
+            showOverlay(stopWhenHidden = false, autoHide = true)
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+        when (action) {
+            ACTION_START_WATCH -> startWatching()
+            ACTION_STOP_WATCH -> {
+                stopWatching()
+                stopSelf()
+            }
+            ACTION_SHOW -> {
+                showOverlay(stopWhenHidden = false, autoHide = false)
+            }
+            null -> {
+                if (overlayPrefs.isOverlayEnabled()) {
+                    startWatching()
+                }
+            }
+        }
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        stopWatching(clearPrefs = false)
+        removeOverlay()
+        super.onDestroy()
+    }
+
+    private fun startWatching() {
+        if (isWatching) return
+        if (!canDrawOverlays()) {
+            launchPermissionActivity()
+            return
+        }
+        overlayPrefs.setOverlayEnabled(true)
+        val uri = Settings.System.getUriFor(VOLUME_MUSIC_SETTING)
+        contentResolver.registerContentObserver(uri, false, volumeObserver)
+        lastStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val filter = IntentFilter(VOLUME_CHANGED_ACTION)
+        registerReceiver(volumeReceiver, filter)
+        isWatching = true
+        startForeground(NOTIFICATION_ID, buildNotification())
+        handler.postDelayed(pollRunnable, POLL_INTERVAL_MS)
+    }
+
+    private fun stopWatching(clearPrefs: Boolean = true) {
+        if (!isWatching) return
+        runCatching { contentResolver.unregisterContentObserver(volumeObserver) }
+        runCatching { unregisterReceiver(volumeReceiver) }
+        handler.removeCallbacks(pollRunnable)
+        isWatching = false
+        if (clearPrefs) {
+            overlayPrefs.setOverlayEnabled(false)
+        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+    }
+
+    private fun onVolumeChanged() {
+        val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        if (current == lastStreamVolume) return
+        lastStreamVolume = current
+        showOverlay(stopWhenHidden = false, autoHide = true)
+    }
+
+    private fun showOverlay(stopWhenHidden: Boolean, autoHide: Boolean) {
+        if (!canDrawOverlays()) {
+            launchPermissionActivity()
+            return
+        }
+        stopAfterHide = stopWhenHidden
+        autoHideEnabled = autoHide
+        val root = ensureOverlayView()
+        populateList()
+        startAutoRefresh()
+        if (root.parent == null) {
+            windowManager.addView(root, buildLayoutParams())
+        }
+        if (autoHide) {
+            scheduleHide()
+        } else {
+            handler.removeCallbacks(hideRunnable)
+        }
+    }
+
+    private fun ensureOverlayView(): View {
+        overlayView?.let { return it }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#F5F5F5"))
+                cornerRadius = dpToPx(12).toFloat()
+                setStroke(dpToPx(1), Color.parseColor("#E0E0E0"))
+            }
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    scheduleHideIfEnabled()
+                }
+                false
+            }
+        }
+
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val title = TextView(this).apply {
+            text = "App volumes"
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val refreshButton = Button(this).apply {
+            text = "Refresh"
+            setOnClickListener {
+                activeSignature = buildActiveSignature()
+                populateList()
+                scheduleHideIfEnabled()
+            }
+        }
+
+        val autoToggle = CheckBox(this).apply {
+            text = "Auto"
+            textSize = 12f
+            isChecked = overlayPrefs.isAutoRefreshEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setAutoRefreshEnabled(isChecked)
+                scheduleHideIfEnabled()
+            }
+        }
+
+        val closeButton = Button(this).apply {
+            text = "Close"
+            setOnClickListener { removeOverlay() }
+        }
+
+        headerRow.addView(title)
+        headerRow.addView(refreshButton)
+        headerRow.addView(autoToggle)
+        headerRow.addView(closeButton)
+
+        listContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        root.addView(headerRow)
+        root.addView(listContainer)
+        overlayView = root
+        return root
+    }
+
+    private fun populateList() {
+        val container = listContainer ?: return
+        container.removeAllViews()
+        val entries = loadActiveEntries()
+        if (entries.isEmpty()) {
+            container.addView(buildEmptyRow("No active audio."))
+            return
+        }
+        for (entry in entries) {
+            container.addView(buildVolumeRow(entry))
+        }
+    }
+
+    private fun loadActiveEntries(): List<AppEntry> {
+        val configs = audioManager.activePlaybackConfigurations
+        val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
+        for (config in configs) {
+            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            val uid = PlaybackUtils.getClientUid(config)
+            val userId = PlaybackUtils.getUserIdFromUid(uid)
+            val key = VolumeStore.VolumeKey(packageName, userId)
+            counts[key] = (counts[key] ?: 0) + 1
+        }
+        return counts.map { (key, count) ->
+            AppEntry(key, resolveLabel(key.packageName), count)
+        }.sortedBy { it.label.lowercase() }
+    }
+
+    private fun buildVolumeRow(entry: AppEntry): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dpToPx(8), 0, dpToPx(8))
+        }
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#FFFFFF"))
+                cornerRadius = dpToPx(10).toFloat()
+                setStroke(dpToPx(1), Color.parseColor("#E0E0E0"))
+            }
+        }
+
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val nameView = TextView(this).apply {
+            text = entry.label
+            textSize = 13f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val profileView = TextView(this).apply {
+            text = ProfileUtils.buildProfileLabel(this@VolumeOverlayService, entry.key.userId)
+            textSize = 11f
+            setTextColor(Color.parseColor("#616161"))
+            visibility = if (entry.key.userId != null) View.VISIBLE else View.GONE
+            setPadding(dpToPx(6), 0, 0, 0)
+        }
+
+        val countView = TextView(this).apply {
+            text = "x${entry.activeCount}"
+            textSize = 11f
+            setPadding(dpToPx(6), 0, 0, 0)
+            visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
+        }
+
+        headerRow.addView(nameView)
+        headerRow.addView(profileView)
+        headerRow.addView(countView)
+
+        val stored = volumeStore.getVolume(entry.key) ?: 1f
+        val valueView = TextView(this).apply {
+            text = "${(stored * 100).toInt()}%"
+            textSize = 11f
+            setPadding(dpToPx(6), 0, 0, 0)
+        }
+
+        val sliderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        lateinit var muteButton: ImageButton
+
+        val sliderFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val ticksView = SeekBarTicksView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(12),
+                Gravity.CENTER_VERTICAL
+            )
+        }
+
+        val slider = SeekBar(this).apply {
+            max = 100
+            progress = (stored * 100).toInt()
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER_VERTICAL
+            )
+            var lastProgress = progress
+            var lastChangeTime = SystemClock.elapsedRealtime()
+            var ignoreNextProgrammatic = false
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!fromUser) {
+                        if (ignoreNextProgrammatic) {
+                            ignoreNextProgrammatic = false
+                        }
+                        return
+                    }
+                    val now = SystemClock.elapsedRealtime()
+                    val delta = abs(progress - lastProgress)
+                    val timeDelta = now - lastChangeTime
+                    lastProgress = progress
+                    lastChangeTime = now
+                    val snapped = snapToMarker(progress, delta, timeDelta)
+                    if (snapped != progress) {
+                        ignoreNextProgrammatic = true
+                        seekBar?.progress = snapped
+                        applyVolume(entry, snapped, valueView)
+                        updateMuteIcon(muteButton, snapped / 100f)
+                        if (snapped != progress) {
+                            seekBar?.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                        }
+                        scheduleHideIfEnabled()
+                        return
+                    }
+                    applyVolume(entry, progress, valueView)
+                    updateMuteIcon(muteButton, progress / 100f)
+                    scheduleHideIfEnabled()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    scheduleHideIfEnabled()
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    scheduleHideIfEnabled()
+                }
+            })
+        }
+
+        sliderFrame.addView(ticksView)
+        sliderFrame.addView(slider)
+        sliderRow.addView(sliderFrame)
+        sliderRow.addView(valueView)
+
+        muteButton = ImageButton(this).apply {
+            background = null
+            layoutParams = LinearLayout.LayoutParams(dpToPx(28), dpToPx(28)).apply {
+                marginStart = dpToPx(6)
+            }
+        }
+
+        updateMuteIcon(muteButton, stored)
+        muteButton.setOnClickListener {
+            val currentVolume = volumeStore.getVolume(entry.key) ?: 1f
+            if (currentVolume > 0f) {
+                lastNonZeroVolumes[entry.key.storageKey()] = currentVolume
+                applyVolume(entry, 0, valueView)
+                slider.progress = 0
+                updateMuteIcon(muteButton, 0f)
+            } else {
+                val restored = lastNonZeroVolumes[entry.key.storageKey()] ?: 1f
+                val percent = (restored * 100).roundToInt()
+                applyVolume(entry, percent, valueView)
+                slider.progress = percent
+                updateMuteIcon(muteButton, restored)
+            }
+            scheduleHideIfEnabled()
+        }
+
+        headerRow.addView(muteButton)
+
+        card.addView(headerRow)
+        card.addView(sliderRow)
+        row.addView(card)
+        return row
+    }
+
+    private fun buildEmptyRow(message: String): View {
+        return TextView(this).apply {
+            text = message
+            textSize = 12f
+            setPadding(0, dpToPx(8), 0, dpToPx(8))
+        }
+    }
+
+    private fun removeOverlay() {
+        handler.removeCallbacks(hideRunnable)
+        handler.removeCallbacks(autoRefreshRunnable)
+        overlayView?.let {
+            runCatching { windowManager.removeView(it) }
+        }
+        if (stopAfterHide && !isWatching) {
+            stopAfterHide = false
+            stopSelf()
+        }
+    }
+
+    private fun scheduleHide() {
+        handler.removeCallbacks(hideRunnable)
+        handler.postDelayed(hideRunnable, AUTO_HIDE_MS)
+    }
+
+    private fun scheduleHideIfEnabled() {
+        if (!autoHideEnabled) return
+        scheduleHide()
+    }
+
+    private fun startAutoRefresh() {
+        handler.removeCallbacks(autoRefreshRunnable)
+        handler.postDelayed(autoRefreshRunnable, AUTO_REFRESH_MS)
+    }
+
+    private fun buildActiveSignature(): String {
+        val entries = loadActiveEntries()
+        if (entries.isEmpty()) return ""
+        return entries.joinToString("|") { entry ->
+            val userPart = entry.key.userId?.toString() ?: "x"
+            "${entry.key.packageName}@$userPart:${entry.activeCount}"
+        }
+    }
+
+    private fun snapToMarker(progress: Int, delta: Int, timeDelta: Long): Int {
+        if (delta > SNAP_DELTA_MAX || timeDelta < SNAP_TIME_MIN_MS) return progress
+        val markers = arrayOf(0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100)
+        val nearest = markers.minByOrNull { abs(it - progress) } ?: progress
+        return if (abs(nearest - progress) <= SNAP_THRESHOLD) nearest else progress
+    }
+
+    private fun applyVolume(entry: AppEntry, progress: Int, valueView: TextView) {
+        val displayProgress = progress.coerceIn(0, 100)
+        val volume = displayProgress / 100f
+        volumeStore.setVolume(entry.key, volume)
+        PlaybackControllerService.requestReapply(this@VolumeOverlayService)
+        valueView.text = "$displayProgress%"
+        if (volume > 0f) {
+            lastNonZeroVolumes[entry.key.storageKey()] = volume
+        }
+    }
+
+    private fun updateMuteIcon(button: ImageButton, volume: Float) {
+        button.setImageResource(
+            if (volume <= 0f) android.R.drawable.ic_lock_silent_mode
+            else android.R.drawable.ic_lock_silent_mode_off
+        )
+    }
+
+    private fun resolveLabel(packageName: String): String {
+        return try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        } catch (_: Exception) {
+            packageName
+        }
+    }
+
+    private fun buildLayoutParams(): WindowManager.LayoutParams {
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        return WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = dpToPx(32)
+        }
+    }
+
+    private fun buildNotification(): Notification {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Overlay watcher",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            channel.description = "Shows overlay when volume buttons are pressed"
+            manager.createNotificationChannel(channel)
+        }
+        val stopIntent = Intent(this, VolumeOverlayService::class.java).apply {
+            action = ACTION_STOP_WATCH
+        }
+        val stopPending = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+        return Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("Volume overlay enabled")
+            .setContentText("Shows per-app sliders when volume changes.")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .addAction(Notification.Action.Builder(null, "Stop", stopPending).build())
+            .build()
+    }
+
+    private fun pendingIntentImmutable(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_IMMUTABLE
+        } else {
+            0
+        }
+    }
+
+    private fun canDrawOverlays(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(this)
+        } else {
+            true
+        }
+    }
+
+    private fun launchPermissionActivity() {
+        val intent = Intent(this, OverlayPermissionActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    private fun dpToPx(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private data class AppEntry(
+        val key: VolumeStore.VolumeKey,
+        val label: String,
+        val activeCount: Int = 0,
+    )
+
+    companion object {
+        const val ACTION_SHOW = "com.duda.appvolumecontrol.action.SHOW_OVERLAY"
+        const val ACTION_START_WATCH = "com.duda.appvolumecontrol.action.START_OVERLAY_WATCH"
+        const val ACTION_STOP_WATCH = "com.duda.appvolumecontrol.action.STOP_OVERLAY_WATCH"
+        private const val CHANNEL_ID = "overlay_watcher"
+        private const val NOTIFICATION_ID = 1201
+        private const val AUTO_HIDE_MS = 3500L
+        private const val AUTO_REFRESH_MS = 1000L
+        private const val VOLUME_MUSIC_SETTING = "volume_music"
+        private const val POLL_INTERVAL_MS = 500L
+        private const val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
+        private const val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
+        private const val SNAP_THRESHOLD = 2
+        private const val SNAP_DELTA_MAX = 2
+        private const val SNAP_TIME_MIN_MS = 50L
+    }
+}

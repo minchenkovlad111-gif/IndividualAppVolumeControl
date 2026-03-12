@@ -19,8 +19,15 @@
 
 ## UX ideas to validate
 - Volume-button overlay listing active apps (AudioHQ-style) for quick control.
-- Optional persistent notification or quick settings tile for jumping into the app.
+- Overlay watcher reliability across Android 12-15 (volume change observer vs. volume keys).
+- Quick settings tile for jumping into the overlay.
 - Profile-aware app lists for work/personal separation.
+- Feature gating: gray out unavailable features per SDK + permission state.
+
+## Legacy version considerations
+- `AudioPlaybackConfiguration` arrives in API 26; per-app volume control is limited or impossible below API 26.
+- For API 16-25, consider degraded modes (per-stream volume only, read-only app list, or disable per-app controls).
+- Decide whether to ship a legacy flavor/module with reduced functionality and explicit UI gating.
 
 ## Links
 - See sources referenced in the project issue description.
