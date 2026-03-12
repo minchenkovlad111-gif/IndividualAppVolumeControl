@@ -12,6 +12,7 @@ Use this table to track observed behavior across devices and Android versions.
 3. Play audio from two apps at once and adjust per-app sliders.
 4. Record whether volume changes apply correctly.
 5. Press volume keys and confirm the overlay appears; capture overlay signal counts from Diagnostics.
+6. Use "Copy compatibility row" in Diagnostics and paste into the table.
 
 ## Known issues
 - Add device-specific notes here.

@@ -30,6 +30,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
     private var lastReport: String = ""
+    private var lastCompatibilityRow: String = ""
     private lateinit var volumeStore: VolumeStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +82,11 @@ class DiagnosticsActivity : AppCompatActivity() {
             setOnClickListener { copyReport() }
         }
 
+        val copyCompatibilityButton = Button(this).apply {
+            text = "Copy compatibility row"
+            setOnClickListener { copyCompatibilityRow() }
+        }
+
         val shareButton = Button(this).apply {
             text = "Share report"
             setOnClickListener { shareReport() }
@@ -126,6 +132,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(selfTestButton)
         root.addView(hiddenApiButton)
         root.addView(copyButton)
+        root.addView(copyCompatibilityButton)
         root.addView(shareButton)
         root.addView(exportButton)
         root.addView(importButton)
@@ -264,6 +271,11 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         lastReport = lines.joinToString("\n")
         contentView.text = lastReport
+        lastCompatibilityRow = buildCompatibilityRow(
+            isPrivApp,
+            snapshot.hiddenApiVmRuntimeOk,
+            snapshot.hiddenApiPolicyOk
+        )
     }
 
     private fun readGlobalInt(key: String): Int? {
@@ -291,6 +303,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
         Toast.makeText(this, "Report copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun copyCompatibilityRow() {
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("compatibility", lastCompatibilityRow))
+        Toast.makeText(this, "Compatibility row copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun exportPresets() {
@@ -362,6 +380,21 @@ class DiagnosticsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             false
         }
+    }
+
+    private fun buildCompatibilityRow(
+        isPrivApp: Boolean,
+        vmRuntimeOk: Int,
+        policyOk: Int,
+    ): String {
+        val device = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+        val androidVersion = android.os.Build.VERSION.SDK_INT.toString()
+        val priv = if (isPrivApp) "yes" else "no"
+        val vm = formatTriState(vmRuntimeOk)
+        val policy = formatTriState(policyOk)
+        val perApp = "unknown"
+        val notes = "fill in"
+        return listOf(device, androidVersion, priv, vm, policy, perApp, notes).joinToString(", ")
     }
 
     private fun getAppVersion(): Pair<String, Long> {

@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added Diagnostics action to copy a prefilled compatibility table row.
 - Added hidden API retry + error details to Diagnostics for easier policy validation.
 - Added app icons and long-press package copy in the overlay rows.
 - Expanded Diagnostics to report requested/granted permission status and missing critical permissions.
