@@ -38,6 +38,7 @@ import androidx.core.widget.addTextChangedListener
 import android.widget.CheckBox
 import android.view.HapticFeedbackConstants
 import com.duda.appvolumecontrol.core.ActiveAppStore
+import com.duda.appvolumecontrol.core.ModuleInstaller
 import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.OverlayPrefs
@@ -124,13 +125,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val quickStart = TextView(this).apply {
-            text = "Quick start:\n1) Install the Magisk module and reboot.\n2) Play audio in an app.\n3) Move the slider for that app."
+            text = "Quick start:\n1) Install the module (Magisk/KernelSU) and reboot.\n2) Play audio in an app.\n3) Move the slider for that app."
             textSize = 13f
             setPadding(0, 8, 0, 8)
         }
 
         val moduleHelpButton = Button(this).apply {
-            text = "Install module (Magisk)"
+            text = "Install module"
             setOnClickListener { showModuleHelp() }
         }
 
@@ -1023,23 +1024,69 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showModuleHelp() {
-        val moduleName = "IndividualAppAudioVolumeControl-magisk.zip"
+        val installer = ModuleInstaller(this)
+        val detection = installer.detectRootManagerDetails()
+        val manager = detection.manager
+        val moduleName = ModuleInstaller.MODULE_NAME
+        val managerLine = when (manager) {
+            ModuleInstaller.RootManager.MAGISK -> "Detected root manager: Magisk"
+            ModuleInstaller.RootManager.KERNELSU -> "Detected root manager: KernelSU"
+            ModuleInstaller.RootManager.NONE -> "Detected root manager: none"
+        }
+        val probeLine = "Probes: Magisk pkg=${boolLabel(detection.hasMagiskPackage)} " +
+            "bin=${boolLabel(detection.hasMagiskBinary)} | KernelSU pkg=${boolLabel(detection.hasKernelSuPackage)} " +
+            "bin=${boolLabel(detection.hasKernelSuBinary)}"
         val message = "System/privileged install is required for per-app volume control.\n\n" +
+            "$managerLine\n" +
+            "$probeLine\n\n" +
             "Steps:\n" +
-            "1) Install the Magisk module ($moduleName).\n" +
+            "1) Install the module ($moduleName).\n" +
             "2) Reboot your device.\n" +
             "3) Open Setup Check to verify Ready: YES.\n\n" +
             "Directly copying the app into /system is not supported from the app."
+        val actions = listOf(
+            "Install via Magisk",
+            "Install via KernelSU",
+            "Copy module name",
+            "Copy package"
+        )
         AlertDialog.Builder(this)
-            .setTitle("Install via Magisk")
+            .setTitle("Install module")
             .setMessage(message)
-            .setPositiveButton("Copy module name") { _, _ ->
-                copyToClipboard(moduleName, "Module name")
+            .setItems(actions.toTypedArray()) { _, which ->
+                when (which) {
+                    0 -> confirmModuleInstall(installer, ModuleInstaller.RootManager.MAGISK)
+                    1 -> confirmModuleInstall(installer, ModuleInstaller.RootManager.KERNELSU)
+                    2 -> copyToClipboard(moduleName, "Module name")
+                    3 -> copyToClipboard(packageName, "Package")
+                }
             }
-            .setNeutralButton("Copy package") { _, _ ->
-                copyToClipboard(packageName, "Package")
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun boolLabel(value: Boolean): String {
+        return if (value) "yes" else "no"
+    }
+
+    private fun confirmModuleInstall(installer: ModuleInstaller, manager: ModuleInstaller.RootManager) {
+        AlertDialog.Builder(this)
+            .setTitle("Install module")
+            .setMessage("Install the bundled module using ${manager.label}? This requires root.")
+            .setPositiveButton("Install") { _, _ ->
+                Thread {
+                    val result = installer.installBundledModule(manager)
+                    runOnUiThread {
+                        val status = if (result.success) {
+                            "Install command finished. Reboot your device."
+                        } else {
+                            "Install failed: ${result.output}"
+                        }
+                        Toast.makeText(this, status, Toast.LENGTH_LONG).show()
+                    }
+                }.start()
             }
-            .setNegativeButton("OK", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
