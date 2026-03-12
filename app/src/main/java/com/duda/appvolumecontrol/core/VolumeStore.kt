@@ -154,6 +154,22 @@ class VolumeStore(context: Context) {
                 obj.put("_output_configs", outputObj)
             }
         }
+        val ruleGroups = listRuleGroups()
+        if (ruleGroups.isNotEmpty()) {
+            val groupArray = JSONArray()
+            for (group in ruleGroups) {
+                groupArray.put(group.toJson())
+            }
+            obj.put("_rule_groups", groupArray)
+        }
+        val rules = listRules()
+        if (rules.isNotEmpty()) {
+            val ruleArray = JSONArray()
+            for (rule in rules) {
+                ruleArray.put(rule.toJson())
+            }
+            obj.put("_rules", ruleArray)
+        }
         return obj.toString(2)
     }
 
@@ -192,8 +208,52 @@ class VolumeStore(context: Context) {
                 editor.putString(OUTPUT_PREFIX + storageKey, config.toJson().toString())
             }
         }
+        val ruleGroups = parseRuleGroups(obj.optJSONArray("_rule_groups"))
+        if (ruleGroups != null) {
+            if (ruleGroups.isEmpty()) {
+                editor.remove(RULE_GROUPS_KEY)
+            } else {
+                editor.putString(RULE_GROUPS_KEY, serializeRuleGroups(ruleGroups))
+            }
+        }
+        val rules = parseRules(obj.optJSONArray("_rules"))
+        if (rules != null) {
+            if (rules.isEmpty()) {
+                editor.remove(RULES_KEY)
+            } else {
+                editor.putString(RULES_KEY, serializeRules(rules))
+            }
+        }
         editor.apply()
         return count
+    }
+
+    fun listRuleGroups(): List<RuleGroup> {
+        val raw = prefs.getString(RULE_GROUPS_KEY, null) ?: return emptyList()
+        val groups = parseRuleGroups(raw) ?: return emptyList()
+        return groups.sortedBy { it.name }
+    }
+
+    fun setRuleGroups(groups: List<RuleGroup>) {
+        if (groups.isEmpty()) {
+            prefs.edit().remove(RULE_GROUPS_KEY).apply()
+            return
+        }
+        prefs.edit().putString(RULE_GROUPS_KEY, serializeRuleGroups(groups)).apply()
+    }
+
+    fun listRules(): List<Rule> {
+        val raw = prefs.getString(RULES_KEY, null) ?: return emptyList()
+        val rules = parseRules(raw) ?: return emptyList()
+        return rules.sortedWith(compareByDescending<Rule> { it.priority }.thenBy { it.name })
+    }
+
+    fun setRules(rules: List<Rule>) {
+        if (rules.isEmpty()) {
+            prefs.edit().remove(RULES_KEY).apply()
+            return
+        }
+        prefs.edit().putString(RULES_KEY, serializeRules(rules)).apply()
     }
 
     data class VolumeKey(
@@ -269,6 +329,8 @@ class VolumeStore(context: Context) {
     companion object {
         private const val MARKER_PREFIX = "_markers:"
         private const val OUTPUT_PREFIX = "_output:"
+        private const val RULE_GROUPS_KEY = "_rule_groups"
+        private const val RULES_KEY = "_rules"
 
         fun buildKey(packageName: String, userId: Int?): String {
             return if (userId == null) packageName else "u${userId}:${packageName}"
@@ -339,6 +401,56 @@ class VolumeStore(context: Context) {
             val address = obj.optString("address").takeIf { it.isNotBlank() }
             val name = obj.optString("name").takeIf { it.isNotBlank() }
             return OutputDevice(type, address, name)
+        }
+
+        private fun parseRuleGroups(raw: String?): List<RuleGroup>? {
+            if (raw.isNullOrBlank()) return emptyList()
+            val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
+            return parseRuleGroups(array)
+        }
+
+        private fun parseRuleGroups(array: JSONArray?): List<RuleGroup>? {
+            if (array == null) return null
+            val groups = mutableListOf<RuleGroup>()
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                val group = RuleGroup.fromJson(obj) ?: continue
+                groups.add(group)
+            }
+            return groups
+        }
+
+        private fun parseRules(raw: String?): List<Rule>? {
+            if (raw.isNullOrBlank()) return emptyList()
+            val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
+            return parseRules(array)
+        }
+
+        private fun parseRules(array: JSONArray?): List<Rule>? {
+            if (array == null) return null
+            val rules = mutableListOf<Rule>()
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                val rule = Rule.fromJson(obj) ?: continue
+                rules.add(rule)
+            }
+            return rules
+        }
+
+        private fun serializeRuleGroups(groups: List<RuleGroup>): String {
+            val array = JSONArray()
+            for (group in groups) {
+                array.put(group.toJson())
+            }
+            return array.toString()
+        }
+
+        private fun serializeRules(rules: List<Rule>): String {
+            val array = JSONArray()
+            for (rule in rules) {
+                array.put(rule.toJson())
+            }
+            return array.toString()
         }
     }
 }

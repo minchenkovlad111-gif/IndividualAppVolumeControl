@@ -9,6 +9,8 @@ Presets can be exported/imported via the Diagnostics screen using JSON.
 - Profile-specific presets use the key format `u<userId>:<package>`.
 - Optional marker configs are stored under `_marker_configs` keyed by the same storage key.
 - Optional output configs are stored under `_output_configs` keyed by the same storage key.
+- Optional rule groups are stored under `_rule_groups`.
+- Optional rules are stored under `_rules`.
 
 Example:
 ```
@@ -34,6 +36,30 @@ Example:
       "name": "BT Headphones"
     }
   },
+  "_rule_groups": [
+    {
+      "version": 1,
+      "id": "g_music",
+      "name": "Music Apps",
+      "packages": ["com.example.music", "com.example.radio"]
+    }
+  ],
+  "_rules": [
+    {
+      "version": 1,
+      "id": "r_focus",
+      "name": "Lower music during calls",
+      "enabled": true,
+      "priority": 100,
+      "conditions": [
+        {"type": "any_active", "packages": ["com.example.voip"]},
+        {"type": "time_window", "days": [1,2,3,4,5], "start_min": 540, "end_min": 1020}
+      ],
+      "actions": [
+        {"type": "set_volume", "targets": ["group:g_music"], "volume": 0.3}
+      ]
+    }
+  ],
   "com.example.music": 0.7,
   "com.example.podcast": 1.0,
   "u10:com.example.workmusic": 0.6
@@ -46,4 +72,7 @@ Example:
 - `_preset_count` is optional metadata for readability and is ignored on import.
 - `_marker_configs` is optional; invalid entries are ignored on import.
 - `_output_configs` is optional; invalid entries are ignored on import.
+- `_rule_groups` is optional; invalid entries are ignored on import.
+- `_rules` is optional; invalid entries are ignored on import.
 - If a profile-specific key is missing, the app falls back to the global package preset.
+- Location rule conditions are stored but currently not evaluated.

@@ -6,8 +6,8 @@
 4. Validate hidden API policy keys and behavior on Android 12-15.
 5. Verify behavior on Android 12-15 and document compatibility.
 6. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-7. Legacy support plan for API 16-25 (define degraded feature set and app flavor/module strategy).
-8. Group presets + rules engine (co-active apps, time windows, and locations).
+7. Implement legacy flavor/module gating for API 16-25 per the documented plan.
+8. Rules engine UI + editor (groups, co-active apps, time windows, locations).
 9. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
 10. Audio routing between apps (virtual output sources and sinks).
 11. Network audio routing (send/receive per-app audio streams over LAN).

@@ -21,6 +21,7 @@ import com.duda.appvolumecontrol.R
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.RulesEngine
 import com.duda.appvolumecontrol.core.VolumeStore
 
 class PlaybackControllerService : Service() {
@@ -87,6 +88,7 @@ class PlaybackControllerService : Service() {
         val activeKeys = mutableSetOf<String>()
         val activeEntries = mutableSetOf<String>()
         val activeVolumeKeys = mutableSetOf<VolumeStore.VolumeKey>()
+        val activeConfigs = mutableListOf<ActiveConfig>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
             val uid = PlaybackUtils.getClientUid(config)
@@ -94,14 +96,28 @@ class PlaybackControllerService : Service() {
             val volumeKey = VolumeStore.VolumeKey(packageName, userId)
             activeEntries.add(volumeKey.storageKey())
             activeVolumeKeys.add(volumeKey)
-            val desiredVolume = if (callMuteActive) 0f else (volumeStore.getVolume(volumeKey) ?: 1f)
+            activeConfigs.add(ActiveConfig(config, volumeKey, packageName))
+        }
+        val ruleOverrides = RulesEngine.computeOverrides(
+            activeVolumeKeys,
+            volumeStore.listRuleGroups(),
+            volumeStore.listRules(),
+        )
+        for (entry in activeConfigs) {
+            val volumeKey = entry.volumeKey
+            val packageName = entry.packageName
+            val desiredVolume = if (callMuteActive) {
+                0f
+            } else {
+                ruleOverrides[volumeKey] ?: (volumeStore.getVolume(volumeKey) ?: 1f)
+            }
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
-            val key = "${volumeKey.storageKey()}:${config.hashCode()}"
+            val key = "${volumeKey.storageKey()}:${entry.config.hashCode()}"
             activeKeys.add(key)
             val current = lastApplied[key]
             if (current != null && current == desiredVolume) continue
 
-            val applied = PlaybackUtils.applyVolumeToPlayer(config, desiredVolume)
+            val applied = PlaybackUtils.applyVolumeToPlayer(entry.config, desiredVolume)
             if (applied) {
                 lastApplied[key] = desiredVolume
                 appliedCount += 1
@@ -117,7 +133,7 @@ class PlaybackControllerService : Service() {
                             (outputDevice.address.isNullOrBlank() || info.address == outputDevice.address)
                     }
                 if (deviceInfo != null) {
-                    val routed = PlaybackUtils.applyPreferredDeviceToPlayer(config, deviceInfo)
+                    val routed = PlaybackUtils.applyPreferredDeviceToPlayer(entry.config, deviceInfo)
                     if (!routed) {
                         routeFailed += 1
                         routeDetails.add("${volumeKey.storageKey()}=failed")
@@ -229,6 +245,12 @@ class PlaybackControllerService : Service() {
             "${entry.packageName}@$userPart:${entry.percent}"
         }
     }
+
+    private data class ActiveConfig(
+        val config: AudioPlaybackConfiguration,
+        val volumeKey: VolumeStore.VolumeKey,
+        val packageName: String,
+    )
 
     private fun buildBigRemoteViews(): RemoteViews {
         val views = RemoteViews(packageName, R.layout.notification_volume_big)

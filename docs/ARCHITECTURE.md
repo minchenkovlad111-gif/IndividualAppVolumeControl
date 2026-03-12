@@ -12,14 +12,16 @@
 - Quick settings tile: opens the overlay on demand.
 - Call state listener: mutes active playback during ringing/off-hook calls.
 - Foreground notification: persistent status with quick per-app +/- controls (prototype).
+- Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.
 2. For each active playback configuration, resolve package name.
 3. Resolve per-profile user id from the playback UID.
-4. Lookup per-app volume in `VolumeStore` using `u<userId>:<package>` keys (fall back to global package key).
-5. If a call is ringing or active, temporarily force volume to 0 for all active players.
-6. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
+4. Evaluate rules engine overrides (active app + time window conditions) against active players.
+5. Lookup per-app volume in `VolumeStore` using `u<userId>:<package>` keys (fall back to global package key).
+6. If a call is ringing or active, temporarily force volume to 0 for all active players.
+7. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
    - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.
 7. When volume buttons change any stream volume, `VolumeOverlayService` shows an overlay with active app sliders.
 

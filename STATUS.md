@@ -3,8 +3,13 @@
 ## Current focus
 - Overlay UX refinements and feature gating groundwork.
 - Continuing validation on Android 12-15 devices.
+- Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added rules engine counts + enabled rule names to Diagnostics output.
+- Added rules engine data models (groups, conditions, actions) with JSON import/export support.
+- Wired rule evaluation into the playback service (co-active apps + time windows override presets).
+- Documented rule format and legacy API 16-25 plan in docs.
 - Added binary probes (magisk/ksud) to root manager detection and surfaced probe info in install dialog.
 - Added module install dialog actions to try Magisk/KernelSU installs even when detection fails.
 - Added KernelSU Next package detection for root manager identification.

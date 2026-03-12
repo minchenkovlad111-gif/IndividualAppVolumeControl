@@ -234,6 +234,10 @@ class DiagnosticsActivity : AppCompatActivity() {
             .distinct()
             .sorted()
         val presetCount = volumeStore.countPresets()
+        val ruleGroups = volumeStore.listRuleGroups()
+        val rules = volumeStore.listRules()
+        val enabledRules = rules.filter { it.enabled }
+        val ruleSummary = buildRuleSummary(enabledRules)
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = isPrivilegedApp(appInfo)
@@ -283,6 +287,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Active packages count: ${activePackages.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "Stored presets: $presetCount",
+            "Rule groups: ${ruleGroups.size}",
+            "Rules enabled/total: ${enabledRules.size}/${rules.size}",
+            "Rule names: $ruleSummary",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",
@@ -337,6 +344,15 @@ class DiagnosticsActivity : AppCompatActivity() {
             0 -> "no"
             else -> "-"
         }
+    }
+
+    private fun buildRuleSummary(rules: List<com.duda.appvolumecontrol.core.Rule>): String {
+        if (rules.isEmpty()) return "-"
+        val names = rules.map { it.name }
+        if (names.size <= 4) return names.joinToString(", ")
+        val shown = names.take(4).joinToString(", ")
+        val remaining = names.size - 4
+        return "$shown, +$remaining more"
     }
 
     private fun copyReport() {

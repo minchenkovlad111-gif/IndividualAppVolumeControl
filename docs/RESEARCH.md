@@ -31,6 +31,12 @@
 - For API 16-25, consider degraded modes (per-stream volume only, read-only app list, or disable per-app controls).
 - Decide whether to ship a legacy flavor/module with reduced functionality and explicit UI gating.
 
+## Legacy plan (API 16-25)
+- Ship a legacy flavor/module that disables per-app volume controls and overlay, but keeps diagnostics and preset storage UI visible with a clear warning banner.
+- Gate controls based on `SDK_INT < 26`: hide active session list, disable per-app sliders, and show a single stream-level volume helper (optional).
+- Keep presets import/export working for migration when a user upgrades devices.
+- Document that per-app volume is only supported on API 26+ and requires privileged install.
+
 ## Links
 - See sources referenced in the project issue description.
 - https://developer.android.com/guide/app-compatibility/restrictions-non-sdk-interfaces
