@@ -21,4 +21,4 @@ The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant sign
 - Confirm which permissions are required on Android 12–15 devices.
 - Remove any permission not required for core functionality.
 - Record device-specific restrictions in docs/RESEARCH.md.
-- Use the Diagnostics screen to verify runtime permission grants.
+- Use the Diagnostics screen to verify requested/granted permission status.

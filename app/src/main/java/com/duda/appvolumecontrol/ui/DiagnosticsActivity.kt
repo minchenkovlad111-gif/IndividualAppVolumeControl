@@ -174,6 +174,11 @@ class DiagnosticsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasAcrossUsers = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
+        val requestedPermissions = getRequestedPermissions()
+        val permissionStatuses = buildPermissionStatuses(requestedPermissions)
+        val missingCritical = permissionStatuses
+            .filter { it.required && it.requested && !it.granted }
+            .map { it.name }
         val audioManager = getSystemService(AudioManager::class.java)
         val activeConfigs = audioManager.activePlaybackConfigurations
         val activePackages = activeConfigs
@@ -239,6 +244,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
             "QUERY_ALL_PACKAGES granted: $hasQueryAllPackages",
             "INTERACT_ACROSS_USERS granted: $hasAcrossUsers",
+            "Missing critical permissions: ${if (missingCritical.isEmpty()) "-" else missingCritical.joinToString(", ")}",
+            "Permission status:",
+            *permissionStatuses.map { it.toReportLine() }.toTypedArray(),
         )
 
         lastReport = lines.joinToString("\n")
@@ -364,6 +372,63 @@ class DiagnosticsActivity : AppCompatActivity() {
             versionName to versionCode
         } catch (_: Exception) {
             "-" to 0L
+        }
+    }
+
+    private fun getRequestedPermissions(): Set<String> {
+        return try {
+            val info = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                packageManager.getPackageInfo(
+                    packageName,
+                    android.content.pm.PackageManager.PackageInfoFlags.of(
+                        PackageManager.GET_PERMISSIONS.toLong()
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
+            }
+            info.requestedPermissions?.toSet() ?: emptySet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    private fun buildPermissionStatuses(requested: Set<String>): List<PermissionStatus> {
+        val all = listOf(
+            PermissionStatus(Manifest.permission.MODIFY_AUDIO_SETTINGS, required = true),
+            PermissionStatus(PERMISSION_MODIFY_AUDIO_ROUTING, required = false),
+            PermissionStatus(Manifest.permission.QUERY_ALL_PACKAGES, required = true),
+            PermissionStatus(PERMISSION_INTERACT_ACROSS_USERS, required = false),
+            PermissionStatus(Manifest.permission.WRITE_SECURE_SETTINGS, required = false),
+            PermissionStatus(Manifest.permission.FOREGROUND_SERVICE, required = true),
+            PermissionStatus(Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK, required = true),
+            PermissionStatus(Manifest.permission.POST_NOTIFICATIONS, required = false),
+        )
+        return all.map { status ->
+            val requestedFlag = requested.contains(status.name)
+            val grantedFlag = if (status.name == Manifest.permission.POST_NOTIFICATIONS &&
+                android.os.Build.VERSION.SDK_INT < 33
+            ) {
+                true
+            } else {
+                checkSelfPermission(status.name) == PackageManager.PERMISSION_GRANTED
+            }
+            status.copy(requested = requestedFlag, granted = grantedFlag)
+        }
+    }
+
+    private data class PermissionStatus(
+        val name: String,
+        val required: Boolean,
+        val requested: Boolean = false,
+        val granted: Boolean = false,
+    ) {
+        fun toReportLine(): String {
+            val req = if (requested) "requested" else "not requested"
+            val grant = if (granted) "granted" else "denied"
+            val critical = if (required) "required" else "optional"
+            return " - $name: $grant ($req, $critical)"
         }
     }
 
