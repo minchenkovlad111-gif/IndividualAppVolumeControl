@@ -19,6 +19,23 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordLastRouting(
+        attempted: Int,
+        applied: Int,
+        missing: Int,
+        failed: Int,
+        details: String,
+    ) {
+        prefs.edit()
+            .putInt(KEY_LAST_ROUTE_ATTEMPTED, attempted)
+            .putInt(KEY_LAST_ROUTE_APPLIED, applied)
+            .putInt(KEY_LAST_ROUTE_MISSING, missing)
+            .putInt(KEY_LAST_ROUTE_FAILED, failed)
+            .putString(KEY_LAST_ROUTE_DETAILS, details)
+            .putLong(KEY_LAST_ROUTE_TIME, System.currentTimeMillis())
+            .apply()
+    }
+
     fun recordLastActive(count: Int) {
         prefs.edit()
             .putInt(KEY_LAST_ACTIVE_COUNT, count)
@@ -132,6 +149,12 @@ class DiagnosticsStore(context: Context) {
             lastErrorTime = prefs.getLong(KEY_LAST_ERROR_TIME, 0L),
             lastApplyCount = prefs.getInt(KEY_LAST_APPLY_COUNT, 0),
             lastApplyTime = prefs.getLong(KEY_LAST_APPLY_TIME, 0L),
+            lastRouteAttempted = prefs.getInt(KEY_LAST_ROUTE_ATTEMPTED, 0),
+            lastRouteApplied = prefs.getInt(KEY_LAST_ROUTE_APPLIED, 0),
+            lastRouteMissing = prefs.getInt(KEY_LAST_ROUTE_MISSING, 0),
+            lastRouteFailed = prefs.getInt(KEY_LAST_ROUTE_FAILED, 0),
+            lastRouteDetails = prefs.getString(KEY_LAST_ROUTE_DETAILS, null),
+            lastRouteTime = prefs.getLong(KEY_LAST_ROUTE_TIME, 0L),
             lastActiveCount = prefs.getInt(KEY_LAST_ACTIVE_COUNT, 0),
             lastActiveTime = prefs.getLong(KEY_LAST_ACTIVE_TIME, 0L),
             lastDumpCount = prefs.getInt(KEY_LAST_DUMP_COUNT, 0),
@@ -167,6 +190,12 @@ class DiagnosticsStore(context: Context) {
         val lastErrorTime: Long,
         val lastApplyCount: Int,
         val lastApplyTime: Long,
+        val lastRouteAttempted: Int,
+        val lastRouteApplied: Int,
+        val lastRouteMissing: Int,
+        val lastRouteFailed: Int,
+        val lastRouteDetails: String?,
+        val lastRouteTime: Long,
         val lastActiveCount: Int,
         val lastActiveTime: Long,
         val lastDumpCount: Int,
@@ -202,6 +231,12 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_ERROR_TIME = "last_error_time"
         private const val KEY_LAST_APPLY_COUNT = "last_apply_count"
         private const val KEY_LAST_APPLY_TIME = "last_apply_time"
+        private const val KEY_LAST_ROUTE_ATTEMPTED = "last_route_attempted"
+        private const val KEY_LAST_ROUTE_APPLIED = "last_route_applied"
+        private const val KEY_LAST_ROUTE_MISSING = "last_route_missing"
+        private const val KEY_LAST_ROUTE_FAILED = "last_route_failed"
+        private const val KEY_LAST_ROUTE_DETAILS = "last_route_details"
+        private const val KEY_LAST_ROUTE_TIME = "last_route_time"
         private const val KEY_LAST_ACTIVE_COUNT = "last_active_count"
         private const val KEY_LAST_ACTIVE_TIME = "last_active_time"
         private const val KEY_LAST_DUMP_COUNT = "last_dump_count"

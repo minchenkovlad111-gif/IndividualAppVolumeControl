@@ -67,6 +67,11 @@ class PlaybackControllerService : Service() {
     private fun applyVolumes(configs: List<AudioPlaybackConfiguration>) {
         diagnosticsStore.recordLastActive(configs.size)
         var appliedCount = 0
+        var routeAttempted = 0
+        var routeApplied = 0
+        var routeMissing = 0
+        var routeFailed = 0
+        val routeDetails = mutableListOf<String>()
         val activeKeys = mutableSetOf<String>()
         val activeEntries = mutableSetOf<String>()
         for (config in configs) {
@@ -91,6 +96,7 @@ class PlaybackControllerService : Service() {
             }
 
             if (outputDevice != null) {
+                routeAttempted += 1
                 val deviceInfo = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
                     .firstOrNull { info ->
                         info.type == outputDevice.type &&
@@ -99,15 +105,31 @@ class PlaybackControllerService : Service() {
                 if (deviceInfo != null) {
                     val routed = PlaybackUtils.applyPreferredDeviceToPlayer(config, deviceInfo)
                     if (!routed) {
+                        routeFailed += 1
+                        routeDetails.add("${volumeKey.storageKey()}=failed")
                         Log.w(TAG, "Failed to apply preferred output device for $packageName")
+                    } else {
+                        routeApplied += 1
+                        routeDetails.add("${volumeKey.storageKey()}=ok")
                     }
                 } else {
+                    routeMissing += 1
+                    routeDetails.add("${volumeKey.storageKey()}=missing")
                     Log.w(TAG, "Preferred output device not found for $packageName")
                 }
             }
         }
         lastApplied.keys.retainAll(activeKeys)
         diagnosticsStore.recordLastApply(appliedCount)
+        if (routeAttempted > 0) {
+            diagnosticsStore.recordLastRouting(
+                attempted = routeAttempted,
+                applied = routeApplied,
+                missing = routeMissing,
+                failed = routeFailed,
+                details = routeDetails.joinToString(",")
+            )
+        }
         updateNotification(activeEntries.size)
     }
 

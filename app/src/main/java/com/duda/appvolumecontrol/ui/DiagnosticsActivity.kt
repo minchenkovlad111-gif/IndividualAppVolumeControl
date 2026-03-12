@@ -167,6 +167,7 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         val lastErrorTime = formatTime(snapshot.lastErrorTime, dateFormat)
         val lastApplyTime = formatTime(snapshot.lastApplyTime, dateFormat)
+        val lastRouteTime = formatTime(snapshot.lastRouteTime, dateFormat)
         val lastActiveTime = formatTime(snapshot.lastActiveTime, dateFormat)
         val lastDumpTime = formatTime(snapshot.lastDumpTime, dateFormat)
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
@@ -241,6 +242,11 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last error time: $lastErrorTime",
             "Last apply count: ${snapshot.lastApplyCount}",
             "Last apply time: $lastApplyTime",
+            "Last routing time: $lastRouteTime",
+            "Last routing attempted/applied/missing/failed: " +
+                "${snapshot.lastRouteAttempted}/${snapshot.lastRouteApplied}/" +
+                "${snapshot.lastRouteMissing}/${snapshot.lastRouteFailed}",
+            "Last routing details: ${snapshot.lastRouteDetails ?: "-"}",
             "Last active count: ${snapshot.lastActiveCount}",
             "Last active time: $lastActiveTime",
             "Last dump count: ${snapshot.lastDumpCount}",
