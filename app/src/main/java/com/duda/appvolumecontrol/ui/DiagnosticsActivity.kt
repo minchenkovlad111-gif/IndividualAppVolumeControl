@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -22,6 +23,7 @@ import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.service.PlaybackControllerService
+import com.duda.appvolumecontrol.core.ModuleInstaller
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,6 +35,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     private var lastCompatibilityRow: String = ""
     private var lastBundle: String = ""
     private lateinit var volumeStore: VolumeStore
+    private lateinit var bluetoothPermissionButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +79,11 @@ class DiagnosticsActivity : AppCompatActivity() {
                 Toast.makeText(this@DiagnosticsActivity, "Hidden API attempt recorded", Toast.LENGTH_SHORT).show()
                 refresh()
             }
+        }
+
+        bluetoothPermissionButton = Button(this).apply {
+            text = "Grant Bluetooth permission"
+            setOnClickListener { requestBluetoothPermission() }
         }
 
         val copyButton = Button(this).apply {
@@ -142,6 +150,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(refreshButton)
         root.addView(selfTestButton)
         root.addView(hiddenApiButton)
+        root.addView(bluetoothPermissionButton)
         root.addView(copyButton)
         root.addView(copyCompatibilityButton)
         root.addView(copyBundleButton)
@@ -173,6 +182,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
         val lastImportTime = formatTime(snapshot.lastImportTime, dateFormat)
         val lastExportTime = formatTime(snapshot.lastExportTime, dateFormat)
+        val callStateTime = formatTime(snapshot.callStateTime, dateFormat)
         val overlayWatchStartTime = formatTime(snapshot.overlayWatchStartTime, dateFormat)
         val overlayWatchStopTime = formatTime(snapshot.overlayWatchStopTime, dateFormat)
         val overlayObserverTime = formatTime(snapshot.overlayObserverTime, dateFormat)
@@ -200,6 +210,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
         val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
+        val hasBluetoothConnect = if (android.os.Build.VERSION.SDK_INT >= 31) {
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        updateBluetoothButton(hasBluetoothConnect)
         val hasModifyRouting = checkSelfPermission(PERMISSION_MODIFY_AUDIO_ROUTING) ==
             PackageManager.PERMISSION_GRANTED
         val hasQueryAllPackages = checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES) ==
@@ -227,6 +243,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val readyForControl = isPrivApp && hasModifyAudio &&
             (snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1)
         val readyStatus = if (readyForControl) "yes" else "no"
+        val bundledModuleStatus = readBundledModuleStatus()
 
         val lines = listOf(
             "SDK: ${android.os.Build.VERSION.SDK_INT}",
@@ -234,6 +251,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "App package: $packageName",
             "App version: $versionName ($versionCode)",
             "Target SDK: $targetSdk",
+            "Bundled module: $bundledModuleStatus",
             "Ready to control volume: $readyStatus",
             "System app: $isSystemApp",
             "Privileged app: $isPrivApp",
@@ -269,6 +287,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",
             "Last export time: $lastExportTime",
+            "Call state: ${snapshot.callState ?: "-"}",
+            "Call state time: $callStateTime",
             "Hidden API VMRuntime ok: ${formatTriState(snapshot.hiddenApiVmRuntimeOk)}",
             "Hidden API policy ok: ${formatTriState(snapshot.hiddenApiPolicyOk)}",
             "Hidden API VMRuntime error: ${snapshot.hiddenApiVmRuntimeError ?: "-"}",
@@ -323,6 +343,85 @@ class DiagnosticsActivity : AppCompatActivity() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
         Toast.makeText(this, "Report copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateBluetoothButton(hasBluetoothConnect: Boolean) {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            bluetoothPermissionButton.isEnabled = false
+            bluetoothPermissionButton.text = "Bluetooth permission n/a"
+            return
+        }
+        bluetoothPermissionButton.isEnabled = !hasBluetoothConnect
+        bluetoothPermissionButton.text = if (hasBluetoothConnect) {
+            "Bluetooth permission granted"
+        } else {
+            "Grant Bluetooth permission"
+        }
+    }
+
+    private fun requestBluetoothPermission() {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            Toast.makeText(this, "Bluetooth permission not required on this Android version", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Bluetooth permission already granted", Toast.LENGTH_SHORT).show()
+            updateBluetoothButton(true)
+            return
+        }
+        requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_PERMISSION)
+    }
+
+    private fun readBundledModuleStatus(): String {
+        return runCatching {
+            assets.open(ModuleInstaller.MODULE_NAME).use { stream ->
+                val bytes = stream.available()
+                if (bytes > 0) "present (${bytes} bytes)" else "present"
+            }
+        }.getOrElse { err ->
+            "missing (${err.javaClass.simpleName})"
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            Toast.makeText(
+                this,
+                if (granted) "Bluetooth permission granted" else "Bluetooth permission denied",
+                Toast.LENGTH_SHORT
+            ).show()
+            if (!granted &&
+                android.os.Build.VERSION.SDK_INT >= 31 &&
+                !shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_CONNECT)
+            ) {
+                showBluetoothSettingsDialog()
+            }
+            refresh()
+        }
+    }
+
+    private fun showBluetoothSettingsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Bluetooth permission blocked")
+            .setMessage("Enable Bluetooth permission in system settings to read codec info.")
+            .setPositiveButton("Open settings") { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
     }
 
     private fun copyCompatibilityRow() {
@@ -500,6 +599,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             PermissionStatus(Manifest.permission.POST_NOTIFICATIONS, required = false),
             PermissionStatus(Manifest.permission.BLUETOOTH, required = false),
             PermissionStatus(Manifest.permission.BLUETOOTH_CONNECT, required = false),
+            PermissionStatus(Manifest.permission.READ_PHONE_STATE, required = false),
         )
         return all.map { status ->
             val requestedFlag = requested.contains(status.name)
@@ -531,5 +631,6 @@ class DiagnosticsActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSION_MODIFY_AUDIO_ROUTING = "android.permission.MODIFY_AUDIO_ROUTING"
         private const val PERMISSION_INTERACT_ACROSS_USERS = "android.permission.INTERACT_ACROSS_USERS"
+        private const val REQUEST_BLUETOOTH_PERMISSION = 1001
     }
 }

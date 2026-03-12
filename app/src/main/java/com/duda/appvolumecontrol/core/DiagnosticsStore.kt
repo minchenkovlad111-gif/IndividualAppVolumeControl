@@ -143,6 +143,13 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordCallState(state: String) {
+        prefs.edit()
+            .putString(KEY_CALL_STATE, state)
+            .putLong(KEY_CALL_STATE_TIME, System.currentTimeMillis())
+            .apply()
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
@@ -182,6 +189,8 @@ class DiagnosticsStore(context: Context) {
             lastImportTime = prefs.getLong(KEY_LAST_IMPORT_TIME, 0L),
             lastExportCount = prefs.getInt(KEY_LAST_EXPORT_COUNT, 0),
             lastExportTime = prefs.getLong(KEY_LAST_EXPORT_TIME, 0L),
+            callState = prefs.getString(KEY_CALL_STATE, null),
+            callStateTime = prefs.getLong(KEY_CALL_STATE_TIME, 0L),
         )
     }
 
@@ -223,6 +232,8 @@ class DiagnosticsStore(context: Context) {
         val lastImportTime: Long,
         val lastExportCount: Int,
         val lastExportTime: Long,
+        val callState: String?,
+        val callStateTime: Long,
     )
 
     companion object {
@@ -264,6 +275,8 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_IMPORT_TIME = "last_import_time"
         private const val KEY_LAST_EXPORT_COUNT = "last_export_count"
         private const val KEY_LAST_EXPORT_TIME = "last_export_time"
+        private const val KEY_CALL_STATE = "call_state"
+        private const val KEY_CALL_STATE_TIME = "call_state_time"
 
         const val OVERLAY_SIGNAL_OBSERVER = "observer"
         const val OVERLAY_SIGNAL_BROADCAST = "broadcast"

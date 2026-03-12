@@ -15,6 +15,7 @@ Note: Some privileged permissions are not exposed as public SDK constants; use t
 - `android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK`: Required for media playback foreground service type on Android 14+.
 - `android.permission.POST_NOTIFICATIONS`: Allow foreground service notification on Android 13+. Not privileged; granted at runtime.
 - `android.permission.BLUETOOTH`: Legacy Bluetooth permission for pre-Android 12 devices.
+- `android.permission.READ_PHONE_STATE`: Listen for call state changes to mute playback during calls.
 
 ## Privapp whitelist
 The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant signature/privileged permissions to the app when installed as a system app.
