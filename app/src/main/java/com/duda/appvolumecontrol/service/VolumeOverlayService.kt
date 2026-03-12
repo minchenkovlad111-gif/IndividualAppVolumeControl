@@ -42,6 +42,7 @@ import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import android.graphics.drawable.Drawable
 import android.widget.Toast
+import android.media.AudioDeviceInfo
 import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
 import com.duda.appvolumecontrol.ui.SeekBarTicksView
 import kotlin.math.abs
@@ -402,7 +403,7 @@ class VolumeOverlayService : Service() {
 
         val outputBadge = TextView(this).apply {
             val output = volumeStore.getOutputDevice(entry.key)
-            text = output?.name ?: "Output"
+            text = output?.let { "${outputTypeShort(it.type)} ${it.name ?: "Output"}" } ?: "Output"
             textSize = 10f
             setPadding(dpToPx(6), 0, 0, 0)
             setTextColor(Color.parseColor("#455A64"))
@@ -641,6 +642,24 @@ class VolumeOverlayService : Service() {
             packageManager.getApplicationLabel(appInfo).toString()
         } catch (_: Exception) {
             packageName
+        }
+    }
+
+    private fun outputTypeShort(type: Int): String {
+        return when (type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "BT"
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "SCO"
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wire"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wire"
+            AudioDeviceInfo.TYPE_USB_DEVICE -> "USB"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> "USB"
+            AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB"
+            AudioDeviceInfo.TYPE_HDMI -> "HDMI"
+            AudioDeviceInfo.TYPE_HDMI_ARC -> "HDMI"
+            AudioDeviceInfo.TYPE_HDMI_EARC -> "HDMI"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Spk"
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Ear"
+            else -> "Out"
         }
     }
 

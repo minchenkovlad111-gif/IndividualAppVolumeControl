@@ -50,6 +50,7 @@ import java.util.Date
 import java.util.Locale
 import android.widget.Toast
 import kotlin.math.abs
+import android.media.AudioDeviceInfo
 
 class MainActivity : AppCompatActivity() {
     private lateinit var audioManager: AudioManager
@@ -573,7 +574,7 @@ class MainActivity : AppCompatActivity() {
 
         val outputBadge = TextView(this).apply {
             val output = volumeStore.getOutputDevice(entry.key)
-            text = output?.name ?: "Output"
+            text = output?.let { "${outputTypeShort(it.type)} ${it.name ?: "Output"}" } ?: "Output"
             textSize = 11f
             setPadding(dpToPx(6), 0, dpToPx(6), 0)
             setTextColor(0xFF455A64.toInt())
@@ -897,6 +898,24 @@ class MainActivity : AppCompatActivity() {
             packageManager.getApplicationIcon(appInfo).also { iconCache[packageName] = it }
         } catch (_: Exception) {
             getDrawable(android.R.drawable.sym_def_app_icon)
+        }
+    }
+
+    private fun outputTypeShort(type: Int): String {
+        return when (type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "BT"
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "SCO"
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wire"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wire"
+            AudioDeviceInfo.TYPE_USB_DEVICE -> "USB"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> "USB"
+            AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB"
+            AudioDeviceInfo.TYPE_HDMI -> "HDMI"
+            AudioDeviceInfo.TYPE_HDMI_ARC -> "HDMI"
+            AudioDeviceInfo.TYPE_HDMI_EARC -> "HDMI"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "Spk"
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Ear"
+            else -> "Out"
         }
     }
 
