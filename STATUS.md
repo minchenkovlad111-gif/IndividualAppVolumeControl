@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added edit-in-place for rule groups/rules and validation for group-id targets in the rules editor.
 - Added a basic Rules screen to manage rule groups and simple rules (conditions + set-volume action).
 - Added rules engine counts + enabled rule names to Diagnostics output.
 - Added rules engine data models (groups, conditions, actions) with JSON import/export support.

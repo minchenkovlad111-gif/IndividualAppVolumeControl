@@ -7,7 +7,7 @@
 5. Verify behavior on Android 12-15 and document compatibility.
 6. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
 7. Implement legacy flavor/module gating for API 16-25 per the documented plan.
-8. Rules editor enhancements: edit existing rules, location conditions, group validation, and better package picking.
+8. Rules editor enhancements: location conditions, better package picking, and multi-condition validation.
 9. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
 10. Audio routing between apps (virtual output sources and sinks).
 11. Network audio routing (send/receive per-app audio streams over LAN).

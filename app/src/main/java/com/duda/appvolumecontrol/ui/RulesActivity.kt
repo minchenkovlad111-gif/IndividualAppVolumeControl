@@ -135,6 +135,10 @@ class RulesActivity : AppCompatActivity() {
             text = group.name
             textSize = 15f
         }
+        val idView = TextView(this).apply {
+            text = "ID: ${group.id}"
+            textSize = 12f
+        }
         val detail = TextView(this).apply {
             val summary = group.packages.joinToString(", ") { it.storageKey() }
             text = "${group.packages.size} packages: ${if (summary.isBlank()) "-" else summary}"
@@ -144,12 +148,18 @@ class RulesActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.END
         }
+        val editButton = Button(this).apply {
+            text = "Edit"
+            setOnClickListener { showEditGroupDialog(group) }
+        }
         val deleteButton = Button(this).apply {
             text = "Delete"
             setOnClickListener { confirmDeleteGroup(group) }
         }
+        actions.addView(editButton)
         actions.addView(deleteButton)
         row.addView(name)
+        row.addView(idView)
         row.addView(detail)
         row.addView(actions)
         return row
@@ -191,10 +201,15 @@ class RulesActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.END
         }
+        val editButton = Button(this).apply {
+            text = "Edit"
+            setOnClickListener { showEditRuleDialog(rule) }
+        }
         val deleteButton = Button(this).apply {
             text = "Delete"
             setOnClickListener { confirmDeleteRule(rule) }
         }
+        actions.addView(editButton)
         actions.addView(deleteButton)
         row.addView(headerRow)
         row.addView(detail)
@@ -308,17 +323,67 @@ class RulesActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showEditGroupDialog(group: RuleGroup) {
+        val nameInput = EditText(this).apply {
+            hint = "Group name"
+            setText(group.name)
+        }
+        val packagesInput = EditText(this).apply {
+            hint = "Packages (comma or space separated)"
+            minLines = 3
+            setText(group.packages.joinToString(", ") { it.storageKey() })
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 0)
+            addView(nameInput)
+            addView(packagesInput)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Edit group")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                val packages = parseTargets(packagesInput.text?.toString().orEmpty())
+                if (name.isBlank()) {
+                    toast("Group name required")
+                    return@setPositiveButton
+                }
+                if (packages.isEmpty()) {
+                    toast("Add at least one package")
+                    return@setPositiveButton
+                }
+                val updatedGroup = group.copy(name = name, packages = packages)
+                val updated = volumeStore.listRuleGroups().map { existing ->
+                    if (existing.id == group.id) updatedGroup else existing
+                }
+                volumeStore.setRuleGroups(updated)
+                refresh()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun showAddRuleDialog() {
+        showRuleDialog(existing = null)
+    }
+
+    private fun showEditRuleDialog(rule: Rule) {
+        showRuleDialog(existing = rule)
+    }
+
+    private fun showRuleDialog(existing: Rule?) {
         val nameInput = EditText(this).apply {
             hint = "Rule name"
+            setText(existing?.name.orEmpty())
         }
         val priorityInput = EditText(this).apply {
             hint = "Priority (higher wins)"
-            setText("100")
+            setText(existing?.priority?.toString() ?: "100")
         }
         val enabledToggle = CheckBox(this).apply {
             text = "Enabled"
-            isChecked = true
+            isChecked = existing?.enabled ?: true
         }
         val anyActiveInput = EditText(this).apply {
             hint = "Any active packages (comma separated)"
@@ -342,7 +407,21 @@ class RulesActivity : AppCompatActivity() {
         }
         val volumeInput = EditText(this).apply {
             hint = "Volume percent (0-100)"
-            setText("100")
+            setText(existing?.actions?.firstOrNull()?.let { action ->
+                when (action) {
+                    is RuleAction.SetVolume -> ((action.volume * 100f).toInt()).toString()
+                }
+            } ?: "100")
+        }
+        val groupHint = TextView(this).apply {
+            val groups = volumeStore.listRuleGroups()
+            text = if (groups.isEmpty()) {
+                "No groups yet. Add a group first if you want group targets."
+            } else {
+                "Group IDs: " + groups.joinToString(", ") { it.id }
+            }
+            textSize = 12f
+            setPadding(0, 8, 0, 8)
         }
 
         val container = LinearLayout(this).apply {
@@ -356,12 +435,36 @@ class RulesActivity : AppCompatActivity() {
             addView(startInput)
             addView(endInput)
             addView(groupTargetInput)
+            addView(groupHint)
             addView(targetPackagesInput)
             addView(volumeInput)
         }
 
+        if (existing != null) {
+            val anyActive = existing.conditions.filterIsInstance<RuleCondition.AnyActive>().firstOrNull()
+            if (anyActive != null) {
+                anyActiveInput.setText(anyActive.targets.joinToString(", ") { it.storageKey() })
+            }
+            val timeWindow = existing.conditions.filterIsInstance<RuleCondition.TimeWindow>().firstOrNull()
+            if (timeWindow != null) {
+                daysInput.setText(timeWindow.days.joinToString(","))
+                startInput.setText(formatMinutes(timeWindow.startMinute))
+                endInput.setText(formatMinutes(timeWindow.endMinute))
+            }
+            val setVolume = existing.actions.filterIsInstance<RuleAction.SetVolume>().firstOrNull()
+            if (setVolume != null) {
+                val groupTarget = setVolume.targets.filterIsInstance<RuleTargetRef.Group>().firstOrNull()
+                val packageTargets = setVolume.targets.filterIsInstance<RuleTargetRef.Package>().map { it.target }
+                if (groupTarget != null) {
+                    groupTargetInput.setText(groupTarget.groupId)
+                } else if (packageTargets.isNotEmpty()) {
+                    targetPackagesInput.setText(packageTargets.joinToString(", ") { it.storageKey() })
+                }
+            }
+        }
+
         AlertDialog.Builder(this)
-            .setTitle("Add rule")
+            .setTitle(if (existing == null) "Add rule" else "Edit rule")
             .setView(container)
             .setPositiveButton("Save") { _, _ ->
                 val name = nameInput.text?.toString()?.trim().orEmpty()
@@ -397,6 +500,11 @@ class RulesActivity : AppCompatActivity() {
                 val targetRefs = mutableListOf<RuleTargetRef>()
                 val groupId = groupTargetInput.text?.toString()?.trim().orEmpty()
                 if (groupId.isNotBlank()) {
+                    val valid = volumeStore.listRuleGroups().any { it.id == groupId }
+                    if (!valid) {
+                        toast("Group id not found")
+                        return@setPositiveButton
+                    }
                     targetRefs.add(RuleTargetRef.Group(groupId))
                 } else {
                     val targets = parseTargets(targetPackagesInput.text?.toString().orEmpty())
@@ -412,14 +520,20 @@ class RulesActivity : AppCompatActivity() {
 
                 val action = RuleAction.SetVolume(targets = targetRefs, volume = volume)
                 val rule = Rule(
-                    id = "r_${System.currentTimeMillis()}",
+                    id = existing?.id ?: "r_${System.currentTimeMillis()}",
                     name = name,
                     enabled = enabled,
                     priority = priority,
                     conditions = conditions,
                     actions = listOf(action),
                 )
-                val updated = volumeStore.listRules() + rule
+                val updated = if (existing == null) {
+                    volumeStore.listRules() + rule
+                } else {
+                    volumeStore.listRules().map { stored ->
+                        if (stored.id == existing.id) rule else stored
+                    }
+                }
                 volumeStore.setRules(updated)
                 refresh()
             }
