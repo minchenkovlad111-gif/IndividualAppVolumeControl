@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added multi-condition rule editing (any/all active, time window validation, and location ids).
 - Added edit-in-place for rule groups/rules and validation for group-id targets in the rules editor.
 - Added a basic Rules screen to manage rule groups and simple rules (conditions + set-volume action).
 - Added rules engine counts + enabled rule names to Diagnostics output.

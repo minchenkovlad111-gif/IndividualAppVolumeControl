@@ -389,6 +389,10 @@ class RulesActivity : AppCompatActivity() {
             hint = "Any active packages (comma separated)"
             minLines = 2
         }
+        val allActiveInput = EditText(this).apply {
+            hint = "All active packages (comma separated)"
+            minLines = 2
+        }
         val daysInput = EditText(this).apply {
             hint = "Time days (1-7, optional)"
         }
@@ -397,6 +401,10 @@ class RulesActivity : AppCompatActivity() {
         }
         val endInput = EditText(this).apply {
             hint = "End time (HH:MM, optional)"
+        }
+        val locationInput = EditText(this).apply {
+            hint = "Location ids (comma separated, stored only)"
+            minLines = 2
         }
         val groupTargetInput = EditText(this).apply {
             hint = "Target group id (optional)"
@@ -431,9 +439,11 @@ class RulesActivity : AppCompatActivity() {
             addView(priorityInput)
             addView(enabledToggle)
             addView(anyActiveInput)
+            addView(allActiveInput)
             addView(daysInput)
             addView(startInput)
             addView(endInput)
+            addView(locationInput)
             addView(groupTargetInput)
             addView(groupHint)
             addView(targetPackagesInput)
@@ -445,11 +455,19 @@ class RulesActivity : AppCompatActivity() {
             if (anyActive != null) {
                 anyActiveInput.setText(anyActive.targets.joinToString(", ") { it.storageKey() })
             }
+            val allActive = existing.conditions.filterIsInstance<RuleCondition.AllActive>().firstOrNull()
+            if (allActive != null) {
+                allActiveInput.setText(allActive.targets.joinToString(", ") { it.storageKey() })
+            }
             val timeWindow = existing.conditions.filterIsInstance<RuleCondition.TimeWindow>().firstOrNull()
             if (timeWindow != null) {
                 daysInput.setText(timeWindow.days.joinToString(","))
                 startInput.setText(formatMinutes(timeWindow.startMinute))
                 endInput.setText(formatMinutes(timeWindow.endMinute))
+            }
+            val location = existing.conditions.filterIsInstance<RuleCondition.Location>().firstOrNull()
+            if (location != null) {
+                locationInput.setText(location.locationIds.joinToString(", "))
             }
             val setVolume = existing.actions.filterIsInstance<RuleAction.SetVolume>().firstOrNull()
             if (setVolume != null) {
@@ -480,13 +498,25 @@ class RulesActivity : AppCompatActivity() {
                 if (anyTargets.isNotEmpty()) {
                     conditions.add(RuleCondition.AnyActive(anyTargets))
                 }
-                val timeWindow = parseTimeWindow(
+                val allTargets = parseTargets(allActiveInput.text?.toString().orEmpty())
+                if (allTargets.isNotEmpty()) {
+                    conditions.add(RuleCondition.AllActive(allTargets))
+                }
+                val (timeWindow, timeError) = parseTimeWindow(
                     daysInput.text?.toString().orEmpty(),
                     startInput.text?.toString().orEmpty(),
                     endInput.text?.toString().orEmpty(),
                 )
+                if (timeError != null) {
+                    toast(timeError)
+                    return@setPositiveButton
+                }
                 if (timeWindow != null) {
                     conditions.add(timeWindow)
+                }
+                val locationIds = parseLocationIds(locationInput.text?.toString().orEmpty())
+                if (locationIds.isNotEmpty()) {
+                    conditions.add(RuleCondition.Location(locationIds))
                 }
 
                 if (conditions.isEmpty()) {
@@ -562,12 +592,25 @@ class RulesActivity : AppCompatActivity() {
         return targets
     }
 
-    private fun parseTimeWindow(daysRaw: String, startRaw: String, endRaw: String): RuleCondition.TimeWindow? {
-        val start = parseMinutes(startRaw)
-        val end = parseMinutes(endRaw)
-        if (start == null || end == null) return null
+    private fun parseTimeWindow(
+        daysRaw: String,
+        startRaw: String,
+        endRaw: String,
+    ): Pair<RuleCondition.TimeWindow?, String?> {
         val days = parseDays(daysRaw)
-        return RuleCondition.TimeWindow(days, start, end, null)
+        val startProvided = startRaw.trim().isNotBlank()
+        val endProvided = endRaw.trim().isNotBlank()
+        val anyProvided = days.isNotEmpty() || startProvided || endProvided
+        if (!anyProvided) return null to null
+        if (!startProvided || !endProvided) {
+            return null to "Time window needs both start and end time"
+        }
+        val start = parseMinutes(startRaw) ?: return null to "Invalid start time"
+        val end = parseMinutes(endRaw) ?: return null to "Invalid end time"
+        if (start == end) {
+            return null to "Start and end time cannot match"
+        }
+        return RuleCondition.TimeWindow(days, start, end, null) to null
     }
 
     private fun parseMinutes(input: String): Int? {
@@ -598,6 +641,18 @@ class RulesActivity : AppCompatActivity() {
             if (value in 1..7) days.add(value)
         }
         return days
+    }
+
+    private fun parseLocationIds(input: String): List<String> {
+        if (input.isBlank()) return emptyList()
+        val tokens = input.split(Regex("[\\s,]+"))
+        val ids = mutableListOf<String>()
+        for (token in tokens) {
+            val trimmed = token.trim()
+            if (trimmed.isBlank()) continue
+            ids.add(trimmed)
+        }
+        return ids
     }
 
     private fun normalizeVolume(value: Float): Float {
