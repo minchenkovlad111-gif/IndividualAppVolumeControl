@@ -238,6 +238,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val rules = volumeStore.listRules()
         val enabledRules = rules.filter { it.enabled }
         val ruleSummary = buildRuleSummary(enabledRules)
+        val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
+        val locationId = locationStore.getCurrentLocationId() ?: "-"
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = isPrivilegedApp(appInfo)
@@ -290,6 +292,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Rule groups: ${ruleGroups.size}",
             "Rules enabled/total: ${enabledRules.size}/${rules.size}",
             "Rule names: $ruleSummary",
+            "Current location id: $locationId",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",

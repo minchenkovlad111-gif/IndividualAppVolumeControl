@@ -13,6 +13,7 @@
 - Call state listener: mutes active playback during ringing/off-hook calls.
 - Foreground notification: persistent status with quick per-app +/- controls (prototype).
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets.
+- Location stub: manual location id stored in prefs and used for location rule matching.
 
 ## Data flow
 1. Audio playback changes trigger `AudioManager.AudioPlaybackCallback`.

@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added manual location id stub for location rules and surfaced it in Rules + Diagnostics.
 - Added app picker dialogs for rule/group package selection (search + multi-select).
 - Added multi-condition rule editing (any/all active, time window validation, and location ids).
 - Added edit-in-place for rule groups/rules and validation for group-id targets in the rules editor.

@@ -23,11 +23,13 @@ import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.RulesEngine
 import com.duda.appvolumecontrol.core.VolumeStore
+import com.duda.appvolumecontrol.core.LocationRuleStore
 
 class PlaybackControllerService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
@@ -46,6 +48,7 @@ class PlaybackControllerService : Service() {
     override fun onCreate() {
         super.onCreate()
         HiddenApi.tryAllowHiddenApiAccess(this)
+        RulesEngine.setLocationIdProvider { locationRuleStore.getCurrentLocationId() }
         val notification = buildNotification(-1)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(

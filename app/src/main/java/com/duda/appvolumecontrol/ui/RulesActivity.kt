@@ -27,10 +27,12 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var groupContainer: LinearLayout
     private lateinit var ruleContainer: LinearLayout
     private var installedAppsCache: List<AppEntry>? = null
+    private lateinit var locationStore: com.duda.appvolumecontrol.core.LocationRuleStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         volumeStore = VolumeStore(this)
+        locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -47,6 +49,44 @@ class RulesActivity : AppCompatActivity() {
             textSize = 13f
             setPadding(0, 8, 0, 16)
         }
+
+        val locationRow = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, 8)
+        }
+        val locationLabel = TextView(this).apply {
+            text = "Current location id"
+            textSize = 13f
+        }
+        val locationInput = EditText(this).apply {
+            hint = "home, office, etc"
+            setText(locationStore.getCurrentLocationId().orEmpty())
+        }
+        val locationButtons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val locationSave = Button(this).apply {
+            text = "Set"
+            setOnClickListener {
+                val value = locationInput.text?.toString()
+                locationStore.setCurrentLocationId(value)
+                Toast.makeText(this@RulesActivity, "Location id updated", Toast.LENGTH_SHORT).show()
+            }
+        }
+        val locationClear = Button(this).apply {
+            text = "Clear"
+            setOnClickListener {
+                locationStore.setCurrentLocationId(null)
+                locationInput.setText("")
+                Toast.makeText(this@RulesActivity, "Location id cleared", Toast.LENGTH_SHORT).show()
+            }
+        }
+        locationButtons.addView(locationSave)
+        locationButtons.addView(locationClear)
+        locationRow.addView(locationLabel)
+        locationRow.addView(locationInput)
+        locationRow.addView(locationButtons)
 
         val addGroupButton = Button(this).apply {
             text = "Add group"
@@ -80,6 +120,7 @@ class RulesActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(helper)
+        root.addView(locationRow)
         root.addView(addGroupButton)
         root.addView(addRuleButton)
         root.addView(groupTitle)

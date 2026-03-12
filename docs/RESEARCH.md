@@ -37,6 +37,10 @@
 - Keep presets import/export working for migration when a user upgrades devices.
 - Document that per-app volume is only supported on API 26+ and requires privileged install.
 
+## Location rules plan
+- Phase 1: manual location id stored in prefs and used for rule matching (developer/test mode).
+- Phase 2: integrate Android location services and/or geofencing with runtime permissions.
+
 ## Links
 - See sources referenced in the project issue description.
 - https://developer.android.com/guide/app-compatibility/restrictions-non-sdk-interfaces

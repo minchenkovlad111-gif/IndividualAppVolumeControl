@@ -6,6 +6,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 object RulesEngine {
+    @Volatile
+    private var locationIdProvider: (() -> String?)? = null
+
+    fun setLocationIdProvider(provider: (() -> String?)?) {
+        locationIdProvider = provider
+    }
+
     fun computeOverrides(
         activeKeys: Set<VolumeStore.VolumeKey>,
         groups: List<RuleGroup>,
@@ -45,6 +52,7 @@ object RulesEngine {
         now: ZonedDateTime,
     ): Boolean {
         if (conditions.isEmpty()) return false
+        val currentLocationId = locationIdProvider?.invoke()?.trim().orEmpty()
         for (condition in conditions) {
             val match = when (condition) {
                 is RuleCondition.AllActive -> {
@@ -58,7 +66,10 @@ object RulesEngine {
                     }
                 }
                 is RuleCondition.TimeWindow -> isWithinTimeWindow(condition, now)
-                is RuleCondition.Location -> false // Location rules need a provider before enabling.
+                is RuleCondition.Location -> {
+                    if (currentLocationId.isBlank()) false
+                    else condition.locationIds.any { it.equals(currentLocationId, ignoreCase = true) }
+                }
             }
             if (!match) return false
         }
