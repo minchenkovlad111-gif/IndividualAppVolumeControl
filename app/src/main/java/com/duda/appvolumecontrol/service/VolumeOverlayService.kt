@@ -37,6 +37,7 @@ import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
+import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
 import com.duda.appvolumecontrol.ui.SeekBarTicksView
 import kotlin.math.abs
@@ -381,6 +382,7 @@ class VolumeOverlayService : Service() {
                 Gravity.CENTER_VERTICAL
             )
         }
+        applyCustomMarkers(ticksView, entry.key)
 
         val slider = SeekBar(this).apply {
             max = 100
@@ -538,6 +540,34 @@ class VolumeOverlayService : Service() {
         if (volume > 0f) {
             lastNonZeroVolumes[entry.key.storageKey()] = volume
         }
+    }
+
+    private fun applyCustomMarkers(ticksView: SeekBarTicksView, key: VolumeStore.VolumeKey) {
+        val config = volumeStore.getMarkerConfig(key)
+        if (config == null) {
+            ticksView.setCustomMarkers(emptyList(), emptyList())
+            return
+        }
+        val markers = config.markers.mapNotNull { marker ->
+            val percent = marker.percent
+            if (percent < 0 || percent > 100) return@mapNotNull null
+            SeekBarTicksView.MarkerLine(
+                percent / 100f,
+                MarkerStyle.resolveMarkerColor(key.packageName, marker.color)
+            )
+        }
+        val segments = config.segments.mapNotNull { segment ->
+            if (segment.start == segment.end) return@mapNotNull null
+            val start = segment.start.coerceIn(0, 100)
+            val end = segment.end.coerceIn(0, 100)
+            val (minVal, maxVal) = if (start <= end) start to end else end to start
+            SeekBarTicksView.SegmentRect(
+                minVal / 100f,
+                maxVal / 100f,
+                MarkerStyle.resolveSegmentColor(key.packageName, segment.color)
+            )
+        }
+        ticksView.setCustomMarkers(markers, segments)
     }
 
     private fun updateMuteIcon(button: ImageButton, volume: Float) {

@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added per-app marker/segment configs with Manage Apps editor, export/import support, and slider rendering in main UI + overlay.
 - Added control readiness gating with gray-out states in main UI and overlay.
 - Added overlay auto-refresh toggle in main UI.
 - Added tick markers + snap-to-segment resistance to main UI sliders.

@@ -19,7 +19,9 @@ import android.widget.Spinner
 import android.widget.ArrayAdapter
 import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.addTextChangedListener
+import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 
@@ -353,6 +355,14 @@ class ManageAppsActivity : AppCompatActivity() {
         nameContainer.addView(nameView)
         nameContainer.addView(profileView)
 
+        val hasMarkers = volumeStore.getMarkerConfig(entry) != null
+        val markerButton = Button(this).apply {
+            text = if (hasMarkers) "Markers ✓" else "Markers"
+            setOnClickListener {
+                showMarkerDialog(entry, label)
+            }
+        }
+
         val deleteButton = Button(this).apply {
             text = "Remove"
             setOnClickListener {
@@ -365,6 +375,7 @@ class ManageAppsActivity : AppCompatActivity() {
         }
 
         row.addView(nameContainer)
+        row.addView(markerButton)
         row.addView(deleteButton)
         return row
     }
@@ -424,6 +435,132 @@ class ManageAppsActivity : AppCompatActivity() {
 
     private fun updateProfileHint() {
         profileHint.text = "Adding presets for: ${ProfileUtils.buildProfileLabel(this, selectedProfileUserId)}"
+    }
+
+    private fun showMarkerDialog(entry: VolumeStore.VolumeKey, label: String) {
+        val existing = volumeStore.getMarkerConfig(entry)
+        val existingMarker = existing?.markers?.firstOrNull()
+        val existingSegment = existing?.segments?.firstOrNull()
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 0)
+        }
+
+        val markerTitle = TextView(this).apply {
+            text = "Marker (optional)"
+            textSize = 13f
+        }
+        val markerPercentInput = EditText(this).apply {
+            hint = "Marker % (0-100)"
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(existingMarker?.percent?.toString().orEmpty())
+        }
+        val markerColorInput = EditText(this).apply {
+            hint = "Marker color (#RRGGBB)"
+            setText(existingMarker?.color.orEmpty())
+        }
+
+        val segmentTitle = TextView(this).apply {
+            text = "Segment (optional)"
+            textSize = 13f
+            setPadding(0, 12, 0, 0)
+        }
+        val segmentStartInput = EditText(this).apply {
+            hint = "Segment start %"
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(existingSegment?.start?.toString().orEmpty())
+        }
+        val segmentEndInput = EditText(this).apply {
+            hint = "Segment end %"
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(existingSegment?.end?.toString().orEmpty())
+        }
+        val segmentColorInput = EditText(this).apply {
+            hint = "Segment color (#RRGGBB)"
+            setText(existingSegment?.color.orEmpty())
+        }
+
+        container.addView(markerTitle)
+        container.addView(markerPercentInput)
+        container.addView(markerColorInput)
+        container.addView(segmentTitle)
+        container.addView(segmentStartInput)
+        container.addView(segmentEndInput)
+        container.addView(segmentColorInput)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Markers for $label")
+            .setView(container)
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Clear") { _, _ ->
+                volumeStore.clearMarkerConfig(entry)
+                refreshSavedList()
+                updateSearchResults()
+            }
+            .setPositiveButton("Save", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            saveButton.setOnClickListener {
+                val errors = mutableListOf<String>()
+                val markerPercent = parseOptionalPercent(markerPercentInput.text?.toString().orEmpty(), "Marker", errors)
+                val markerColor = parseOptionalColor(markerColorInput.text?.toString().orEmpty(), "Marker color", errors)
+                val segmentStart = parseOptionalPercent(segmentStartInput.text?.toString().orEmpty(), "Segment start", errors)
+                val segmentEnd = parseOptionalPercent(segmentEndInput.text?.toString().orEmpty(), "Segment end", errors)
+                val segmentColor = parseOptionalColor(segmentColorInput.text?.toString().orEmpty(), "Segment color", errors)
+                if (errors.isNotEmpty()) {
+                    Toast.makeText(this, errors.first(), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if ((segmentStart != null && segmentEnd == null) || (segmentStart == null && segmentEnd != null)) {
+                    Toast.makeText(this, "Segment start and end are required together", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val markers = if (markerPercent != null) {
+                    listOf(VolumeStore.MarkerConfig.Marker(markerPercent, markerColor))
+                } else {
+                    emptyList()
+                }
+                val segments = if (segmentStart != null && segmentEnd != null) {
+                    listOf(VolumeStore.MarkerConfig.Segment(segmentStart, segmentEnd, segmentColor))
+                } else {
+                    emptyList()
+                }
+                val config = VolumeStore.MarkerConfig(markers, segments)
+                if (config.isEmpty()) {
+                    volumeStore.clearMarkerConfig(entry)
+                } else {
+                    volumeStore.setMarkerConfig(entry, config)
+                }
+                refreshSavedList()
+                updateSearchResults()
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun parseOptionalPercent(input: String, label: String, errors: MutableList<String>): Int? {
+        if (input.isBlank()) return null
+        val value = input.trim().toIntOrNull()
+        if (value == null || value < 0 || value > 100) {
+            errors.add("$label must be 0-100")
+            return null
+        }
+        return value
+    }
+
+    private fun parseOptionalColor(input: String, label: String, errors: MutableList<String>): String? {
+        if (input.isBlank()) return null
+        val normalized = MarkerStyle.normalizeColorString(input)
+        if (MarkerStyle.parseColorOrNull(normalized) == null) {
+            errors.add("$label is invalid")
+            return null
+        }
+        return normalized
     }
 
     private data class AppEntry(

@@ -36,6 +36,7 @@ import androidx.core.widget.addTextChangedListener
 import android.widget.CheckBox
 import android.view.HapticFeedbackConstants
 import com.duda.appvolumecontrol.core.ActiveAppStore
+import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.ProfileUtils
@@ -658,6 +659,7 @@ class MainActivity : AppCompatActivity() {
                 Gravity.CENTER_VERTICAL
             )
         }
+        applyCustomMarkers(ticksView, entry.key)
 
         slider.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -888,6 +890,34 @@ class MainActivity : AppCompatActivity() {
         if (volume > 0f) {
             lastNonZeroVolumes[entry.key.storageKey()] = volume
         }
+    }
+
+    private fun applyCustomMarkers(ticksView: SeekBarTicksView, key: VolumeStore.VolumeKey) {
+        val config = volumeStore.getMarkerConfig(key)
+        if (config == null) {
+            ticksView.setCustomMarkers(emptyList(), emptyList())
+            return
+        }
+        val markers = config.markers.mapNotNull { marker ->
+            val percent = marker.percent
+            if (percent < 0 || percent > 100) return@mapNotNull null
+            SeekBarTicksView.MarkerLine(
+                percent / 100f,
+                MarkerStyle.resolveMarkerColor(key.packageName, marker.color)
+            )
+        }
+        val segments = config.segments.mapNotNull { segment ->
+            if (segment.start == segment.end) return@mapNotNull null
+            val start = segment.start.coerceIn(0, 100)
+            val end = segment.end.coerceIn(0, 100)
+            val (minVal, maxVal) = if (start <= end) start to end else end to start
+            SeekBarTicksView.SegmentRect(
+                minVal / 100f,
+                maxVal / 100f,
+                MarkerStyle.resolveSegmentColor(key.packageName, segment.color)
+            )
+        }
+        ticksView.setCustomMarkers(markers, segments)
     }
 
     private fun snapToMarker(progress: Int, delta: Int, timeDelta: Long): Int {

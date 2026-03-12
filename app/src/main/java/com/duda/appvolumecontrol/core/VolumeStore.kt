@@ -3,6 +3,7 @@ package com.duda.appvolumecontrol.core
 import android.content.Context
 import kotlin.math.max
 import kotlin.math.min
+import org.json.JSONArray
 import org.json.JSONObject
 
 class VolumeStore(context: Context) {
@@ -55,14 +56,41 @@ class VolumeStore(context: Context) {
     }
 
     fun removePreset(packageName: String, userId: Int? = null) {
-        prefs.edit().remove(buildKey(packageName, userId)).apply()
+        val key = VolumeKey(packageName, userId)
+        prefs.edit()
+            .remove(buildKey(packageName, userId))
+            .remove(markerPrefsKey(key))
+            .apply()
+    }
+
+    fun getMarkerConfig(key: VolumeKey): MarkerConfig? {
+        val raw = prefs.getString(markerPrefsKey(key), null)
+        val parsed = parseMarkerConfig(raw)
+        if (parsed != null) return parsed
+        if (key.userId != null) {
+            val fallback = prefs.getString(markerPrefsKey(VolumeKey(key.packageName, null)), null)
+            return parseMarkerConfig(fallback)
+        }
+        return null
+    }
+
+    fun setMarkerConfig(key: VolumeKey, config: MarkerConfig) {
+        if (config.isEmpty()) {
+            clearMarkerConfig(key)
+            return
+        }
+        prefs.edit().putString(markerPrefsKey(key), config.toJson().toString()).apply()
+    }
+
+    fun clearMarkerConfig(key: VolumeKey) {
+        prefs.edit().remove(markerPrefsKey(key)).apply()
     }
 
     fun exportJson(): String {
         val obj = JSONObject()
         obj.put("_version", 1)
         obj.put("_exported_at", System.currentTimeMillis())
-        obj.put("_preset_count", prefs.all.size)
+        obj.put("_preset_count", countPresets())
         val keys = prefs.all.keys
             .filterNot { it.startsWith("_") }
             .sorted()
@@ -70,6 +98,21 @@ class VolumeStore(context: Context) {
             val value = prefs.all[key]
             if (value is Float && !value.isNaN()) {
                 obj.put(key, value)
+            }
+        }
+        val markerEntries = prefs.all.keys
+            .filter { it.startsWith(MARKER_PREFIX) }
+            .sorted()
+        if (markerEntries.isNotEmpty()) {
+            val markerObj = JSONObject()
+            for (markerKey in markerEntries) {
+                val storedKey = markerKey.removePrefix(MARKER_PREFIX)
+                val raw = prefs.getString(markerKey, null) ?: continue
+                val config = parseMarkerConfig(raw) ?: continue
+                markerObj.put(storedKey, config.toJson())
+            }
+            if (markerObj.length() > 0) {
+                obj.put("_marker_configs", markerObj)
             }
         }
         return obj.toString(2)
@@ -88,6 +131,17 @@ class VolumeStore(context: Context) {
                 count += 1
             }
         }
+        val markerObj = obj.optJSONObject("_marker_configs")
+        if (markerObj != null) {
+            val keys = markerObj.keys()
+            while (keys.hasNext()) {
+                val storageKey = keys.next()
+                if (storageKey.isBlank()) continue
+                val raw = markerObj.optJSONObject(storageKey) ?: continue
+                val config = parseMarkerConfig(raw.toString()) ?: continue
+                editor.putString(MARKER_PREFIX + storageKey, config.toJson().toString())
+            }
+        }
         editor.apply()
         return count
     }
@@ -99,7 +153,54 @@ class VolumeStore(context: Context) {
         fun storageKey(): String = buildKey(packageName, userId)
     }
 
+    data class MarkerConfig(
+        val markers: List<Marker>,
+        val segments: List<Segment>,
+    ) {
+        data class Marker(
+            val percent: Int,
+            val color: String?,
+        )
+
+        data class Segment(
+            val start: Int,
+            val end: Int,
+            val color: String?,
+        )
+
+        fun isEmpty(): Boolean = markers.isEmpty() && segments.isEmpty()
+
+        fun toJson(): JSONObject {
+            val obj = JSONObject()
+            obj.put("version", 1)
+            val markerArr = JSONArray()
+            for (marker in markers) {
+                val markerObj = JSONObject()
+                markerObj.put("percent", marker.percent)
+                if (!marker.color.isNullOrBlank()) {
+                    markerObj.put("color", marker.color)
+                }
+                markerArr.put(markerObj)
+            }
+            val segmentArr = JSONArray()
+            for (segment in segments) {
+                val segObj = JSONObject()
+                segObj.put("start", segment.start)
+                segObj.put("end", segment.end)
+                if (!segment.color.isNullOrBlank()) {
+                    segObj.put("color", segment.color)
+                }
+                segmentArr.put(segObj)
+            }
+            obj.put("markers", markerArr)
+            obj.put("segments", segmentArr)
+            return obj
+        }
+    }
+
     companion object {
+        private const val MARKER_PREFIX = "_markers:"
+
         fun buildKey(packageName: String, userId: Int?): String {
             return if (userId == null) packageName else "u${userId}:${packageName}"
         }
@@ -115,6 +216,42 @@ class VolumeStore(context: Context) {
             }
             if (key.isBlank()) return null
             return VolumeKey(key, null)
+        }
+
+        private fun markerPrefsKey(key: VolumeKey): String {
+            return MARKER_PREFIX + key.storageKey()
+        }
+
+        private fun parseMarkerConfig(raw: String?): MarkerConfig? {
+            if (raw.isNullOrBlank()) return null
+            val obj = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+            val markers = mutableListOf<MarkerConfig.Marker>()
+            val markerArr = obj.optJSONArray("markers")
+            if (markerArr != null) {
+                for (i in 0 until markerArr.length()) {
+                    val markerObj = markerArr.optJSONObject(i) ?: continue
+                    val percent = markerObj.optInt("percent", -1)
+                    if (percent < 0 || percent > 100) continue
+                    val color = markerObj.optString("color").takeIf { it.isNotBlank() }
+                    markers.add(MarkerConfig.Marker(percent, color))
+                }
+            }
+            val segments = mutableListOf<MarkerConfig.Segment>()
+            val segmentArr = obj.optJSONArray("segments")
+            if (segmentArr != null) {
+                for (i in 0 until segmentArr.length()) {
+                    val segmentObj = segmentArr.optJSONObject(i) ?: continue
+                    val start = segmentObj.optInt("start", -1)
+                    val end = segmentObj.optInt("end", -1)
+                    if (start < 0 || start > 100 || end < 0 || end > 100) continue
+                    if (start == end) continue
+                    val color = segmentObj.optString("color").takeIf { it.isNotBlank() }
+                    val (minVal, maxVal) = if (start <= end) start to end else end to start
+                    segments.add(MarkerConfig.Segment(minVal, maxVal, color))
+                }
+            }
+            if (markers.isEmpty() && segments.isEmpty()) return null
+            return MarkerConfig(markers, segments)
         }
     }
 }
