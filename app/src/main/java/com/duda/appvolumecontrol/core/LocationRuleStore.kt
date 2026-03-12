@@ -62,6 +62,14 @@ class LocationRuleStore(context: Context) {
         return fine || coarse
     }
 
+    fun isBackgroundUpdatesEnabled(): Boolean {
+        return prefs.getBoolean(KEY_BACKGROUND_ENABLED, false)
+    }
+
+    fun setBackgroundUpdatesEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_BACKGROUND_ENABLED, enabled).apply()
+    }
+
     data class LocationRule(
         val id: String,
         val latitude: Double,
@@ -96,5 +104,6 @@ class LocationRuleStore(context: Context) {
         private const val KEY_CURRENT_ID = "current_location_id"
         private const val KEY_LAST_FIX_TIME = "last_fix_time"
         private const val KEY_LOCATIONS = "locations"
+        private const val KEY_BACKGROUND_ENABLED = "background_updates_enabled"
     }
 }

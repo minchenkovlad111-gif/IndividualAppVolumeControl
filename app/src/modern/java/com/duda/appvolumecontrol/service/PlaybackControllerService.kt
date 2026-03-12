@@ -79,6 +79,7 @@ class PlaybackControllerService : Service() {
             ACTION_REAPPLY -> safeApplyVolumes(audioManager.activePlaybackConfigurations)
             ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
             ACTION_LOCATION_REFRESH -> locationRuleManager.start()
+            ACTION_LOCATION_SYNC -> locationRuleManager.syncBackgroundUpdates()
         }
         return START_STICKY
     }
@@ -434,6 +435,7 @@ class PlaybackControllerService : Service() {
         const val ACTION_REAPPLY = "com.duda.appvolumecontrol.action.REAPPLY"
         const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
         const val ACTION_LOCATION_REFRESH = "com.duda.appvolumecontrol.action.LOCATION_REFRESH"
+        const val ACTION_LOCATION_SYNC = "com.duda.appvolumecontrol.action.LOCATION_SYNC"
         private const val NOTIF_MAX_ROWS = 3
         private const val NOTIF_VOLUME_STEP = 0.05f
 
@@ -452,6 +454,12 @@ class PlaybackControllerService : Service() {
         fun requestLocationRefresh(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
             intent.action = ACTION_LOCATION_REFRESH
+            context.startForegroundService(intent)
+        }
+
+        fun requestLocationSync(context: Context) {
+            val intent = Intent(context, PlaybackControllerService::class.java)
+            intent.action = ACTION_LOCATION_SYNC
             context.startForegroundService(intent)
         }
     }

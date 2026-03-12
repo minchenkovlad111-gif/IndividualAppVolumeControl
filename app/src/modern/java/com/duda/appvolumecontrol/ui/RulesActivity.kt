@@ -33,6 +33,7 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var locationStore: com.duda.appvolumecontrol.core.LocationRuleStore
     private lateinit var locationContainer: LinearLayout
     private lateinit var locationInput: EditText
+    private lateinit var locationBackgroundToggle: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,12 +96,25 @@ class RulesActivity : AppCompatActivity() {
             text = "Grant location permission"
             setOnClickListener { requestLocationPermission() }
         }
+        locationBackgroundToggle = CheckBox(this).apply {
+            text = "Enable background updates (Android 10+)"
+            isChecked = locationStore.isBackgroundUpdatesEnabled()
+            setOnCheckedChangeListener { _, checked ->
+                locationStore.setBackgroundUpdatesEnabled(checked)
+                if (checked) {
+                    requestBackgroundLocationPermission()
+                } else {
+                    com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
+                }
+            }
+        }
         locationButtons.addView(locationSave)
         locationButtons.addView(locationClear)
         locationButtons.addView(locationPermission)
         locationRow.addView(locationLabel)
         locationRow.addView(locationInput)
         locationRow.addView(locationHint)
+        locationRow.addView(locationBackgroundToggle)
         locationRow.addView(locationButtons)
 
         val locationTitle = TextView(this).apply {
@@ -926,6 +940,25 @@ class RulesActivity : AppCompatActivity() {
         )
     }
 
+    private fun requestBackgroundLocationPermission() {
+        if (android.os.Build.VERSION.SDK_INT < 29) {
+            com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+            return
+        }
+        val granted = checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            Toast.makeText(this, "Background location permission already granted", Toast.LENGTH_SHORT).show()
+            com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+            return
+        }
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+            REQUEST_BACKGROUND_LOCATION_PERMISSION,
+        )
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -941,6 +974,19 @@ class RulesActivity : AppCompatActivity() {
             ).show()
             if (granted) {
                 com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationRefresh(this)
+            }
+        } else if (requestCode == REQUEST_BACKGROUND_LOCATION_PERMISSION) {
+            val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
+            Toast.makeText(
+                this,
+                if (granted) "Background location permission granted" else "Background location permission denied",
+                Toast.LENGTH_SHORT
+            ).show()
+            if (granted) {
+                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+            } else {
+                locationStore.setBackgroundUpdatesEnabled(false)
+                locationBackgroundToggle.isChecked = false
             }
         }
     }
@@ -1118,5 +1164,6 @@ class RulesActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_LOCATION_PERMISSION = 2101
+        private const val REQUEST_BACKGROUND_LOCATION_PERMISSION = 2102
     }
 }

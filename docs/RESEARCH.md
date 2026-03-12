@@ -40,8 +40,8 @@
 
 ## Location rules plan
 - Phase 1: store locations (lat/lon/radius) and request live updates with runtime permissions.
-- Phase 2: add geofencing and background handling as needed.
-- Note: current implementation uses LocationManager GPS/Network updates while the foreground service is running.
+- Phase 2: add geofencing as needed.
+- Note: current implementation uses LocationManager GPS/Network updates with an optional background toggle that relies on ACCESS_BACKGROUND_LOCATION.
 
 ## Links
 - See sources referenced in the project issue description.

@@ -36,6 +36,9 @@
         <receiver
             android:name=".service.VolumeCommandReceiver"
             tools:node="remove" />
+        <receiver
+            android:name=".service.LocationUpdateReceiver"
+            tools:node="remove" />
 
         <activity
             android:name=".ui.LegacyMainActivity"

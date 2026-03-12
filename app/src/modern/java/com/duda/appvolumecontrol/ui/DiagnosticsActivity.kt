@@ -242,6 +242,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
         val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat)
+        val backgroundLocationEnabled = if (locationStore.isBackgroundUpdatesEnabled()) "enabled" else "disabled"
         val appInfo = applicationInfo
         val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
         val isPrivApp = isPrivilegedApp(appInfo)
@@ -297,6 +298,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",
+            "Background location updates: $backgroundLocationEnabled",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",
@@ -625,11 +627,16 @@ class DiagnosticsActivity : AppCompatActivity() {
             PermissionStatus(Manifest.permission.READ_PHONE_STATE, required = false),
             PermissionStatus(Manifest.permission.ACCESS_FINE_LOCATION, required = false),
             PermissionStatus(Manifest.permission.ACCESS_COARSE_LOCATION, required = false),
+            PermissionStatus(Manifest.permission.ACCESS_BACKGROUND_LOCATION, required = false),
         )
         return all.map { status ->
             val requestedFlag = requested.contains(status.name)
             val grantedFlag = if (status.name == Manifest.permission.POST_NOTIFICATIONS &&
                 android.os.Build.VERSION.SDK_INT < 33
+            ) {
+                true
+            } else if (status.name == Manifest.permission.ACCESS_BACKGROUND_LOCATION &&
+                android.os.Build.VERSION.SDK_INT < 29
             ) {
                 true
             } else {
