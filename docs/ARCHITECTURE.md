@@ -6,7 +6,7 @@
 - Diagnostics UI: shows last apply stats, errors, and hidden API policy values.
 - Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
-- Overlay service: shows a floating per-app slider panel on volume-button changes (broadcast + content observer + polling fallback).
+- Overlay service: shows a floating per-app slider panel on volume-button changes (multiple stream settings observers + broadcast actions + polling fallback).
 - Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, optional auto-refresh, and optional auto-hide.
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.

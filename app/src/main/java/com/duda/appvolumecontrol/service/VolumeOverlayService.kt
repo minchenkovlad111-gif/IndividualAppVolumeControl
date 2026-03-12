@@ -20,6 +20,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.net.Uri
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.MotionEvent
@@ -106,8 +107,15 @@ class VolumeOverlayService : Service() {
 
     private val volumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action != VOLUME_CHANGED_ACTION) return
-            handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST)
+            val action = intent.action ?: return
+            if (action != VOLUME_CHANGED_ACTION &&
+                action != STREAM_MUTE_CHANGED_ACTION &&
+                action != MASTER_MUTE_CHANGED_ACTION &&
+                action != RINGER_MODE_CHANGED_ACTION
+            ) {
+                return
+            }
+            handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST, force = true)
         }
     }
 
@@ -148,10 +156,14 @@ class VolumeOverlayService : Service() {
             return
         }
         overlayPrefs.setOverlayEnabled(true)
-        val uri = Settings.System.getUriFor(VOLUME_MUSIC_SETTING)
-        contentResolver.registerContentObserver(uri, false, volumeObserver)
+        registerVolumeObservers()
         lastVolumeSignature = currentVolumeSignature()
-        val filter = IntentFilter(VOLUME_CHANGED_ACTION)
+        val filter = IntentFilter().apply {
+            addAction(VOLUME_CHANGED_ACTION)
+            addAction(STREAM_MUTE_CHANGED_ACTION)
+            addAction(MASTER_MUTE_CHANGED_ACTION)
+            addAction(RINGER_MODE_CHANGED_ACTION)
+        }
         registerReceiver(volumeReceiver, filter)
         isWatching = true
         diagnosticsStore.recordOverlayWatchStart()
@@ -173,12 +185,12 @@ class VolumeOverlayService : Service() {
     }
 
     private fun onVolumeChanged() {
-        handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER)
+        handleVolumeSignal(DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER, force = true)
     }
 
-    private fun handleVolumeSignal(reason: String) {
+    private fun handleVolumeSignal(reason: String, force: Boolean = false) {
         val signature = currentVolumeSignature()
-        if (signature == lastVolumeSignature) return
+        if (!force && signature == lastVolumeSignature) return
         lastVolumeSignature = signature
         diagnosticsStore.recordOverlaySignal(reason)
         lastShowReason = reason
@@ -581,12 +593,12 @@ class VolumeOverlayService : Service() {
     }
 
     private fun currentVolumeSignature(): String {
-        val music = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        val ring = audioManager.getStreamVolume(AudioManager.STREAM_RING)
-        val alarm = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
-        val notification = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
-        val system = audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM)
-        return "$music|$ring|$alarm|$notification|$system"
+        val parts = mutableListOf<Int>()
+        STREAMS_TO_WATCH.forEach { stream ->
+            val volume = runCatching { audioManager.getStreamVolume(stream) }.getOrDefault(0)
+            parts.add(volume)
+        }
+        return parts.joinToString("|")
     }
 
     private fun snapToMarker(progress: Int, delta: Int, timeDelta: Long): Int {
@@ -759,11 +771,86 @@ class VolumeOverlayService : Service() {
         private const val AUTO_HIDE_MS = 3500L
         private const val AUTO_REFRESH_MS = 1000L
         private const val VOLUME_MUSIC_SETTING = "volume_music"
+        private const val VOLUME_RING_SETTING = "volume_ring"
+        private const val VOLUME_ALARM_SETTING = "volume_alarm"
+        private const val VOLUME_NOTIFICATION_SETTING = "volume_notification"
+        private const val VOLUME_SYSTEM_SETTING = "volume_system"
+        private const val VOLUME_VOICE_SETTING = "volume_voice"
+        private const val VOLUME_DTMF_SETTING = "volume_dtmf"
+        private const val VOLUME_BLUETOOTH_SCO_SETTING = "volume_bluetooth_sco"
+        private const val VOLUME_ACCESSIBILITY_SETTING = "volume_accessibility"
+        private const val VOLUME_ASSISTANT_SETTING = "volume_assistant"
         private const val POLL_INTERVAL_MS = 500L
         private const val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
+        private const val STREAM_MUTE_CHANGED_ACTION = "android.media.STREAM_MUTE_CHANGED_ACTION"
+        private const val MASTER_MUTE_CHANGED_ACTION = "android.media.MASTER_MUTE_CHANGED_ACTION"
+        private const val RINGER_MODE_CHANGED_ACTION = "android.media.RINGER_MODE_CHANGED"
         private const val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
         private const val SNAP_THRESHOLD = 2
         private const val SNAP_DELTA_MAX = 2
         private const val SNAP_TIME_MIN_MS = 50L
+
+        private val BASE_STREAMS = intArrayOf(
+            AudioManager.STREAM_MUSIC,
+            AudioManager.STREAM_RING,
+            AudioManager.STREAM_ALARM,
+            AudioManager.STREAM_NOTIFICATION,
+            AudioManager.STREAM_SYSTEM,
+            AudioManager.STREAM_VOICE_CALL,
+            AudioManager.STREAM_DTMF,
+            AudioManager.STREAM_ACCESSIBILITY,
+        )
+
+        private val OPTIONAL_STREAMS = listOfNotNull(
+            resolveOptionalStream("STREAM_BLUETOOTH_SCO"),
+            resolveOptionalStream("STREAM_ASSISTANT"),
+        )
+
+        private val STREAMS_TO_WATCH = buildList {
+            addAll(BASE_STREAMS.toList())
+            addAll(OPTIONAL_STREAMS)
+        }.toIntArray()
+
+        private val VOLUME_SETTING_KEYS = listOf(
+            VOLUME_MUSIC_SETTING,
+            VOLUME_RING_SETTING,
+            VOLUME_ALARM_SETTING,
+            VOLUME_NOTIFICATION_SETTING,
+            VOLUME_SYSTEM_SETTING,
+            VOLUME_VOICE_SETTING,
+            VOLUME_DTMF_SETTING,
+            VOLUME_BLUETOOTH_SCO_SETTING,
+            VOLUME_ACCESSIBILITY_SETTING,
+            VOLUME_ASSISTANT_SETTING,
+        )
+
+        private fun resolveOptionalStream(name: String): Int? {
+            return runCatching {
+                AudioManager::class.java.getField(name).getInt(null)
+            }.getOrNull()
+        }
+    }
+
+    private fun registerVolumeObservers() {
+        val resolver = contentResolver
+        val seen = HashSet<Uri>()
+        for (key in VOLUME_SETTING_KEYS) {
+            Settings.System.getUriFor(key)?.let { uri ->
+                if (seen.add(uri)) {
+                    resolver.registerContentObserver(uri, false, volumeObserver)
+                }
+            }
+            Settings.Secure.getUriFor(key)?.let { uri ->
+                if (seen.add(uri)) {
+                    resolver.registerContentObserver(uri, false, volumeObserver)
+                }
+            }
+        }
+        // Legacy key to keep older devices covered.
+        Settings.System.getUriFor(VOLUME_MUSIC_SETTING)?.let { uri ->
+            if (seen.add(uri)) {
+                resolver.registerContentObserver(uri, false, volumeObserver)
+            }
+        }
     }
 }
