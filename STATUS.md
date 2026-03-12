@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Improved compatibility row format (markdown table-ready with Android version).
 - Added Diagnostics bundle copy/share (report + presets + compatibility row).
 - Added Diagnostics action to copy a prefilled compatibility table row.
 - Added hidden API retry + error details to Diagnostics for easier policy validation.

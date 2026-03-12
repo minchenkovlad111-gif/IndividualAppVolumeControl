@@ -14,5 +14,7 @@ Use this table to track observed behavior across devices and Android versions.
 5. Press volume keys and confirm the overlay appears; capture overlay signal counts from Diagnostics.
 6. Use "Copy compatibility row" in Diagnostics and paste into the table.
 
+Tip: The copied row already includes the `|` delimiters for this table.
+
 ## Known issues
 - Add device-specific notes here.

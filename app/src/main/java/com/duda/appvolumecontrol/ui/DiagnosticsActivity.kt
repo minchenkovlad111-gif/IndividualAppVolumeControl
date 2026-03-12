@@ -416,13 +416,13 @@ class DiagnosticsActivity : AppCompatActivity() {
         policyOk: Int,
     ): String {
         val device = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
-        val androidVersion = android.os.Build.VERSION.SDK_INT.toString()
+        val androidVersion = "${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
         val priv = if (isPrivApp) "yes" else "no"
         val vm = formatTriState(vmRuntimeOk)
         val policy = formatTriState(policyOk)
         val perApp = "unknown"
         val notes = "fill in"
-        return listOf(device, androidVersion, priv, vm, policy, perApp, notes).joinToString(", ")
+        return "| $device | $androidVersion | $priv | $vm | $policy | $perApp | $notes |"
     }
 
     private fun buildBundle(): String {
