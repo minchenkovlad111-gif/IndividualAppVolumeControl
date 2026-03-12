@@ -16,3 +16,6 @@
 ## Module packaging
 1. Build the APK.
 2. Run `module/package.sh` (optionally pass APK path and output zip path).
+
+## One-step build + module
+- `scripts/build-module.sh` builds the debug APK and packages the Magisk module into `AppVolumeControl-magisk.zip`.
