@@ -77,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayPermissionButton: Button
     private lateinit var overlayAutoHideToggle: CheckBox
     private lateinit var bluetoothPermissionButton: Button
+    private lateinit var rulesButton: Button
     private var overlayUpdating: Boolean = false
     private lateinit var controlStatusView: TextView
     private var controlsEnabled: Boolean = true
@@ -387,6 +388,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        rulesButton = Button(this).apply {
+            text = "Rules"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, RulesActivity::class.java))
+            }
+        }
+
         outputOnlyToggle = CheckBox(this).apply {
             text = "Only show output-routed apps"
             isChecked = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -437,6 +445,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(activeContainer)
         root.addView(presetTitle)
         root.addView(manageAppsButton)
+        root.addView(rulesButton)
         root.addView(outputOnlyToggle)
         root.addView(presetSearch)
         root.addView(clearFilterButton)
