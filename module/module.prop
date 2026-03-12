@@ -1,5 +1,5 @@
 id=appvolumecontrol
-name=App Volume Control (Privileged)
+name=IndividualAppAudioVolumeControl (Privileged)
 version=0.1.0
 versionCode=1
 author=Codex

@@ -5,10 +5,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 
 APK_PATH=${1:-"$ROOT_DIR/app/build/outputs/apk/debug/app-debug.apk"}
-OUT_ZIP=${2:-"$ROOT_DIR/AppVolumeControl-magisk.zip"}
+OUT_ZIP=${2:-"$ROOT_DIR/IndividualAppAudioVolumeControl-magisk.zip"}
 
-TARGET_DIR="$SCRIPT_DIR/system/priv-app/AppVolumeControl"
-TARGET_APK="$TARGET_DIR/AppVolumeControl.apk"
+TARGET_DIR="$SCRIPT_DIR/system/priv-app/IndividualAppAudioVolumeControl"
+TARGET_APK="$TARGET_DIR/IndividualAppAudioVolumeControl.apk"
 
 if [ ! -f "$APK_PATH" ]; then
   echo "APK not found: $APK_PATH" >&2

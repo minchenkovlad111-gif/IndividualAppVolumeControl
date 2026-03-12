@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val header = TextView(this).apply {
-            text = "App Volume Control"
+            text = "IndividualAppAudioVolumeControl"
             textSize = 20f
         }
 

@@ -5,6 +5,7 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Renamed app/module display name and Magisk packaging paths to IndividualAppAudioVolumeControl.
 - Updated compatibility validation workflow to use Diagnostics bundle + hidden API retry.
 - Improved compatibility row format (markdown table-ready with Android version).
 - Added Diagnostics bundle copy/share (report + presets + compatibility row).

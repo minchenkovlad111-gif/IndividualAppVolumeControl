@@ -122,7 +122,7 @@ class PlaybackControllerService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "App Volume Control",
+                "IndividualAppAudioVolumeControl",
                 NotificationManager.IMPORTANCE_LOW
             )
             channel.description = "Per-app volume control service"
@@ -139,7 +139,7 @@ class PlaybackControllerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
         )
         return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("App Volume Control")
+            .setContentTitle("IndividualAppAudioVolumeControl")
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())

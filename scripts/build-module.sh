@@ -5,7 +5,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 
 APK_PATH="$ROOT_DIR/app/build/outputs/apk/debug/app-debug.apk"
-OUT_ZIP="$ROOT_DIR/AppVolumeControl-magisk.zip"
+OUT_ZIP="$ROOT_DIR/IndividualAppAudioVolumeControl-magisk.zip"
 
 echo "Building APK..."
 (cd "$ROOT_DIR" && ./gradlew :app:assembleDebug)
