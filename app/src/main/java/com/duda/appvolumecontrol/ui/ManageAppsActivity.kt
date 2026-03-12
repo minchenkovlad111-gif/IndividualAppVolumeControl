@@ -26,6 +26,7 @@ import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import com.duda.appvolumecontrol.core.BluetoothInfoUtils
 
 class ManageAppsActivity : AppCompatActivity() {
     private lateinit var volumeStore: VolumeStore
@@ -610,6 +611,7 @@ class ManageAppsActivity : AppCompatActivity() {
             .setTitle("Output device for $label")
             .setSingleChoiceItems(labels, selectedIndex) { _, which ->
                 chosenIndex = which
+                maybeShowBluetoothInfo(options.getOrNull(which)?.device)
             }
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Set") { _, _ ->
@@ -620,6 +622,25 @@ class ManageAppsActivity : AppCompatActivity() {
                 updateSearchResults()
             }
             .show()
+            .also {
+                maybeShowBluetoothInfo(options.getOrNull(selectedIndex)?.device)
+            }
+    }
+
+    private fun maybeShowBluetoothInfo(device: VolumeStore.OutputDevice?) {
+        if (device == null) return
+        if (!isBluetoothType(device.type)) return
+        val address = device.address.orEmpty()
+        BluetoothInfoUtils.fetchA2dpCodecLabel(this, address) { label ->
+            runOnUiThread {
+                Toast.makeText(this, label, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun isBluetoothType(type: Int): Boolean {
+        return type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+            type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
     }
 
     private fun audioTypeLabel(type: Int): String {

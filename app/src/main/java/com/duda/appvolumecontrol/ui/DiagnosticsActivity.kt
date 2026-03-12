@@ -498,6 +498,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             PermissionStatus(Manifest.permission.FOREGROUND_SERVICE, required = true),
             PermissionStatus(Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK, required = true),
             PermissionStatus(Manifest.permission.POST_NOTIFICATIONS, required = false),
+            PermissionStatus(Manifest.permission.BLUETOOTH, required = false),
+            PermissionStatus(Manifest.permission.BLUETOOTH_CONNECT, required = false),
         )
         return all.map { status ->
             val requestedFlag = requested.contains(status.name)

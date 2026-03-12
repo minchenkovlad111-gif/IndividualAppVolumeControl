@@ -5,6 +5,8 @@
 - Continuing validation on Android 12-15 devices.
 
 ## Latest work
+- Added Bluetooth codec info toast when selecting BT output devices.
+- Shared output type label helper across main list and overlay.
 - Added output type prefixes (BT/USB/etc) to output badges in main list and overlay.
 - Added output-only filter toggle in main UI and overlay.
 - Clarified Magisk install/overlay path in README and module README.

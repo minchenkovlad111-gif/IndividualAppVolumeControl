@@ -10,5 +10,6 @@
 8. Call handling: pause/mute playback on incoming calls with best-effort restore; log failures.
 9. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
 10. Audio routing between apps (virtual output sources and sinks).
-11. Virtual microphone + effects (voice changer pipeline).
-12. Audio sharing to other devices (LAN streaming + Linux client).
+11. Network audio routing (send/receive per-app audio streams over LAN).
+12. Virtual microphone + effects (voice changer pipeline).
+13. Audio sharing to other devices (LAN streaming + Linux client).
