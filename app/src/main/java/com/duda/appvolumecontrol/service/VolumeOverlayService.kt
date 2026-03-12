@@ -38,6 +38,7 @@ import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.MarkerStyle
+import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
 import com.duda.appvolumecontrol.ui.SeekBarTicksView
 import kotlin.math.abs
@@ -47,6 +48,7 @@ class VolumeOverlayService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val volumeStore by lazy { VolumeStore(this) }
     private val overlayPrefs by lazy { OverlayPrefs(this) }
+    private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
     private var overlayView: View? = null
@@ -59,6 +61,7 @@ class VolumeOverlayService : Service() {
     private var activeSignature: String? = null
     private var controlsEnabled: Boolean = true
     private val lastNonZeroVolumes = mutableMapOf<String, Float>()
+    private var lastShowReason: String = DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
 
     private val hideRunnable = Runnable {
         removeOverlay()
@@ -88,6 +91,8 @@ class VolumeOverlayService : Service() {
             val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
             if (current != lastStreamVolume) {
                 lastStreamVolume = current
+                diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_POLL)
+                lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_POLL
                 showOverlay(stopWhenHidden = false, autoHide = true)
             }
             handler.postDelayed(this, POLL_INTERVAL_MS)
@@ -108,6 +113,8 @@ class VolumeOverlayService : Service() {
             val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
             if (current == lastStreamVolume) return
             lastStreamVolume = current
+            diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST)
+            lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_BROADCAST
             showOverlay(stopWhenHidden = false, autoHide = true)
         }
     }
@@ -123,6 +130,8 @@ class VolumeOverlayService : Service() {
                 stopSelf()
             }
             ACTION_SHOW -> {
+                diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_MANUAL)
+                lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
                 showOverlay(stopWhenHidden = false, autoHide = false)
             }
             null -> {
@@ -153,6 +162,7 @@ class VolumeOverlayService : Service() {
         val filter = IntentFilter(VOLUME_CHANGED_ACTION)
         registerReceiver(volumeReceiver, filter)
         isWatching = true
+        diagnosticsStore.recordOverlayWatchStart()
         startForeground(NOTIFICATION_ID, buildNotification())
         handler.postDelayed(pollRunnable, POLL_INTERVAL_MS)
     }
@@ -166,6 +176,7 @@ class VolumeOverlayService : Service() {
         if (clearPrefs) {
             overlayPrefs.setOverlayEnabled(false)
         }
+        diagnosticsStore.recordOverlayWatchStop()
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
@@ -173,6 +184,8 @@ class VolumeOverlayService : Service() {
         val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         if (current == lastStreamVolume) return
         lastStreamVolume = current
+        diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER)
+        lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_OBSERVER
         showOverlay(stopWhenHidden = false, autoHide = true)
     }
 
@@ -184,8 +197,9 @@ class VolumeOverlayService : Service() {
         stopAfterHide = stopWhenHidden
         autoHideEnabled = autoHide
         val root = ensureOverlayView()
-        populateList()
+        val activeCount = populateList()
         startAutoRefresh()
+        diagnosticsStore.recordOverlayShow(lastShowReason, activeCount)
         if (root.parent == null) {
             windowManager.addView(root, buildLayoutParams())
         }
@@ -272,8 +286,8 @@ class VolumeOverlayService : Service() {
         return root
     }
 
-    private fun populateList() {
-        val container = listContainer ?: return
+    private fun populateList(): Int {
+        val container = listContainer ?: return 0
         container.removeAllViews()
         controlsEnabled = SetupStatus.isControlReady(this)
         statusView?.let { status ->
@@ -287,11 +301,12 @@ class VolumeOverlayService : Service() {
         val entries = loadActiveEntries()
         if (entries.isEmpty()) {
             container.addView(buildEmptyRow("No active audio."))
-            return
+            return 0
         }
         for (entry in entries) {
             container.addView(buildVolumeRow(entry))
         }
+        return entries.size
     }
 
     private fun loadActiveEntries(): List<AppEntry> {

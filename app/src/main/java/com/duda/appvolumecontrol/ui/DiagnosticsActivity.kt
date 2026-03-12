@@ -141,6 +141,13 @@ class DiagnosticsActivity : AppCompatActivity() {
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime, dateFormat)
         val lastImportTime = formatTime(snapshot.lastImportTime, dateFormat)
         val lastExportTime = formatTime(snapshot.lastExportTime, dateFormat)
+        val overlayWatchStartTime = formatTime(snapshot.overlayWatchStartTime, dateFormat)
+        val overlayWatchStopTime = formatTime(snapshot.overlayWatchStopTime, dateFormat)
+        val overlayObserverTime = formatTime(snapshot.overlayObserverTime, dateFormat)
+        val overlayBroadcastTime = formatTime(snapshot.overlayBroadcastTime, dateFormat)
+        val overlayPollTime = formatTime(snapshot.overlayPollTime, dateFormat)
+        val overlayManualTime = formatTime(snapshot.overlayManualTime, dateFormat)
+        val overlayShowTime = formatTime(snapshot.overlayShowTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -202,6 +209,16 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Last active time: $lastActiveTime",
             "Last dump count: ${snapshot.lastDumpCount}",
             "Last dump time: $lastDumpTime",
+            "Overlay watch starts: ${snapshot.overlayWatchCount}",
+            "Overlay watch last start: $overlayWatchStartTime",
+            "Overlay watch last stop: $overlayWatchStopTime",
+            "Overlay last show: $overlayShowTime",
+            "Overlay last show reason: ${snapshot.overlayShowReason ?: "-"}",
+            "Overlay last show active apps: ${snapshot.overlayShowActiveCount}",
+            "Overlay signals (observer): ${snapshot.overlayObserverCount} @ $overlayObserverTime",
+            "Overlay signals (broadcast): ${snapshot.overlayBroadcastCount} @ $overlayBroadcastTime",
+            "Overlay signals (poll): ${snapshot.overlayPollCount} @ $overlayPollTime",
+            "Overlay signals (manual): ${snapshot.overlayManualCount} @ $overlayManualTime",
             "Active configs now: ${activeConfigs.size}",
             "Active packages count: ${activePackages.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
