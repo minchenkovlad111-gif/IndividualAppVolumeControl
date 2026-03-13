@@ -6,6 +6,11 @@ import kotlin.math.max
 import kotlin.math.min
 
 object RulesEngine {
+    data class RuleEffects(
+        val volumeOverrides: Map<VolumeStore.VolumeKey, Float>,
+        val pauseTargets: Set<VolumeStore.VolumeKey>,
+    )
+
     @Volatile
     private var locationIdProvider: (() -> String?)? = null
 
@@ -13,16 +18,19 @@ object RulesEngine {
         locationIdProvider = provider
     }
 
-    fun computeOverrides(
+    fun computeEffects(
         activeKeys: Set<VolumeStore.VolumeKey>,
         groups: List<RuleGroup>,
         rules: List<Rule>,
         now: ZonedDateTime = ZonedDateTime.now(),
-    ): Map<VolumeStore.VolumeKey, Float> {
-        if (activeKeys.isEmpty() || rules.isEmpty()) return emptyMap()
+    ): RuleEffects {
+        if (activeKeys.isEmpty() || rules.isEmpty()) {
+            return RuleEffects(emptyMap(), emptySet())
+        }
         val groupMap = groups.associateBy { it.id }
         val activeByPackage = activeKeys.groupBy { it.packageName }
         val overrides = mutableMapOf<VolumeStore.VolumeKey, Float>()
+        val pauseTargets = mutableSetOf<VolumeStore.VolumeKey>()
         val orderedRules = rules
             .filter { it.enabled }
             .sortedWith(compareByDescending<Rule> { it.priority }.thenBy { it.id })
@@ -39,10 +47,29 @@ object RulesEngine {
                             overrides,
                         )
                     }
+                    is RuleAction.AudioFocus -> {
+                        applyAudioFocus(
+                            action,
+                            activeKeys,
+                            activeByPackage,
+                            groupMap,
+                            overrides,
+                            pauseTargets,
+                        )
+                    }
                 }
             }
         }
-        return overrides
+        return RuleEffects(overrides, pauseTargets)
+    }
+
+    fun computeOverrides(
+        activeKeys: Set<VolumeStore.VolumeKey>,
+        groups: List<RuleGroup>,
+        rules: List<Rule>,
+        now: ZonedDateTime = ZonedDateTime.now(),
+    ): Map<VolumeStore.VolumeKey, Float> {
+        return computeEffects(activeKeys, groups, rules, now).volumeOverrides
     }
 
     private fun conditionsMatch(
@@ -123,6 +150,36 @@ object RulesEngine {
         }
     }
 
+    private fun applyAudioFocus(
+        action: RuleAction.AudioFocus,
+        activeKeys: Set<VolumeStore.VolumeKey>,
+        activeByPackage: Map<String, List<VolumeStore.VolumeKey>>,
+        groupMap: Map<String, RuleGroup>,
+        overrides: MutableMap<VolumeStore.VolumeKey, Float>,
+        pauseTargets: MutableSet<VolumeStore.VolumeKey>,
+    ) {
+        val targets = resolveTargets(action.targets, groupMap)
+        val duck = action.duckVolume?.let { normalizeVolume(it) } ?: DEFAULT_DUCK_VOLUME
+        for (target in targets) {
+            val keys = resolveActiveKeys(target, activeKeys, activeByPackage)
+            for (key in keys) {
+                when (action.mode) {
+                    RuleAction.AudioFocusMode.PAUSE -> pauseTargets.add(key)
+                    RuleAction.AudioFocusMode.DUCK -> {
+                        if (!overrides.containsKey(key)) overrides[key] = duck
+                    }
+                    RuleAction.AudioFocusMode.MUTE -> {
+                        if (!overrides.containsKey(key)) overrides[key] = 0f
+                    }
+                    RuleAction.AudioFocusMode.MUTE_PAUSE -> {
+                        if (!overrides.containsKey(key)) overrides[key] = 0f
+                        pauseTargets.add(key)
+                    }
+                }
+            }
+        }
+    }
+
     private fun resolveTargets(
         targets: List<RuleTargetRef>,
         groupMap: Map<String, RuleGroup>,
@@ -156,4 +213,6 @@ object RulesEngine {
     private fun normalizeVolume(volume: Float): Float {
         return min(1f, max(0f, volume))
     }
+
+    private const val DEFAULT_DUCK_VOLUME = 0.2f
 }

@@ -27,6 +27,7 @@ object PlaybackUtils {
     }.getOrNull()
 
     private val setVolumeMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
+    private val pauseMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
 
     fun getClientPackageName(
         config: AudioPlaybackConfiguration,
@@ -136,6 +137,47 @@ object PlaybackUtils {
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set preferred device", t)
             false
+        }
+    }
+
+    fun pausePlayer(config: AudioPlaybackConfiguration): Boolean {
+        return try {
+            val method = playerProxyMethod ?: return false
+            val playerProxy = method.invoke(config) ?: return false
+            val proxyClass = playerProxy.javaClass
+            val pause = synchronized(pauseMethodCache) {
+                pauseMethodCache[proxyClass] ?: run {
+                    val resolved = resolvePauseMethod(proxyClass) ?: return false
+                    resolved.isAccessible = true
+                    pauseMethodCache[proxyClass] = resolved
+                    resolved
+                }
+            }
+            try {
+                if (pause.parameterTypes.isEmpty()) {
+                    pause.invoke(playerProxy)
+                } else {
+                    pause.invoke(playerProxy, true)
+                }
+                true
+            } catch (t: Throwable) {
+                synchronized(pauseMethodCache) {
+                    pauseMethodCache.remove(proxyClass)
+                }
+                Log.w(TAG, "Failed to pause player", t)
+                false
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to pause player", t)
+            false
+        }
+    }
+
+    private fun resolvePauseMethod(proxyClass: Class<*>): java.lang.reflect.Method? {
+        return runCatching {
+            proxyClass.getDeclaredMethod("pause")
+        }.getOrElse {
+            runCatching { proxyClass.getDeclaredMethod("pause", Boolean::class.javaPrimitiveType) }.getOrNull()
         }
     }
 }

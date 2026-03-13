@@ -6,6 +6,8 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added audio focus rule actions (pause/duck/mute) with rule editor support.
+- Added best-effort player pause support for focus rules.
 - Added boot receiver to restart playback service and overlay watcher when enabled.
 - Improved privileged detection (privateFlags + source dirs) in Setup Check and Diagnostics.
 - Expanded notification controls with larger buttons, mute, 25/50/75% presets, and overlay shortcut.

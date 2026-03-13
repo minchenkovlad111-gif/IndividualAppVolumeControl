@@ -38,6 +38,7 @@ class PlaybackControllerService : Service() {
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
     private var lastNotificationSignature: String? = null
+    private val lastPausedKeys = mutableSetOf<String>()
     private var callMuteActive: Boolean = false
     private var telephonyCallback: TelephonyCallback? = null
     private var phoneStateListener: PhoneStateListener? = null
@@ -113,18 +114,20 @@ class PlaybackControllerService : Service() {
             activeVolumeKeys.add(volumeKey)
             activeConfigs.add(ActiveConfig(config, volumeKey, packageName))
         }
-        val ruleOverrides = RulesEngine.computeOverrides(
+        val ruleEffects = RulesEngine.computeEffects(
             activeVolumeKeys,
             volumeStore.listRuleGroups(),
             volumeStore.listRules(),
         )
+        val pauseTargets = ruleEffects.pauseTargets
+        val pauseAppliedKeys = mutableSetOf<String>()
         for (entry in activeConfigs) {
             val volumeKey = entry.volumeKey
             val packageName = entry.packageName
             val desiredVolume = if (callMuteActive) {
                 0f
             } else {
-                ruleOverrides[volumeKey] ?: (volumeStore.getVolume(volumeKey) ?: 1f)
+                ruleEffects.volumeOverrides[volumeKey] ?: (volumeStore.getVolume(volumeKey) ?: 1f)
             }
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${entry.config.hashCode()}"
@@ -138,6 +141,18 @@ class PlaybackControllerService : Service() {
                 appliedCount += 1
             } else {
                 Log.w(TAG, "Failed to apply volume for $packageName")
+            }
+
+            if (pauseTargets.contains(volumeKey)) {
+                pauseAppliedKeys.add(key)
+                if (!lastPausedKeys.contains(key)) {
+                    val paused = PlaybackUtils.pausePlayer(entry.config)
+                    if (paused) {
+                        lastPausedKeys.add(key)
+                    } else {
+                        Log.w(TAG, "Failed to pause player for $packageName")
+                    }
+                }
             }
 
             if (outputDevice != null) {
@@ -174,6 +189,7 @@ class PlaybackControllerService : Service() {
             }
         }
         lastApplied.keys.retainAll(activeKeys)
+        lastPausedKeys.retainAll(pauseAppliedKeys)
         diagnosticsStore.recordLastApply(appliedCount)
         if (routeAttempted > 0) {
             diagnosticsStore.recordLastRouting(

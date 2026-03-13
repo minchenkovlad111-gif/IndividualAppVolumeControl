@@ -118,6 +118,26 @@ sealed class RuleAction {
         val volume: Float,
     ) : RuleAction()
 
+    data class AudioFocus(
+        val targets: List<RuleTargetRef>,
+        val mode: AudioFocusMode,
+        val duckVolume: Float?,
+    ) : RuleAction()
+
+    enum class AudioFocusMode(val id: String) {
+        PAUSE("pause"),
+        DUCK("duck"),
+        MUTE("mute"),
+        MUTE_PAUSE("mute_pause");
+
+        companion object {
+            fun parse(value: String?): AudioFocusMode? {
+                if (value.isNullOrBlank()) return null
+                return entries.firstOrNull { it.id.equals(value, ignoreCase = true) }
+            }
+        }
+    }
+
     fun toJson(): JSONObject {
         val obj = JSONObject()
         when (this) {
@@ -125,6 +145,14 @@ sealed class RuleAction {
                 obj.put("type", "set_volume")
                 obj.put("targets", targetsToJsonArray(targets))
                 obj.put("volume", volume)
+            }
+            is AudioFocus -> {
+                obj.put("type", "audio_focus")
+                obj.put("targets", targetsToJsonArray(targets))
+                obj.put("mode", mode.id)
+                if (duckVolume != null) {
+                    obj.put("duck", duckVolume)
+                }
             }
         }
         return obj
@@ -139,6 +167,17 @@ sealed class RuleAction {
                     val volume = obj.optDouble("volume", Double.NaN)
                     if (volume.isNaN()) return null
                     SetVolume(targets, normalizeVolume(volume.toFloat()))
+                }
+                "audio_focus" -> {
+                    val targets = parseTargetRefs(obj.optJSONArray("targets"))
+                    if (targets.isEmpty()) return null
+                    val mode = AudioFocusMode.parse(obj.optString("mode")) ?: return null
+                    val duck = if (obj.has("duck")) {
+                        normalizeVolume(obj.optDouble("duck", 0.2).toFloat())
+                    } else {
+                        null
+                    }
+                    AudioFocus(targets, mode, duck)
                 }
                 else -> null
             }

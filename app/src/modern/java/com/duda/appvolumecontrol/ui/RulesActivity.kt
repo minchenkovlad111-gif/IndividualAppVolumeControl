@@ -8,8 +8,10 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ArrayAdapter
 import androidx.core.widget.doAfterTextChanged
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -52,7 +54,7 @@ class RulesActivity : AppCompatActivity() {
         }
 
         val helper = TextView(this).apply {
-            text = "Rules let you override presets when apps are active or during time windows."
+            text = "Rules let you override presets or apply audio focus actions when apps are active."
             textSize = 13f
             setPadding(0, 8, 0, 16)
         }
@@ -408,6 +410,22 @@ class RulesActivity : AppCompatActivity() {
                     val pct = (action.volume * 100).toInt()
                     "Set volume $pct% for ${if (target.isBlank()) "-" else target}"
                 }
+                is RuleAction.AudioFocus -> {
+                    val target = action.targets.joinToString(", ") { it.toStorageValue() }
+                    val mode = when (action.mode) {
+                        RuleAction.AudioFocusMode.PAUSE -> "pause"
+                        RuleAction.AudioFocusMode.DUCK -> "duck"
+                        RuleAction.AudioFocusMode.MUTE -> "mute"
+                        RuleAction.AudioFocusMode.MUTE_PAUSE -> "mute+pause"
+                    }
+                    val extra = if (action.mode == RuleAction.AudioFocusMode.DUCK) {
+                        val pct = ((action.duckVolume ?: 0.2f) * 100).toInt()
+                        " $pct%"
+                    } else {
+                        ""
+                    }
+                    "Audio focus $mode$extra for ${if (target.isBlank()) "-" else target}"
+                }
             }
         }
         return parts.joinToString(" | ")
@@ -622,8 +640,34 @@ class RulesActivity : AppCompatActivity() {
             setText(existing?.actions?.firstOrNull()?.let { action ->
                 when (action) {
                     is RuleAction.SetVolume -> ((action.volume * 100f).toInt()).toString()
+                    is RuleAction.AudioFocus -> ""
                 }
             } ?: "100")
+        }
+        val actionTypeOptions = listOf("Set volume", "Audio focus")
+        val actionTypeSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@RulesActivity,
+                android.R.layout.simple_spinner_item,
+                actionTypeOptions
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+        val focusModeOptions = listOf(
+            "Pause (release focus)",
+            "Duck to % volume",
+            "Mute",
+            "Mute + pause"
+        )
+        val focusModeSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@RulesActivity,
+                android.R.layout.simple_spinner_item,
+                focusModeOptions
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+        val duckVolumeInput = EditText(this).apply {
+            hint = "Duck volume percent (0-100)"
+            setText("20")
         }
         val groupHint = TextView(this).apply {
             val groups = volumeStore.listRuleGroups()
@@ -654,7 +698,48 @@ class RulesActivity : AppCompatActivity() {
             addView(groupHint)
             addView(targetPackagesInput)
             addView(targetPickButton)
+            addView(actionTypeSpinner)
             addView(volumeInput)
+            addView(focusModeSpinner)
+            addView(duckVolumeInput)
+        }
+
+        fun updateActionVisibility() {
+            val isSetVolume = actionTypeSpinner.selectedItemPosition == 0
+            volumeInput.visibility = if (isSetVolume) View.VISIBLE else View.GONE
+            focusModeSpinner.visibility = if (isSetVolume) View.GONE else View.VISIBLE
+            val isDuck = focusModeSpinner.selectedItemPosition == 1
+            duckVolumeInput.visibility = if (!isSetVolume && isDuck) View.VISIBLE else View.GONE
+        }
+
+        actionTypeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: android.widget.AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                updateActionVisibility()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                updateActionVisibility()
+            }
+        }
+
+        focusModeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: android.widget.AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                updateActionVisibility()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                updateActionVisibility()
+            }
         }
 
         if (existing != null) {
@@ -678,6 +763,7 @@ class RulesActivity : AppCompatActivity() {
             }
             val setVolume = existing.actions.filterIsInstance<RuleAction.SetVolume>().firstOrNull()
             if (setVolume != null) {
+                actionTypeSpinner.setSelection(0)
                 val groupTarget = setVolume.targets.filterIsInstance<RuleTargetRef.Group>().firstOrNull()
                 val packageTargets = setVolume.targets.filterIsInstance<RuleTargetRef.Package>().map { it.target }
                 if (groupTarget != null) {
@@ -686,6 +772,31 @@ class RulesActivity : AppCompatActivity() {
                     targetPackagesInput.setText(packageTargets.joinToString(", ") { it.storageKey() })
                 }
             }
+            val focusAction = existing.actions.filterIsInstance<RuleAction.AudioFocus>().firstOrNull()
+            if (focusAction != null) {
+                actionTypeSpinner.setSelection(1)
+                val groupTarget = focusAction.targets.filterIsInstance<RuleTargetRef.Group>().firstOrNull()
+                val packageTargets = focusAction.targets.filterIsInstance<RuleTargetRef.Package>().map { it.target }
+                if (groupTarget != null) {
+                    groupTargetInput.setText(groupTarget.groupId)
+                } else if (packageTargets.isNotEmpty()) {
+                    targetPackagesInput.setText(packageTargets.joinToString(", ") { it.storageKey() })
+                }
+                val focusModeIndex = when (focusAction.mode) {
+                    RuleAction.AudioFocusMode.PAUSE -> 0
+                    RuleAction.AudioFocusMode.DUCK -> 1
+                    RuleAction.AudioFocusMode.MUTE -> 2
+                    RuleAction.AudioFocusMode.MUTE_PAUSE -> 3
+                }
+                focusModeSpinner.setSelection(focusModeIndex)
+                if (focusAction.mode == RuleAction.AudioFocusMode.DUCK) {
+                    val pct = ((focusAction.duckVolume ?: 0.2f) * 100).toInt()
+                    duckVolumeInput.setText(pct.toString())
+                }
+            }
+            updateActionVisibility()
+        } else {
+            updateActionVisibility()
         }
 
         AlertDialog.Builder(this)
@@ -731,9 +842,6 @@ class RulesActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                val volumePercent = volumeInput.text?.toString()?.toIntOrNull() ?: 100
-                val volume = normalizeVolume(volumePercent / 100f)
-
                 val targetRefs = mutableListOf<RuleTargetRef>()
                 val groupId = groupTargetInput.text?.toString()?.trim().orEmpty()
                 if (groupId.isNotBlank()) {
@@ -755,7 +863,25 @@ class RulesActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                val action = RuleAction.SetVolume(targets = targetRefs, volume = volume)
+                val action = if (actionTypeSpinner.selectedItemPosition == 0) {
+                    val volumePercent = volumeInput.text?.toString()?.toIntOrNull() ?: 100
+                    val volume = normalizeVolume(volumePercent / 100f)
+                    RuleAction.SetVolume(targets = targetRefs, volume = volume)
+                } else {
+                    val mode = when (focusModeSpinner.selectedItemPosition) {
+                        0 -> RuleAction.AudioFocusMode.PAUSE
+                        1 -> RuleAction.AudioFocusMode.DUCK
+                        2 -> RuleAction.AudioFocusMode.MUTE
+                        else -> RuleAction.AudioFocusMode.MUTE_PAUSE
+                    }
+                    val duckPercent = duckVolumeInput.text?.toString()?.toIntOrNull() ?: 20
+                    val duckVolume = if (mode == RuleAction.AudioFocusMode.DUCK) {
+                        normalizeVolume(duckPercent / 100f)
+                    } else {
+                        null
+                    }
+                    RuleAction.AudioFocus(targets = targetRefs, mode = mode, duckVolume = duckVolume)
+                }
                 val rule = Rule(
                     id = existing?.id ?: "r_${System.currentTimeMillis()}",
                     name = name,

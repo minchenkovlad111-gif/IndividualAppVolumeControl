@@ -27,6 +27,16 @@
 - Profile-aware app lists for work/personal separation.
 - Feature gating: gray out unavailable features per SDK + permission state.
 
+## Additional audio settings to consider
+- Audio focus policy per app (pause/duck/mute, or ignore focus while muted).
+- Per-app audio attributes overrides (usage/content type) to affect routing/interruptions.
+- Per-app stream mapping (force music vs. notification stream).
+- Per-app loudness limiter/compressor (keep levels consistent).
+- Per-app balance/mono mix for accessibility.
+- Per-app EQ or bass boost (if feasible with DSP stack).
+- Bluetooth absolute volume toggle per app or per device.
+- Per-app spatial audio enable/disable where available.
+
 ## Legacy version considerations
 - `AudioPlaybackConfiguration` arrives in API 26; per-app volume control is limited or impossible below API 26.
 - For API 16-25, consider degraded modes (per-stream volume only, read-only app list, or disable per-app controls).
