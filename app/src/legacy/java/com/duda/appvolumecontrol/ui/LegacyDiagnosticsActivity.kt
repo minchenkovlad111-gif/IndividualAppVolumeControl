@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.LocationRuleStore
 import com.duda.appvolumecontrol.core.VolumeStore
 import java.util.Date
 
@@ -83,12 +84,35 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
         val snapshot = diagnosticsStore.snapshot()
         val dateFormat = DateFormat.getMediumDateFormat(this)
         val timeFormat = DateFormat.getTimeFormat(this)
+        val locationStore = LocationRuleStore(this)
+        val locationId = locationStore.getCurrentLocationId() ?: "-"
+        val locationCount = locationStore.listLocations().size
+        val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat, timeFormat)
+        val lastListenerFixTime = formatTime(snapshot.locationTime, dateFormat, timeFormat)
+        val locationProvider = snapshot.locationProvider ?: "-"
+        val locationAccuracy = if (snapshot.locationAccuracy >= 0f) {
+            "${snapshot.locationAccuracy}m"
+        } else {
+            "-"
+        }
+        val locationMock = when (snapshot.locationMock) {
+            1 -> "yes"
+            0 -> "no"
+            else -> "-"
+        }
         val lines = listOf(
             "SDK: ${Build.VERSION.SDK_INT}",
             "App package: $packageName",
             "App version: ${getAppVersion()}",
             "Legacy mode: per-app volume disabled",
             "Stored presets: ${volumeStore.countPresets()}",
+            "Current location id: $locationId",
+            "Locations stored: $locationCount",
+            "Last location fix: $lastFixTime",
+            "Last location fix (listener): $lastListenerFixTime",
+            "Location provider (listener): $locationProvider",
+            "Location accuracy (listener): $locationAccuracy",
+            "Location mock (listener): $locationMock",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: ${formatTime(snapshot.lastImportTime, dateFormat, timeFormat)}",
             "Last export count: ${snapshot.lastExportCount}",
@@ -125,14 +149,14 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
     }
 
     private fun copyReport() {
-        val manager = getSystemService(ClipboardManager::class.java)
+        val manager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         manager.setPrimaryClip(ClipData.newPlainText("diagnostics", lastReport))
         Toast.makeText(this, "Report copied", Toast.LENGTH_SHORT).show()
     }
 
     private fun exportPresets() {
         val json = volumeStore.exportJson()
-        val manager = getSystemService(ClipboardManager::class.java)
+        val manager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         manager.setPrimaryClip(ClipData.newPlainText("presets", json))
         diagnosticsStore.recordLastExport(volumeStore.countPresets())
         Toast.makeText(this, "Exported ${volumeStore.countPresets()} presets", Toast.LENGTH_SHORT).show()
@@ -140,7 +164,7 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
     }
 
     private fun importPresets(replace: Boolean) {
-        val manager = getSystemService(ClipboardManager::class.java)
+        val manager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         val clip = manager.primaryClip ?: run {
             Toast.makeText(this, "Clipboard empty", Toast.LENGTH_SHORT).show()
             return
