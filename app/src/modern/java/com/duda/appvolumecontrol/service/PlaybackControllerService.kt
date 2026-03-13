@@ -241,6 +241,7 @@ class PlaybackControllerService : Service() {
             .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             notification.setCustomBigContentView(buildBigRemoteViews())
+            notification.setStyle(Notification.DecoratedCustomViewStyle())
         }
         return notification.build()
     }
@@ -279,6 +280,10 @@ class PlaybackControllerService : Service() {
     private fun buildBigRemoteViews(): RemoteViews {
         val views = RemoteViews(packageName, R.layout.notification_volume_big)
         val entries = lastNotificationEntries
+        views.setOnClickPendingIntent(
+            R.id.notif_open_overlay,
+            buildOverlayPendingIntent()
+        )
         bindNotificationRow(views, 0, entries.getOrNull(0))
         bindNotificationRow(views, 1, entries.getOrNull(1))
         bindNotificationRow(views, 2, entries.getOrNull(2))
@@ -311,6 +316,26 @@ class PlaybackControllerService : Service() {
             1 -> R.id.notif_plus_2
             else -> R.id.notif_plus_3
         }
+        val muteId = when (index) {
+            0 -> R.id.notif_mute_1
+            1 -> R.id.notif_mute_2
+            else -> R.id.notif_mute_3
+        }
+        val pct25Id = when (index) {
+            0 -> R.id.notif_25_1
+            1 -> R.id.notif_25_2
+            else -> R.id.notif_25_3
+        }
+        val pct50Id = when (index) {
+            0 -> R.id.notif_50_1
+            1 -> R.id.notif_50_2
+            else -> R.id.notif_50_3
+        }
+        val pct75Id = when (index) {
+            0 -> R.id.notif_75_1
+            1 -> R.id.notif_75_2
+            else -> R.id.notif_75_3
+        }
 
         if (entry == null) {
             views.setViewVisibility(rowId, android.view.View.GONE)
@@ -319,13 +344,31 @@ class PlaybackControllerService : Service() {
         views.setViewVisibility(rowId, android.view.View.VISIBLE)
         views.setTextViewText(appId, entry.label)
         views.setTextViewText(valueId, "${entry.percent}%")
+        views.setTextViewText(muteId, if (entry.percent <= 0) "Unmute" else "Mute")
+        val base = index * 10
         views.setOnClickPendingIntent(
             minusId,
-            buildAdjustPendingIntent(entry, -NOTIF_VOLUME_STEP, index * 2)
+            buildAdjustPendingIntent(entry, -NOTIF_VOLUME_STEP, base)
         )
         views.setOnClickPendingIntent(
             plusId,
-            buildAdjustPendingIntent(entry, NOTIF_VOLUME_STEP, index * 2 + 1)
+            buildAdjustPendingIntent(entry, NOTIF_VOLUME_STEP, base + 1)
+        )
+        views.setOnClickPendingIntent(
+            muteId,
+            buildToggleMutePendingIntent(entry, base + 2)
+        )
+        views.setOnClickPendingIntent(
+            pct25Id,
+            buildSetPendingIntent(entry, 25, base + 3)
+        )
+        views.setOnClickPendingIntent(
+            pct50Id,
+            buildSetPendingIntent(entry, 50, base + 4)
+        )
+        views.setOnClickPendingIntent(
+            pct75Id,
+            buildSetPendingIntent(entry, 75, base + 5)
         )
     }
 
@@ -346,6 +389,60 @@ class PlaybackControllerService : Service() {
         return PendingIntent.getBroadcast(
             this,
             requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+    }
+
+    private fun buildSetPendingIntent(
+        entry: NotificationEntry,
+        percent: Int,
+        requestCode: Int
+    ): PendingIntent {
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_SET
+            putExtra(NotificationActionReceiver.EXTRA_PACKAGE, entry.packageName)
+            putExtra(
+                NotificationActionReceiver.EXTRA_USER_ID,
+                entry.userId ?: NotificationActionReceiver.USER_ID_NONE
+            )
+            putExtra(NotificationActionReceiver.EXTRA_PERCENT, percent)
+        }
+        return PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+    }
+
+    private fun buildToggleMutePendingIntent(
+        entry: NotificationEntry,
+        requestCode: Int
+    ): PendingIntent {
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_TOGGLE_MUTE
+            putExtra(NotificationActionReceiver.EXTRA_PACKAGE, entry.packageName)
+            putExtra(
+                NotificationActionReceiver.EXTRA_USER_ID,
+                entry.userId ?: NotificationActionReceiver.USER_ID_NONE
+            )
+        }
+        return PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+    }
+
+    private fun buildOverlayPendingIntent(): PendingIntent {
+        val intent = Intent(this, VolumeOverlayService::class.java).apply {
+            action = VolumeOverlayService.ACTION_SHOW
+        }
+        return PendingIntent.getService(
+            this,
+            99,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
         )

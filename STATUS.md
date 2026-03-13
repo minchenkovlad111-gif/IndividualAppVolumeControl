@@ -6,6 +6,10 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added boot receiver to restart playback service and overlay watcher when enabled.
+- Improved privileged detection (privateFlags + source dirs) in Setup Check and Diagnostics.
+- Expanded notification controls with larger buttons, mute, 25/50/75% presets, and overlay shortcut.
+- Clarified overlay header toggles (auto refresh/auto hide/output only).
 - Added optional geofencing support (Play services) with a UI toggle and diagnostics reporting.
 - Added optional background location updates via a broadcast receiver and toggle.
 - Added legacy flavor with a minimal presets/diagnostics UI and a warning banner for API 16-25 devices.

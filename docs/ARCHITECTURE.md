@@ -10,8 +10,9 @@
 - Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, optional auto-refresh, and optional auto-hide.
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.
+- Boot receiver: restarts the playback controller (and overlay watcher if enabled) after reboot/app update.
 - Call state listener: mutes active playback during ringing/off-hook calls.
-- Foreground notification: persistent status with quick per-app +/- controls (prototype).
+- Foreground notification: persistent status with per-app +/- plus mute and 25/50/75% quick actions, and an overlay shortcut.
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
 - Location updates can run in the background via a broadcast receiver when enabled and permitted.

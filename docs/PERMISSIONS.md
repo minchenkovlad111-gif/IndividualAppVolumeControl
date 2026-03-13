@@ -10,6 +10,7 @@ Note: Some privileged permissions are not exposed as public SDK constants; use t
 - `android.permission.FOREGROUND_SERVICE`: Run the playback controller as a foreground service.
 - `android.permission.WRITE_SECURE_SETTINGS`: Attempt to relax hidden API policy via Settings.Global.
 - `android.permission.BLUETOOTH_CONNECT`: Read Bluetooth codec/device info for output selection (Android 12+).
+- `android.permission.RECEIVE_BOOT_COMPLETED`: Restart services on boot/app update when overlay is enabled.
 
 ### Non-privileged (manifest/runtime)
 - `android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK`: Required for media playback foreground service type on Android 14+.

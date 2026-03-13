@@ -1,0 +1,64 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.DiagnosticsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.SetupCheckActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ManageAppsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.RulesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.OverlayPermissionActivity"
+            android:exported="false" />
+
+        <service
+            android:name=".service.PlaybackControllerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+        <receiver
+            android:name=".service.NotificationActionReceiver"
+            android:exported="false" />
+        <service
+            android:name=".service.VolumeOverlayService"
+            android:exported="false" />
+        <service
+            android:name=".service.OverlayTileService"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".service.VolumeCommandReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".service.LocationUpdateReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".service.GeofenceReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

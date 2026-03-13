@@ -15,6 +15,7 @@
 - Verify hidden API access works on Android 12, 13, 14, 15 (VMRuntime and Settings.Global paths).
 - Confirm `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()` are callable on each target.
 - Validate required permissions on at least one AOSP-based and one OEM device.
+- Confirm privileged detection uses both `flags` and `privateFlags`, and that the APK is not overridden by a /data/app update.
 - Capture logs from the diagnostics screen and document known failures.
 - Use "Retry hidden API" in Diagnostics to capture VMRuntime/policy error details per device.
 - Use "Copy bundle" in Diagnostics to capture a single shareable payload during testing.

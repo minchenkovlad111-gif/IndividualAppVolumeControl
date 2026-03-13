@@ -257,7 +257,7 @@ class VolumeOverlayService : Service() {
         }
 
         val autoToggle = CheckBox(this).apply {
-            text = "Auto"
+            text = "Auto refresh"
             textSize = 12f
             isChecked = overlayPrefs.isAutoRefreshEnabled()
             setOnCheckedChangeListener { _, isChecked ->
@@ -267,7 +267,7 @@ class VolumeOverlayService : Service() {
         }
 
         val autoHideToggle = CheckBox(this).apply {
-            text = "Hide"
+            text = "Auto hide"
             textSize = 12f
             isChecked = overlayPrefs.isAutoHideEnabled()
             setOnCheckedChangeListener { _, isChecked ->
@@ -278,7 +278,7 @@ class VolumeOverlayService : Service() {
         }
 
         val outputOnlyToggle = CheckBox(this).apply {
-            text = "Output"
+            text = "Output only"
             textSize = 12f
             isChecked = overlayPrefs.isOutputOnlyEnabled()
             setOnCheckedChangeListener { _, isChecked ->

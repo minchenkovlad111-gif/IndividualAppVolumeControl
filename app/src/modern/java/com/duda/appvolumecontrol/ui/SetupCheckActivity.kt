@@ -2,7 +2,6 @@ package com.duda.appvolumecontrol.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
@@ -14,6 +13,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.SetupStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -94,8 +94,10 @@ class SetupCheckActivity : AppCompatActivity() {
 
     private fun refresh() {
         val appInfo = applicationInfo
-        val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-        val isPrivApp = isPrivilegedApp(appInfo)
+        val privilegeInfo = SetupStatus.privilegeInfo(appInfo)
+        val isSystemApp = privilegeInfo.isSystemApp
+        val isPrivApp = privilegeInfo.isPrivilegedApp
+        val isUpdatedSystemApp = privilegeInfo.isUpdatedSystemApp
         val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
@@ -131,12 +133,18 @@ class SetupCheckActivity : AppCompatActivity() {
             "",
             "Checklist:",
             "System app: ${boolLine(isSystemApp)}",
+            "Updated system app: ${boolLine(isUpdatedSystemApp)}",
             "Privileged app: ${boolLine(isPrivApp)}",
+            "Privileged flag (flags): ${boolLine(privilegeInfo.flagPrivileged)}",
+            "Privileged flag (private): ${boolLine(privilegeInfo.privateFlagPrivileged)}",
             "MODIFY_AUDIO_SETTINGS: ${boolLine(hasModifyAudio)}",
             "WRITE_SECURE_SETTINGS: ${boolLine(hasWriteSecureSettings)}",
             "Hidden API ok: ${boolLine(hiddenApiOk)}",
             "Hidden API last attempt: $hiddenApiTime",
             "Active audio apps: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
+            "APK source dir: ${privilegeInfo.sourceDir ?: "-"}",
+            "APK public dir: ${privilegeInfo.publicSourceDir ?: "-"}",
+            "APK data dir: ${privilegeInfo.dataDir ?: "-"}",
             "",
             "Tips:",
             "1) Install the module and reboot.",
@@ -160,7 +168,8 @@ class SetupCheckActivity : AppCompatActivity() {
     ): String {
         val steps = mutableListOf<String>()
         if (!isSystemApp || !isPrivApp) {
-            steps.add("Install the module and reboot.")
+            steps.add("Install the module and reboot (APK must live in /system/priv-app/).")
+            steps.add("If you installed an APK update, uninstall updates so the priv-app copy is used.")
         }
         if (!hasModifyAudio) {
             steps.add("Check the privapp permissions file is applied.")
@@ -178,18 +187,6 @@ class SetupCheckActivity : AppCompatActivity() {
         if (value <= 0L) return "-"
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         return dateFormat.format(Date(value))
-    }
-
-    private fun isPrivilegedApp(appInfo: ApplicationInfo): Boolean {
-        return try {
-            val field = ApplicationInfo::class.java.getDeclaredField("FLAG_PRIVILEGED").apply {
-                isAccessible = true
-            }
-            val flag = field.getInt(null)
-            (appInfo.flags and flag) != 0
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun copyReport() {

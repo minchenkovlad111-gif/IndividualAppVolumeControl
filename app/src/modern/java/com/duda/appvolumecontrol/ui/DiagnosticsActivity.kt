@@ -22,6 +22,7 @@ import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
+import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.core.ModuleInstaller
 import java.text.SimpleDateFormat
@@ -247,8 +248,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val geofencingAvailable = com.duda.appvolumecontrol.core.GeofenceRuleManager(this).isAvailable()
         val geofencingStatus = if (geofencingAvailable) geofencingEnabled else "unavailable"
         val appInfo = applicationInfo
-        val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
-        val isPrivApp = isPrivilegedApp(appInfo)
+        val privilegeInfo = SetupStatus.privilegeInfo(appInfo)
+        val isPrivApp = privilegeInfo.isPrivilegedApp
         val isDebuggable = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val (versionName, versionCode) = getAppVersion()
         val targetSdk = appInfo.targetSdkVersion
@@ -265,9 +266,15 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Target SDK: $targetSdk",
             "Bundled module: $bundledModuleStatus",
             "Ready to control volume: $readyStatus",
-            "System app: $isSystemApp",
+            "System app: ${privilegeInfo.isSystemApp}",
+            "Updated system app: ${privilegeInfo.isUpdatedSystemApp}",
             "Privileged app: $isPrivApp",
+            "Privileged flag (flags): ${privilegeInfo.flagPrivileged}",
+            "Privileged flag (private): ${privilegeInfo.privateFlagPrivileged}",
             "Debuggable: $isDebuggable",
+            "APK source dir: ${privilegeInfo.sourceDir ?: "-"}",
+            "APK public dir: ${privilegeInfo.publicSourceDir ?: "-"}",
+            "APK data dir: ${privilegeInfo.dataDir ?: "-"}",
             "Last error: ${snapshot.lastError ?: "-"}",
             "Last error time: $lastErrorTime",
             "Last apply count: ${snapshot.lastApplyCount}",
@@ -530,18 +537,6 @@ class DiagnosticsActivity : AppCompatActivity() {
             putExtra(Intent.EXTRA_TEXT, lastBundle)
         }
         startActivity(Intent.createChooser(sendIntent, "Share bundle"))
-    }
-
-    private fun isPrivilegedApp(appInfo: ApplicationInfo): Boolean {
-        return try {
-            val field = ApplicationInfo::class.java.getDeclaredField("FLAG_PRIVILEGED").apply {
-                isAccessible = true
-            }
-            val flag = field.getInt(null)
-            (appInfo.flags and flag) != 0
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun buildCompatibilityRow(
