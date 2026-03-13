@@ -15,6 +15,7 @@ import kotlin.math.min
 class LocationRuleManager(private val context: Context) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val store = LocationRuleStore(context)
+    private val diagnosticsStore = DiagnosticsStore(context)
     private var running = false
 
     private val listener = object : LocationListener {
@@ -91,6 +92,19 @@ class LocationRuleManager(private val context: Context) {
 
     private fun handleLocation(location: Location) {
         applyLocationFix(context, location)
+        val accuracy = if (location.hasAccuracy()) location.accuracy else null
+        val isMock = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            location.isMock
+        } else {
+            @Suppress("DEPRECATION")
+            location.isFromMockProvider
+        }
+        diagnosticsStore.recordLocationFix(
+            provider = location.provider,
+            timeMs = location.time,
+            accuracyMeters = accuracy,
+            isMock = isMock,
+        )
     }
 
     @SuppressLint("MissingPermission")

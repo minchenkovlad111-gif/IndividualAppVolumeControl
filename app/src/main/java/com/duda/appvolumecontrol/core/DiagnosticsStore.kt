@@ -150,6 +150,24 @@ class DiagnosticsStore(context: Context) {
             .apply()
     }
 
+    fun recordLocationFix(
+        provider: String?,
+        timeMs: Long,
+        accuracyMeters: Float?,
+        isMock: Boolean?,
+    ) {
+        prefs.edit()
+            .putString(KEY_LOCATION_PROVIDER, provider)
+            .putLong(KEY_LOCATION_TIME, timeMs)
+            .putFloat(KEY_LOCATION_ACCURACY, accuracyMeters ?: -1f)
+            .putInt(KEY_LOCATION_MOCK, when (isMock) {
+                true -> 1
+                false -> 0
+                null -> -1
+            })
+            .apply()
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
@@ -191,6 +209,10 @@ class DiagnosticsStore(context: Context) {
             lastExportTime = prefs.getLong(KEY_LAST_EXPORT_TIME, 0L),
             callState = prefs.getString(KEY_CALL_STATE, null),
             callStateTime = prefs.getLong(KEY_CALL_STATE_TIME, 0L),
+            locationProvider = prefs.getString(KEY_LOCATION_PROVIDER, null),
+            locationTime = prefs.getLong(KEY_LOCATION_TIME, 0L),
+            locationAccuracy = prefs.getFloat(KEY_LOCATION_ACCURACY, -1f),
+            locationMock = prefs.getInt(KEY_LOCATION_MOCK, -1),
         )
     }
 
@@ -234,6 +256,10 @@ class DiagnosticsStore(context: Context) {
         val lastExportTime: Long,
         val callState: String?,
         val callStateTime: Long,
+        val locationProvider: String?,
+        val locationTime: Long,
+        val locationAccuracy: Float,
+        val locationMock: Int,
     )
 
     companion object {
@@ -277,6 +303,10 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_EXPORT_TIME = "last_export_time"
         private const val KEY_CALL_STATE = "call_state"
         private const val KEY_CALL_STATE_TIME = "call_state_time"
+        private const val KEY_LOCATION_PROVIDER = "location_provider"
+        private const val KEY_LOCATION_TIME = "location_time"
+        private const val KEY_LOCATION_ACCURACY = "location_accuracy"
+        private const val KEY_LOCATION_MOCK = "location_mock"
 
         const val OVERLAY_SIGNAL_OBSERVER = "observer"
         const val OVERLAY_SIGNAL_BROADCAST = "broadcast"

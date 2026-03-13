@@ -248,6 +248,18 @@ class DiagnosticsActivity : AppCompatActivity() {
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
         val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat)
+        val lastLocationFixTime = formatTime(snapshot.locationTime, dateFormat)
+        val locationProvider = snapshot.locationProvider ?: "-"
+        val locationAccuracy = if (snapshot.locationAccuracy >= 0f) {
+            "${snapshot.locationAccuracy}m"
+        } else {
+            "-"
+        }
+        val locationMock = when (snapshot.locationMock) {
+            1 -> "yes"
+            0 -> "no"
+            else -> "-"
+        }
         val backgroundLocationEnabled = if (locationStore.isBackgroundUpdatesEnabled()) "enabled" else "disabled"
         val geofencingEnabled = if (locationStore.isGeofencingEnabled()) "enabled" else "disabled"
         val geofencingAvailable = com.duda.appvolumecontrol.core.GeofenceRuleManager(this).isAvailable()
@@ -317,6 +329,10 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",
+            "Last location fix (listener): $lastLocationFixTime",
+            "Location provider (listener): $locationProvider",
+            "Location accuracy (listener): $locationAccuracy",
+            "Location mock (listener): $locationMock",
             "Background location updates: $backgroundLocationEnabled",
             "Geofencing: $geofencingStatus",
             "Last import count: ${snapshot.lastImportCount}",
