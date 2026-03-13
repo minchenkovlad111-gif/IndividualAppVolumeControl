@@ -17,6 +17,7 @@
 - Per-app mute behavior: choose mute-only or mute+pause when a preset is set to 0%.
 - Default mute behavior: global fallback for apps without a per-app override.
 - Auto-resume toggle: opt-in to resume playback when pause rules/mute no longer apply.
+- Per-app audio attribute overrides: optional usage/content-type filters that limit which playback sessions get controlled.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
 - Location updates can run in the background via a broadcast receiver when enabled and permitted.
 - Optional geofencing is handled via Play services and updates the current location id on entry/exit.
@@ -28,6 +29,7 @@
 3. Resolve per-profile user id from the playback UID.
 4. Evaluate rules engine overrides (active app + time window conditions) against active players.
 5. Lookup per-app volume in `VolumeStore` using `u<userId>:<package>` keys (fall back to global package key).
+6. If an audio-attribute override exists, only apply volume/pause actions when the session’s usage/content type matches.
 6. If a call is ringing or active, temporarily force volume to 0 for all active players.
 7. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
    - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.

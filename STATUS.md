@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added per-app audio attribute override storage and applied matching filter in playback control, plus diagnostics counts.
 - Added available output device counts to routing-missing diagnostics details.
 - Capped routing diagnostics detail length to avoid oversized reports.
 - Expanded routing diagnostics details to include per-app output device info and failure reasons.

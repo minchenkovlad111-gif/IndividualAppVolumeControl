@@ -1,6 +1,7 @@
 package com.duda.appvolumecontrol.core
 
 import android.content.Context
+import android.media.AudioAttributes
 import kotlin.math.max
 import kotlin.math.min
 import org.json.JSONArray
@@ -74,6 +75,7 @@ class VolumeStore(context: Context) {
             .remove(markerPrefsKey(key))
             .remove(outputPrefsKey(key))
             .remove(mutePrefsKey(key))
+            .remove(attrPrefsKey(key))
             .apply()
     }
 
@@ -121,6 +123,33 @@ class VolumeStore(context: Context) {
 
     fun clearOutputDevice(key: VolumeKey) {
         prefs.edit().remove(outputPrefsKey(key)).apply()
+    }
+
+    fun getAudioAttributesOverride(key: VolumeKey): AudioAttributesOverride? {
+        val raw = prefs.getString(attrPrefsKey(key), null)
+        val parsed = parseAudioAttributesOverride(raw)
+        if (parsed != null) return parsed
+        if (key.userId != null) {
+            val fallback = prefs.getString(attrPrefsKey(VolumeKey(key.packageName, null)), null)
+            return parseAudioAttributesOverride(fallback)
+        }
+        return null
+    }
+
+    fun setAudioAttributesOverride(key: VolumeKey, override: AudioAttributesOverride?) {
+        if (override == null || override.isEmpty()) {
+            clearAudioAttributesOverride(key)
+            return
+        }
+        prefs.edit().putString(attrPrefsKey(key), override.toJson().toString()).apply()
+    }
+
+    fun clearAudioAttributesOverride(key: VolumeKey) {
+        prefs.edit().remove(attrPrefsKey(key)).apply()
+    }
+
+    fun countAudioAttributesOverrides(): Int {
+        return prefs.all.keys.count { it.startsWith(ATTR_PREFIX) }
     }
 
     fun getMuteBehavior(key: VolumeKey): MuteBehavior {
@@ -256,6 +285,21 @@ class VolumeStore(context: Context) {
                 obj.put("_resume_overrides", resumeObj)
             }
         }
+        val attrEntries = prefs.all.keys
+            .filter { it.startsWith(ATTR_PREFIX) }
+            .sorted()
+        if (attrEntries.isNotEmpty()) {
+            val attrObj = JSONObject()
+            for (attrKey in attrEntries) {
+                val storedKey = attrKey.removePrefix(ATTR_PREFIX)
+                val raw = prefs.getString(attrKey, null) ?: continue
+                val config = parseAudioAttributesOverride(raw) ?: continue
+                attrObj.put(storedKey, config.toJson())
+            }
+            if (attrObj.length() > 0) {
+                obj.put("_attr_overrides", attrObj)
+            }
+        }
         val defaultMute = getDefaultMuteBehavior()
         if (defaultMute != MuteBehavior.MUTE_ONLY) {
             obj.put("_mute_default", defaultMute.id)
@@ -334,6 +378,17 @@ class VolumeStore(context: Context) {
                 val raw = resumeObj.optString(storageKey)
                 val override = parseBooleanOverride(raw) ?: continue
                 editor.putString(RESUME_PREFIX + storageKey, if (override) "on" else "off")
+            }
+        }
+        val attrObj = obj.optJSONObject("_attr_overrides")
+        if (attrObj != null) {
+            val keys = attrObj.keys()
+            while (keys.hasNext()) {
+                val storageKey = keys.next()
+                if (storageKey.isBlank()) continue
+                val raw = attrObj.optJSONObject(storageKey) ?: continue
+                val config = parseAudioAttributesOverride(raw) ?: continue
+                editor.putString(ATTR_PREFIX + storageKey, config.toJson().toString())
             }
         }
         val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", ""))
@@ -458,11 +513,37 @@ class VolumeStore(context: Context) {
         }
     }
 
+    data class AudioAttributesOverride(
+        val usage: Int?,
+        val contentType: Int?,
+    ) {
+        fun isEmpty(): Boolean = usage == null && contentType == null
+
+        fun matches(attributes: AudioAttributes?): Boolean {
+            if (attributes == null) return false
+            if (usage != null && attributes.usage != usage) return false
+            if (contentType != null && attributes.contentType != contentType) return false
+            return true
+        }
+
+        fun toJson(): JSONObject {
+            val obj = JSONObject()
+            if (usage != null) {
+                obj.put("usage", usage)
+            }
+            if (contentType != null) {
+                obj.put("content_type", contentType)
+            }
+            return obj
+        }
+    }
+
     companion object {
         private const val MARKER_PREFIX = "_markers:"
         private const val OUTPUT_PREFIX = "_output:"
         private const val MUTE_PREFIX = "_mute:"
         private const val RESUME_PREFIX = "_resume:"
+        private const val ATTR_PREFIX = "_attr:"
         private const val DEFAULT_MUTE_KEY = "_mute_default"
         private const val RULE_GROUPS_KEY = "_rule_groups"
         private const val RULES_KEY = "_rules"
@@ -498,6 +579,10 @@ class VolumeStore(context: Context) {
 
         private fun resumePrefsKey(key: VolumeKey): String {
             return RESUME_PREFIX + key.storageKey()
+        }
+
+        private fun attrPrefsKey(key: VolumeKey): String {
+            return ATTR_PREFIX + key.storageKey()
         }
 
         private fun parseBooleanOverride(value: String?): Boolean? {
@@ -553,6 +638,19 @@ class VolumeStore(context: Context) {
             val address = obj.optString("address").takeIf { it.isNotBlank() }
             val name = obj.optString("name").takeIf { it.isNotBlank() }
             return OutputDevice(type, address, name)
+        }
+
+        private fun parseAudioAttributesOverride(raw: String?): AudioAttributesOverride? {
+            if (raw.isNullOrBlank()) return null
+            val obj = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+            return parseAudioAttributesOverride(obj)
+        }
+
+        private fun parseAudioAttributesOverride(obj: JSONObject): AudioAttributesOverride? {
+            val usage = obj.optInt("usage", -1).takeIf { it >= 0 }
+            val contentType = obj.optInt("content_type", -1).takeIf { it >= 0 }
+            if (usage == null && contentType == null) return null
+            return AudioAttributesOverride(usage, contentType)
         }
 
         private fun parseRuleGroups(raw: String?): List<RuleGroup>? {

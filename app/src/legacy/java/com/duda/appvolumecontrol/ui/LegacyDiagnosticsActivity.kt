@@ -100,12 +100,14 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
             0 -> "no"
             else -> "-"
         }
+        val attrOverrideCount = volumeStore.countAudioAttributesOverrides()
         val lines = listOf(
             "SDK: ${Build.VERSION.SDK_INT}",
             "App package: $packageName",
             "App version: ${getAppVersion()}",
             "Legacy mode: per-app volume disabled",
             "Stored presets: ${volumeStore.countPresets()}",
+            "Per-app audio attribute overrides: $attrOverrideCount",
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",

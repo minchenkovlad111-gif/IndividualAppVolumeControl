@@ -137,6 +137,20 @@ class PlaybackControllerService : Service() {
             val muteBehavior = volumeStore.getMuteBehavior(volumeKey)
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${entry.config.hashCode()}"
+            val resumeOverride = volumeStore.getAutoResumeOverride(volumeKey)
+            val resumeAllowed = resumeOverride ?: audioSettings.isAutoResumeEnabled()
+            val attrOverride = volumeStore.getAudioAttributesOverride(volumeKey)
+            if (attrOverride != null && !attrOverride.matches(entry.config.audioAttributes)) {
+                if (lastPausedKeys.contains(key) && resumeAllowed) {
+                    val resumed = PlaybackUtils.playPlayer(entry.config)
+                    if (resumed) {
+                        lastPausedKeys.remove(key)
+                    } else {
+                        Log.w(TAG, "Failed to resume player for $packageName")
+                    }
+                }
+                continue
+            }
             activeKeys.add(key)
             val current = lastApplied[key]
             if (current != null && current == desiredVolume) continue
@@ -162,8 +176,6 @@ class PlaybackControllerService : Service() {
                     }
                 }
             }
-            val resumeOverride = volumeStore.getAutoResumeOverride(volumeKey)
-            val resumeAllowed = resumeOverride ?: audioSettings.isAutoResumeEnabled()
             if (!shouldPause && lastPausedKeys.contains(key) && resumeAllowed) {
                 val resumed = PlaybackUtils.playPlayer(entry.config)
                 if (resumed) {
