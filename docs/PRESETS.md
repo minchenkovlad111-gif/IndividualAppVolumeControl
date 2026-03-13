@@ -10,6 +10,7 @@ Presets can be exported/imported via the Diagnostics screen using JSON.
 - Optional marker configs are stored under `_marker_configs` keyed by the same storage key.
 - Optional output configs are stored under `_output_configs` keyed by the same storage key.
 - Optional mute behaviors are stored under `_mute_behaviors` keyed by the same storage key.
+- Optional default mute behavior is stored under `_mute_default`.
 - Optional rule groups are stored under `_rule_groups`.
 - Optional rules are stored under `_rules`.
 
@@ -40,6 +41,7 @@ Example:
   "_mute_behaviors": {
     "com.example.music": "mute_pause"
   },
+  "_mute_default": "mute_pause",
   "_rule_groups": [
     {
       "version": 1,
@@ -78,6 +80,7 @@ Example:
 - `_marker_configs` is optional; invalid entries are ignored on import.
 - `_output_configs` is optional; invalid entries are ignored on import.
 - `_mute_behaviors` is optional; invalid entries are ignored on import.
+- `_mute_default` is optional; invalid entries are ignored on import.
 - `_rule_groups` is optional; invalid entries are ignored on import.
 - `_rules` is optional; invalid entries are ignored on import.
 - If a profile-specific key is missing, the app falls back to the global package preset.

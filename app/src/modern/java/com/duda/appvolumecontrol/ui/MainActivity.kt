@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
     private lateinit var overlayAutoHideToggle: CheckBox
+    private lateinit var defaultMuteToggle: CheckBox
     private lateinit var bluetoothPermissionButton: Button
     private lateinit var rulesButton: Button
     private var overlayUpdating: Boolean = false
@@ -300,6 +301,31 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val audioSettingsTitle = TextView(this).apply {
+            text = "Audio settings"
+            textSize = 16f
+            setPadding(0, 16, 0, 8)
+        }
+
+        val audioSettingsHint = TextView(this).apply {
+            text = "Applies when a preset volume hits 0%."
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
+
+        defaultMuteToggle = CheckBox(this).apply {
+            text = "Mute pauses playback by default"
+            isChecked = volumeStore.getDefaultMuteBehavior() == VolumeStore.MuteBehavior.MUTE_AND_PAUSE
+            setOnCheckedChangeListener { _, isChecked ->
+                val behavior = if (isChecked) {
+                    VolumeStore.MuteBehavior.MUTE_AND_PAUSE
+                } else {
+                    VolumeStore.MuteBehavior.MUTE_ONLY
+                }
+                volumeStore.setDefaultMuteBehavior(behavior)
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -440,6 +466,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayToggle)
         root.addView(overlayAutoToggle)
         root.addView(overlayAutoHideToggle)
+        root.addView(audioSettingsTitle)
+        root.addView(audioSettingsHint)
+        root.addView(defaultMuteToggle)
         root.addView(lastUpdatedView)
         root.addView(activeHeaderRow)
         root.addView(activeContainer)

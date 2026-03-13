@@ -129,9 +129,9 @@ class VolumeStore(context: Context) {
         if (parsed != null) return parsed
         if (key.userId != null) {
             val fallback = prefs.getString(mutePrefsKey(VolumeKey(key.packageName, null)), null)
-            return MuteBehavior.parse(fallback) ?: MuteBehavior.MUTE_ONLY
+            return MuteBehavior.parse(fallback) ?: getDefaultMuteBehavior()
         }
-        return MuteBehavior.MUTE_ONLY
+        return getDefaultMuteBehavior()
     }
 
     fun setMuteBehavior(key: VolumeKey, behavior: MuteBehavior) {
@@ -140,6 +140,15 @@ class VolumeStore(context: Context) {
 
     fun clearMuteBehavior(key: VolumeKey) {
         prefs.edit().remove(mutePrefsKey(key)).apply()
+    }
+
+    fun getDefaultMuteBehavior(): MuteBehavior {
+        val raw = prefs.getString(DEFAULT_MUTE_KEY, null)
+        return MuteBehavior.parse(raw) ?: MuteBehavior.MUTE_ONLY
+    }
+
+    fun setDefaultMuteBehavior(behavior: MuteBehavior) {
+        prefs.edit().putString(DEFAULT_MUTE_KEY, behavior.id).apply()
     }
 
     fun exportJson(): String {
@@ -200,6 +209,10 @@ class VolumeStore(context: Context) {
             if (muteObj.length() > 0) {
                 obj.put("_mute_behaviors", muteObj)
             }
+        }
+        val defaultMute = getDefaultMuteBehavior()
+        if (defaultMute != MuteBehavior.MUTE_ONLY) {
+            obj.put("_mute_default", defaultMute.id)
         }
         val ruleGroups = listRuleGroups()
         if (ruleGroups.isNotEmpty()) {
@@ -265,6 +278,10 @@ class VolumeStore(context: Context) {
                 val behavior = MuteBehavior.parse(raw) ?: continue
                 editor.putString(MUTE_PREFIX + storageKey, behavior.id)
             }
+        }
+        val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", null))
+        if (defaultMute != null) {
+            editor.putString(DEFAULT_MUTE_KEY, defaultMute.id)
         }
         val ruleGroups = parseRuleGroups(obj.optJSONArray("_rule_groups"))
         if (ruleGroups != null) {
@@ -388,6 +405,7 @@ class VolumeStore(context: Context) {
         private const val MARKER_PREFIX = "_markers:"
         private const val OUTPUT_PREFIX = "_output:"
         private const val MUTE_PREFIX = "_mute:"
+        private const val DEFAULT_MUTE_KEY = "_mute_default"
         private const val RULE_GROUPS_KEY = "_rule_groups"
         private const val RULES_KEY = "_rules"
 
