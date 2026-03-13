@@ -210,12 +210,13 @@ class PlaybackControllerService : Service() {
         lastPausedKeys.retainAll(pauseAppliedKeys)
         diagnosticsStore.recordLastApply(appliedCount)
         if (routeAttempted > 0) {
+            val detailBlob = truncateDetails(routeDetails, MAX_ROUTE_DETAIL_CHARS)
             diagnosticsStore.recordLastRouting(
                 attempted = routeAttempted,
                 applied = routeApplied,
                 missing = routeMissing,
                 failed = routeFailed,
-                details = routeDetails.joinToString(",")
+                details = detailBlob
             )
         }
         lastNotificationEntries = buildNotificationEntries(activeVolumeKeys)
@@ -512,6 +513,21 @@ class PlaybackControllerService : Service() {
         return "type=${device.type},addr=$address,name=$name"
     }
 
+    private fun truncateDetails(details: List<String>, maxChars: Int): String {
+        if (details.isEmpty()) return ""
+        val builder = StringBuilder()
+        for (entry in details) {
+            if (builder.isNotEmpty()) builder.append(',')
+            if (builder.length + entry.length > maxChars) {
+                if (builder.isNotEmpty()) builder.append(',')
+                builder.append("truncated")
+                break
+            }
+            builder.append(entry)
+        }
+        return builder.toString()
+    }
+
     private fun setupCallStateListener() {
         val telephonyManager = getSystemService(TelephonyManager::class.java) ?: return
         try {
@@ -581,6 +597,7 @@ class PlaybackControllerService : Service() {
         const val ACTION_LOCATION_REFRESH = "com.duda.appvolumecontrol.action.LOCATION_REFRESH"
         const val ACTION_LOCATION_SYNC = "com.duda.appvolumecontrol.action.LOCATION_SYNC"
         private const val NOTIF_MAX_ROWS = 3
+        private const val MAX_ROUTE_DETAIL_CHARS = 600
         private const val NOTIF_VOLUME_STEP = 0.05f
 
         fun requestReapply(context: Context) {
