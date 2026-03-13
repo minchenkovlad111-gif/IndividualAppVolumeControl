@@ -26,6 +26,7 @@ import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import android.media.AudioDeviceInfo
+import android.media.AudioAttributes
 import android.media.AudioManager
 import com.duda.appvolumecontrol.core.BluetoothInfoUtils
 
@@ -375,6 +376,14 @@ class ManageAppsActivity : AppCompatActivity() {
             }
         }
 
+        val attrOverride = volumeStore.getAudioAttributesOverride(entry)
+        val attrButton = Button(this).apply {
+            text = if (attrOverride != null) "Attrs ✓" else "Attrs"
+            setOnClickListener {
+                showAudioAttributesDialog(entry, label)
+            }
+        }
+
         val resumeOverride = volumeStore.getAutoResumeOverride(entry)
         val resumeButton = Button(this).apply {
             text = when (resumeOverride) {
@@ -409,6 +418,7 @@ class ManageAppsActivity : AppCompatActivity() {
         row.addView(nameContainer)
         row.addView(markerButton)
         row.addView(outputButton)
+        row.addView(attrButton)
         row.addView(resumeButton)
         row.addView(muteButton)
         row.addView(deleteButton)
@@ -739,6 +749,111 @@ class ManageAppsActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showAudioAttributesDialog(entry: VolumeStore.VolumeKey, label: String) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 0)
+        }
+
+        val hint = TextView(this).apply {
+            text = "Only apply volume changes when the playback session matches these attributes."
+            textSize = 12f
+        }
+
+        val usageLabel = TextView(this).apply {
+            text = "Usage (optional)"
+            textSize = 12f
+            setPadding(0, 12, 0, 0)
+        }
+        val usageOptions = buildUsageOptions()
+        val usageSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@ManageAppsActivity,
+                android.R.layout.simple_spinner_item,
+                usageOptions.map { it.label }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+
+        val contentLabel = TextView(this).apply {
+            text = "Content type (optional)"
+            textSize = 12f
+            setPadding(0, 12, 0, 0)
+        }
+        val contentOptions = buildContentTypeOptions()
+        val contentSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@ManageAppsActivity,
+                android.R.layout.simple_spinner_item,
+                contentOptions.map { it.label }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+
+        val current = volumeStore.getAudioAttributesOverride(entry)
+        val usageIndex = usageOptions.indexOfFirst { it.value == current?.usage }
+            .takeIf { it >= 0 } ?: 0
+        val contentIndex = contentOptions.indexOfFirst { it.value == current?.contentType }
+            .takeIf { it >= 0 } ?: 0
+        usageSpinner.setSelection(usageIndex)
+        contentSpinner.setSelection(contentIndex)
+
+        container.addView(hint)
+        container.addView(usageLabel)
+        container.addView(usageSpinner)
+        container.addView(contentLabel)
+        container.addView(contentSpinner)
+
+        AlertDialog.Builder(this)
+            .setTitle("Audio attributes for $label")
+            .setView(container)
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Clear") { _, _ ->
+                volumeStore.clearAudioAttributesOverride(entry)
+                refreshSavedList()
+                updateSearchResults()
+            }
+            .setPositiveButton("Save") { _, _ ->
+                val usage = usageOptions.getOrNull(usageSpinner.selectedItemPosition)?.value
+                val content = contentOptions.getOrNull(contentSpinner.selectedItemPosition)?.value
+                val override = VolumeStore.AudioAttributesOverride(usage, content)
+                volumeStore.setAudioAttributesOverride(entry, override)
+                refreshSavedList()
+                updateSearchResults()
+            }
+            .show()
+    }
+
+    private fun buildUsageOptions(): List<AttrOption> {
+        return listOf(
+            AttrOption(null, "Any usage"),
+            AttrOption(AudioAttributes.USAGE_MEDIA, "Media"),
+            AttrOption(AudioAttributes.USAGE_GAME, "Game"),
+            AttrOption(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE, "Navigation"),
+            AttrOption(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION, "Sonification"),
+            AttrOption(AudioAttributes.USAGE_ALARM, "Alarm"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION, "Notification"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION_RINGTONE, "Ringtone"),
+            AttrOption(AudioAttributes.USAGE_VOICE_COMMUNICATION, "Voice call"),
+            AttrOption(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING, "Voice signaling"),
+            AttrOption(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY, "Accessibility"),
+            AttrOption(AudioAttributes.USAGE_ASSISTANT, "Assistant"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_REQUEST, "Comm request"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT, "Comm instant"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_DELAYED, "Comm delayed"),
+            AttrOption(AudioAttributes.USAGE_NOTIFICATION_EVENT, "Comm event"),
+        )
+    }
+
+    private fun buildContentTypeOptions(): List<AttrOption> {
+        return listOf(
+            AttrOption(null, "Any content type"),
+            AttrOption(AudioAttributes.CONTENT_TYPE_MUSIC, "Music"),
+            AttrOption(AudioAttributes.CONTENT_TYPE_SPEECH, "Speech"),
+            AttrOption(AudioAttributes.CONTENT_TYPE_MOVIE, "Movie"),
+            AttrOption(AudioAttributes.CONTENT_TYPE_SONIFICATION, "Sonification"),
+            AttrOption(AudioAttributes.CONTENT_TYPE_UNKNOWN, "Unknown"),
+        )
+    }
+
     private fun maybeShowBluetoothInfo(device: VolumeStore.OutputDevice?) {
         if (device == null) return
         if (!isBluetoothType(device.type)) return
@@ -787,6 +902,11 @@ class ManageAppsActivity : AppCompatActivity() {
 
     private data class OutputOption(
         val device: VolumeStore.OutputDevice?,
+        val label: String,
+    )
+
+    private data class AttrOption(
+        val value: Int?,
         val label: String,
     )
 

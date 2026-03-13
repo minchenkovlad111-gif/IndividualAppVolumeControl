@@ -9,11 +9,11 @@
 7. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
 8. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
 9. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
-10. Per-app audio attributes/stream mapping settings (usage/content type overrides).
-11. Audio routing between apps (virtual output sources and sinks).
-12. Network audio routing (send/receive per-app audio streams over LAN).
-13. Virtual microphone + effects (voice changer pipeline).
-14. Audio sharing to other devices (LAN streaming + Linux client).
+10. Audio routing between apps (virtual output sources and sinks).
+11. Network audio routing (send/receive per-app audio streams over LAN).
+12. Virtual microphone + effects (voice changer pipeline).
+13. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
 1. Rules editor enhancements: geofencing for location rules.
+2. Per-app audio attributes overrides UI (usage/content type filters).
