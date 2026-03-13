@@ -23,6 +23,7 @@ import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.SetupStatus
+import com.duda.appvolumecontrol.core.AudioSettingsPrefs
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.core.ModuleInstaller
 import java.text.SimpleDateFormat
@@ -241,6 +242,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val ruleSummary = buildRuleSummary(enabledRules)
         val muteDefault = volumeStore.getDefaultMuteBehavior()
         val muteOverrideCount = volumeStore.countMuteBehaviorOverrides()
+        val audioSettings = AudioSettingsPrefs(this)
         val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
@@ -309,6 +311,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Rule names: $ruleSummary",
             "Default mute behavior: ${muteDefault.id}",
             "Per-app mute overrides: $muteOverrideCount",
+            "Auto-resume after pause rules: ${audioSettings.isAutoResumeEnabled()}",
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",

@@ -16,6 +16,7 @@
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets, plus audio focus actions (pause/duck/mute).
 - Per-app mute behavior: choose mute-only or mute+pause when a preset is set to 0%.
 - Default mute behavior: global fallback for apps without a per-app override.
+- Auto-resume toggle: opt-in to resume playback when pause rules/mute no longer apply.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
 - Location updates can run in the background via a broadcast receiver when enabled and permitted.
 - Optional geofencing is handled via Play services and updates the current location id on entry/exit.

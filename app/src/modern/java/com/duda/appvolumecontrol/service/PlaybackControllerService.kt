@@ -26,11 +26,13 @@ import com.duda.appvolumecontrol.core.RulesEngine
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.LocationRuleStore
 import com.duda.appvolumecontrol.core.LocationRuleManager
+import com.duda.appvolumecontrol.core.AudioSettingsPrefs
 
 class PlaybackControllerService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    private val audioSettings by lazy { AudioSettingsPrefs(this) }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
     private val geofenceRuleManager by lazy { GeofenceRuleManager(this) }
@@ -156,7 +158,7 @@ class PlaybackControllerService : Service() {
                         Log.w(TAG, "Failed to pause player for $packageName")
                     }
                 }
-            } else if (lastPausedKeys.contains(key)) {
+            } else if (lastPausedKeys.contains(key) && audioSettings.isAutoResumeEnabled()) {
                 val resumed = PlaybackUtils.playPlayer(entry.config)
                 if (resumed) {
                     lastPausedKeys.remove(key)

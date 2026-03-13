@@ -45,6 +45,7 @@ import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.ProfileUtils
 import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
+import com.duda.appvolumecontrol.core.AudioSettingsPrefs
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.service.VolumeOverlayService
 import com.duda.appvolumecontrol.ui.SeekBarTicksView
@@ -77,6 +78,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayPermissionButton: Button
     private lateinit var overlayAutoHideToggle: CheckBox
     private lateinit var defaultMuteToggle: CheckBox
+    private lateinit var autoResumeToggle: CheckBox
     private lateinit var bluetoothPermissionButton: Button
     private lateinit var rulesButton: Button
     private var overlayUpdating: Boolean = false
@@ -326,6 +328,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val audioSettingsPrefs = AudioSettingsPrefs(this)
+        autoResumeToggle = CheckBox(this).apply {
+            text = "Auto-resume after pause rules"
+            isChecked = audioSettingsPrefs.isAutoResumeEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                audioSettingsPrefs.setAutoResumeEnabled(isChecked)
+            }
+        }
+
         lastUpdatedView = TextView(this).apply {
             text = "Last updated: -"
             textSize = 12f
@@ -469,6 +480,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(audioSettingsTitle)
         root.addView(audioSettingsHint)
         root.addView(defaultMuteToggle)
+        root.addView(autoResumeToggle)
         root.addView(lastUpdatedView)
         root.addView(activeHeaderRow)
         root.addView(activeContainer)

@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added auto-resume toggle in the main Audio settings section and diagnostics reporting.
 - Added best-effort auto-resume for rule/mute-triggered pauses.
 - Added diagnostics reporting for default mute behavior and per-app mute override count.
 - Added global default mute behavior setting in the main UI.
