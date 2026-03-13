@@ -9,6 +9,18 @@ import org.json.JSONObject
 class VolumeStore(context: Context) {
     private val prefs = context.getSharedPreferences("volume_store", Context.MODE_PRIVATE)
 
+    enum class MuteBehavior(val id: String) {
+        MUTE_ONLY("mute_only"),
+        MUTE_AND_PAUSE("mute_pause");
+
+        companion object {
+            fun parse(value: String?): MuteBehavior? {
+                if (value.isNullOrBlank()) return null
+                return entries.firstOrNull { it.id.equals(value, ignoreCase = true) }
+            }
+        }
+    }
+
     fun setVolume(packageName: String, volume: Float, userId: Int? = null) {
         if (volume.isNaN()) return
         val normalized = min(1f, max(0f, volume))
@@ -61,6 +73,7 @@ class VolumeStore(context: Context) {
             .remove(buildKey(packageName, userId))
             .remove(markerPrefsKey(key))
             .remove(outputPrefsKey(key))
+            .remove(mutePrefsKey(key))
             .apply()
     }
 
@@ -110,6 +123,25 @@ class VolumeStore(context: Context) {
         prefs.edit().remove(outputPrefsKey(key)).apply()
     }
 
+    fun getMuteBehavior(key: VolumeKey): MuteBehavior {
+        val raw = prefs.getString(mutePrefsKey(key), null)
+        val parsed = MuteBehavior.parse(raw)
+        if (parsed != null) return parsed
+        if (key.userId != null) {
+            val fallback = prefs.getString(mutePrefsKey(VolumeKey(key.packageName, null)), null)
+            return MuteBehavior.parse(fallback) ?: MuteBehavior.MUTE_ONLY
+        }
+        return MuteBehavior.MUTE_ONLY
+    }
+
+    fun setMuteBehavior(key: VolumeKey, behavior: MuteBehavior) {
+        prefs.edit().putString(mutePrefsKey(key), behavior.id).apply()
+    }
+
+    fun clearMuteBehavior(key: VolumeKey) {
+        prefs.edit().remove(mutePrefsKey(key)).apply()
+    }
+
     fun exportJson(): String {
         val obj = JSONObject()
         obj.put("_version", 1)
@@ -152,6 +184,21 @@ class VolumeStore(context: Context) {
             }
             if (outputObj.length() > 0) {
                 obj.put("_output_configs", outputObj)
+            }
+        }
+        val muteEntries = prefs.all.keys
+            .filter { it.startsWith(MUTE_PREFIX) }
+            .sorted()
+        if (muteEntries.isNotEmpty()) {
+            val muteObj = JSONObject()
+            for (muteKey in muteEntries) {
+                val storedKey = muteKey.removePrefix(MUTE_PREFIX)
+                val raw = prefs.getString(muteKey, null)
+                val behavior = MuteBehavior.parse(raw) ?: continue
+                muteObj.put(storedKey, behavior.id)
+            }
+            if (muteObj.length() > 0) {
+                obj.put("_mute_behaviors", muteObj)
             }
         }
         val ruleGroups = listRuleGroups()
@@ -206,6 +253,17 @@ class VolumeStore(context: Context) {
                 val raw = outputObj.optJSONObject(storageKey) ?: continue
                 val config = parseOutputDevice(raw) ?: continue
                 editor.putString(OUTPUT_PREFIX + storageKey, config.toJson().toString())
+            }
+        }
+        val muteObj = obj.optJSONObject("_mute_behaviors")
+        if (muteObj != null) {
+            val keys = muteObj.keys()
+            while (keys.hasNext()) {
+                val storageKey = keys.next()
+                if (storageKey.isBlank()) continue
+                val raw = muteObj.optString(storageKey)
+                val behavior = MuteBehavior.parse(raw) ?: continue
+                editor.putString(MUTE_PREFIX + storageKey, behavior.id)
             }
         }
         val ruleGroups = parseRuleGroups(obj.optJSONArray("_rule_groups"))
@@ -329,6 +387,7 @@ class VolumeStore(context: Context) {
     companion object {
         private const val MARKER_PREFIX = "_markers:"
         private const val OUTPUT_PREFIX = "_output:"
+        private const val MUTE_PREFIX = "_mute:"
         private const val RULE_GROUPS_KEY = "_rule_groups"
         private const val RULES_KEY = "_rules"
 
@@ -355,6 +414,10 @@ class VolumeStore(context: Context) {
 
         private fun outputPrefsKey(key: VolumeKey): String {
             return OUTPUT_PREFIX + key.storageKey()
+        }
+
+        private fun mutePrefsKey(key: VolumeKey): String {
+            return MUTE_PREFIX + key.storageKey()
         }
 
         private fun parseMarkerConfig(raw: String?): MarkerConfig? {

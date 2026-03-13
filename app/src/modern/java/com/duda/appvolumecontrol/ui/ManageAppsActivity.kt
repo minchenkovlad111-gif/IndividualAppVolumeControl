@@ -375,6 +375,14 @@ class ManageAppsActivity : AppCompatActivity() {
             }
         }
 
+        val muteBehavior = volumeStore.getMuteBehavior(entry)
+        val muteButton = Button(this).apply {
+            text = if (muteBehavior == VolumeStore.MuteBehavior.MUTE_AND_PAUSE) "Mute+Pause ✓" else "Mute behavior"
+            setOnClickListener {
+                showMuteBehaviorDialog(entry, label)
+            }
+        }
+
         val deleteButton = Button(this).apply {
             text = "Remove"
             setOnClickListener {
@@ -389,6 +397,7 @@ class ManageAppsActivity : AppCompatActivity() {
         row.addView(nameContainer)
         row.addView(markerButton)
         row.addView(outputButton)
+        row.addView(muteButton)
         row.addView(deleteButton)
         return row
     }
@@ -630,6 +639,48 @@ class ManageAppsActivity : AppCompatActivity() {
             .also {
                 maybeShowBluetoothInfo(options.getOrNull(selectedIndex)?.device)
             }
+    }
+
+    private fun showMuteBehaviorDialog(entry: VolumeStore.VolumeKey, label: String) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 0)
+        }
+        val hint = TextView(this).apply {
+            text = "Choose what happens when this app is muted."
+            textSize = 12f
+        }
+        val options = listOf("Mute only", "Mute + pause playback")
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@ManageAppsActivity,
+                android.R.layout.simple_spinner_item,
+                options
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+        val current = volumeStore.getMuteBehavior(entry)
+        spinner.setSelection(if (current == VolumeStore.MuteBehavior.MUTE_AND_PAUSE) 1 else 0)
+        container.addView(hint)
+        container.addView(spinner)
+
+        AlertDialog.Builder(this)
+            .setTitle("Mute behavior for $label")
+            .setView(container)
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Clear") { _, _ ->
+                volumeStore.clearMuteBehavior(entry)
+                refreshSavedList()
+            }
+            .setPositiveButton("Save") { _, _ ->
+                val behavior = if (spinner.selectedItemPosition == 1) {
+                    VolumeStore.MuteBehavior.MUTE_AND_PAUSE
+                } else {
+                    VolumeStore.MuteBehavior.MUTE_ONLY
+                }
+                volumeStore.setMuteBehavior(entry, behavior)
+                refreshSavedList()
+            }
+            .show()
     }
 
     private fun maybeShowBluetoothInfo(device: VolumeStore.OutputDevice?) {

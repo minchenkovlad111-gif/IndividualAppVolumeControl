@@ -129,6 +129,7 @@ class PlaybackControllerService : Service() {
             } else {
                 ruleEffects.volumeOverrides[volumeKey] ?: (volumeStore.getVolume(volumeKey) ?: 1f)
             }
+            val muteBehavior = volumeStore.getMuteBehavior(volumeKey)
             val outputDevice = volumeStore.getOutputDevice(volumeKey)
             val key = "${volumeKey.storageKey()}:${entry.config.hashCode()}"
             activeKeys.add(key)
@@ -143,7 +144,9 @@ class PlaybackControllerService : Service() {
                 Log.w(TAG, "Failed to apply volume for $packageName")
             }
 
-            if (pauseTargets.contains(volumeKey)) {
+            val shouldPause = pauseTargets.contains(volumeKey) ||
+                (desiredVolume <= 0f && muteBehavior == VolumeStore.MuteBehavior.MUTE_AND_PAUSE)
+            if (shouldPause) {
                 pauseAppliedKeys.add(key)
                 if (!lastPausedKeys.contains(key)) {
                     val paused = PlaybackUtils.pausePlayer(entry.config)

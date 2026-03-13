@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added per-app mute behavior (mute-only vs mute+pause) stored with presets.
 - Added audio focus rule actions (pause/duck/mute) with rule editor support.
 - Added best-effort player pause support for focus rules.
 - Added boot receiver to restart playback service and overlay watcher when enabled.
