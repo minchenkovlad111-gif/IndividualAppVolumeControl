@@ -243,6 +243,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val muteDefault = volumeStore.getDefaultMuteBehavior()
         val muteOverrideCount = volumeStore.countMuteBehaviorOverrides()
         val audioSettings = AudioSettingsPrefs(this)
+        val resumeOverrideCount = volumeStore.countAutoResumeOverrides()
         val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
@@ -312,6 +313,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Default mute behavior: ${muteDefault.id}",
             "Per-app mute overrides: $muteOverrideCount",
             "Auto-resume after pause rules: ${audioSettings.isAutoResumeEnabled()}",
+            "Per-app auto-resume overrides: $resumeOverrideCount",
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",

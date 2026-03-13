@@ -375,6 +375,18 @@ class ManageAppsActivity : AppCompatActivity() {
             }
         }
 
+        val resumeOverride = volumeStore.getAutoResumeOverride(entry)
+        val resumeButton = Button(this).apply {
+            text = when (resumeOverride) {
+                true -> "Auto-resume ✓"
+                false -> "No-resume ✓"
+                null -> "Auto-resume"
+            }
+            setOnClickListener {
+                showAutoResumeDialog(entry, label)
+            }
+        }
+
         val muteBehavior = volumeStore.getMuteBehavior(entry)
         val muteButton = Button(this).apply {
             text = if (muteBehavior == VolumeStore.MuteBehavior.MUTE_AND_PAUSE) "Mute+Pause ✓" else "Mute behavior"
@@ -397,6 +409,7 @@ class ManageAppsActivity : AppCompatActivity() {
         row.addView(nameContainer)
         row.addView(markerButton)
         row.addView(outputButton)
+        row.addView(resumeButton)
         row.addView(muteButton)
         row.addView(deleteButton)
         return row
@@ -678,6 +691,49 @@ class ManageAppsActivity : AppCompatActivity() {
                     VolumeStore.MuteBehavior.MUTE_ONLY
                 }
                 volumeStore.setMuteBehavior(entry, behavior)
+                refreshSavedList()
+            }
+            .show()
+    }
+
+    private fun showAutoResumeDialog(entry: VolumeStore.VolumeKey, label: String) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 0)
+        }
+        val hint = TextView(this).apply {
+            text = "Overrides the global auto-resume setting for this app."
+            textSize = 12f
+        }
+        val options = listOf("Use default", "Always auto-resume", "Never auto-resume")
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@ManageAppsActivity,
+                android.R.layout.simple_spinner_item,
+                options
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+        val current = volumeStore.getAutoResumeOverride(entry)
+        val selected = when (current) {
+            null -> 0
+            true -> 1
+            false -> 2
+        }
+        spinner.setSelection(selected)
+        container.addView(hint)
+        container.addView(spinner)
+
+        AlertDialog.Builder(this)
+            .setTitle("Auto-resume for $label")
+            .setView(container)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Save") { _, _ ->
+                val override = when (spinner.selectedItemPosition) {
+                    1 -> true
+                    2 -> false
+                    else -> null
+                }
+                volumeStore.setAutoResumeOverride(entry, override)
                 refreshSavedList()
             }
             .show()

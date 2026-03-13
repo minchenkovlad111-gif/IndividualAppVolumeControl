@@ -146,6 +146,33 @@ class VolumeStore(context: Context) {
         return prefs.all.keys.count { it.startsWith(MUTE_PREFIX) }
     }
 
+    fun getAutoResumeOverride(key: VolumeKey): Boolean? {
+        val raw = prefs.getString(resumePrefsKey(key), null)
+        val parsed = parseBooleanOverride(raw)
+        if (parsed != null) return parsed
+        if (key.userId != null) {
+            val fallback = prefs.getString(resumePrefsKey(VolumeKey(key.packageName, null)), null)
+            return parseBooleanOverride(fallback)
+        }
+        return null
+    }
+
+    fun setAutoResumeOverride(key: VolumeKey, enabled: Boolean?) {
+        if (enabled == null) {
+            clearAutoResumeOverride(key)
+            return
+        }
+        prefs.edit().putString(resumePrefsKey(key), if (enabled) "on" else "off").apply()
+    }
+
+    fun clearAutoResumeOverride(key: VolumeKey) {
+        prefs.edit().remove(resumePrefsKey(key)).apply()
+    }
+
+    fun countAutoResumeOverrides(): Int {
+        return prefs.all.keys.count { it.startsWith(RESUME_PREFIX) }
+    }
+
     fun getDefaultMuteBehavior(): MuteBehavior {
         val raw = prefs.getString(DEFAULT_MUTE_KEY, null)
         return MuteBehavior.parse(raw) ?: MuteBehavior.MUTE_ONLY
@@ -212,6 +239,21 @@ class VolumeStore(context: Context) {
             }
             if (muteObj.length() > 0) {
                 obj.put("_mute_behaviors", muteObj)
+            }
+        }
+        val resumeEntries = prefs.all.keys
+            .filter { it.startsWith(RESUME_PREFIX) }
+            .sorted()
+        if (resumeEntries.isNotEmpty()) {
+            val resumeObj = JSONObject()
+            for (resumeKey in resumeEntries) {
+                val storedKey = resumeKey.removePrefix(RESUME_PREFIX)
+                val raw = prefs.getString(resumeKey, null)
+                val override = parseBooleanOverride(raw) ?: continue
+                resumeObj.put(storedKey, if (override) "on" else "off")
+            }
+            if (resumeObj.length() > 0) {
+                obj.put("_resume_overrides", resumeObj)
             }
         }
         val defaultMute = getDefaultMuteBehavior()
@@ -281,6 +323,17 @@ class VolumeStore(context: Context) {
                 val raw = muteObj.optString(storageKey)
                 val behavior = MuteBehavior.parse(raw) ?: continue
                 editor.putString(MUTE_PREFIX + storageKey, behavior.id)
+            }
+        }
+        val resumeObj = obj.optJSONObject("_resume_overrides")
+        if (resumeObj != null) {
+            val keys = resumeObj.keys()
+            while (keys.hasNext()) {
+                val storageKey = keys.next()
+                if (storageKey.isBlank()) continue
+                val raw = resumeObj.optString(storageKey)
+                val override = parseBooleanOverride(raw) ?: continue
+                editor.putString(RESUME_PREFIX + storageKey, if (override) "on" else "off")
             }
         }
         val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", null))
@@ -409,6 +462,7 @@ class VolumeStore(context: Context) {
         private const val MARKER_PREFIX = "_markers:"
         private const val OUTPUT_PREFIX = "_output:"
         private const val MUTE_PREFIX = "_mute:"
+        private const val RESUME_PREFIX = "_resume:"
         private const val DEFAULT_MUTE_KEY = "_mute_default"
         private const val RULE_GROUPS_KEY = "_rule_groups"
         private const val RULES_KEY = "_rules"
@@ -440,6 +494,19 @@ class VolumeStore(context: Context) {
 
         private fun mutePrefsKey(key: VolumeKey): String {
             return MUTE_PREFIX + key.storageKey()
+        }
+
+        private fun resumePrefsKey(key: VolumeKey): String {
+            return RESUME_PREFIX + key.storageKey()
+        }
+
+        private fun parseBooleanOverride(value: String?): Boolean? {
+            if (value.isNullOrBlank()) return null
+            return when (value.lowercase()) {
+                "on", "true", "1", "yes" -> true
+                "off", "false", "0", "no" -> false
+                else -> null
+            }
         }
 
         private fun parseMarkerConfig(raw: String?): MarkerConfig? {

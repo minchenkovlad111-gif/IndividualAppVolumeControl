@@ -158,7 +158,9 @@ class PlaybackControllerService : Service() {
                         Log.w(TAG, "Failed to pause player for $packageName")
                     }
                 }
-            } else if (lastPausedKeys.contains(key) && audioSettings.isAutoResumeEnabled()) {
+            val resumeOverride = volumeStore.getAutoResumeOverride(volumeKey)
+            val resumeAllowed = resumeOverride ?: audioSettings.isAutoResumeEnabled()
+            if (!shouldPause && lastPausedKeys.contains(key) && resumeAllowed) {
                 val resumed = PlaybackUtils.playPlayer(entry.config)
                 if (resumed) {
                     lastPausedKeys.remove(key)
