@@ -6,6 +6,8 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Suppressed deprecated PhoneStateListener usage warnings in PlaybackControllerService and annotated deprecated override; suppressed location permission lint on removeUpdates in LocationRuleManager.
+- Fixed PlaybackControllerService pause/resume parsing issue, corrected VolumeStore default mute import parsing, and cleaned SetupStatus flag helper; added explicit deprecation annotation for LocationRuleManager status callback.
 - Added per-app auto-resume overrides in Manage Apps and diagnostics reporting.
 - Added auto-resume toggle in the main Audio settings section and diagnostics reporting.
 - Added best-effort auto-resume for rule/mute-triggered pauses.
@@ -206,4 +208,4 @@
 - Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
-- 2026-03-12
+- 2026-03-13

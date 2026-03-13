@@ -31,7 +31,7 @@ object SetupStatus {
     fun privilegeInfo(appInfo: ApplicationInfo): PrivilegeInfo {
         val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
         val isUpdatedSystemApp = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-        val flagPrivileged = isFlagSet(appInfo, "FLAG_PRIVILEGED", appInfo.flags)
+        val flagPrivileged = isFlagSet("FLAG_PRIVILEGED", appInfo.flags)
         val privateFlagPrivileged = isPrivateFlagSet(appInfo, "PRIVATE_FLAG_PRIVILEGED")
         val isPrivileged = flagPrivileged || privateFlagPrivileged
         return PrivilegeInfo(
@@ -50,7 +50,7 @@ object SetupStatus {
         return privilegeInfo(appInfo).isPrivilegedApp
     }
 
-    private fun isFlagSet(appInfo: ApplicationInfo, fieldName: String, flags: Int): Boolean {
+    private fun isFlagSet(fieldName: String, flags: Int): Boolean {
         val flag = runCatching {
             ApplicationInfo::class.java.getDeclaredField(fieldName).apply { isAccessible = true }.getInt(null)
         }.getOrNull() ?: return false

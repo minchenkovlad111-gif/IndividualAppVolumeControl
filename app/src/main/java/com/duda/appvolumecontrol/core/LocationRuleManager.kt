@@ -24,6 +24,7 @@ class LocationRuleManager(private val context: Context) {
 
         override fun onProviderEnabled(provider: String) = Unit
         override fun onProviderDisabled(provider: String) = Unit
+        @Deprecated("Deprecated in Android API")
         @Suppress("DEPRECATION")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
     }
@@ -49,6 +50,7 @@ class LocationRuleManager(private val context: Context) {
         syncBackgroundUpdates()
     }
 
+    @SuppressLint("MissingPermission")
     fun stop() {
         if (!running) return
         running = false
@@ -106,6 +108,7 @@ class LocationRuleManager(private val context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun cancelBackgroundUpdates() {
         val pendingIntent = buildPendingIntent()
         locationManager.removeUpdates(pendingIntent)

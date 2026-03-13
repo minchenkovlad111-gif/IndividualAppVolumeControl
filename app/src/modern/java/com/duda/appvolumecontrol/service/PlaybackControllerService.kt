@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.duda.appvolumecontrol.service
 
 import android.app.Notification
@@ -28,6 +30,7 @@ import com.duda.appvolumecontrol.core.LocationRuleStore
 import com.duda.appvolumecontrol.core.LocationRuleManager
 import com.duda.appvolumecontrol.core.AudioSettingsPrefs
 
+@Suppress("DEPRECATION")
 class PlaybackControllerService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
@@ -158,6 +161,7 @@ class PlaybackControllerService : Service() {
                         Log.w(TAG, "Failed to pause player for $packageName")
                     }
                 }
+            }
             val resumeOverride = volumeStore.getAutoResumeOverride(volumeKey)
             val resumeAllowed = resumeOverride ?: audioSettings.isAutoResumeEnabled()
             if (!shouldPause && lastPausedKeys.contains(key) && resumeAllowed) {
@@ -516,6 +520,7 @@ class PlaybackControllerService : Service() {
             } else {
                 @Suppress("DEPRECATION")
                 val listener = object : PhoneStateListener() {
+                    @Deprecated("Deprecated in Android API")
                     override fun onCallStateChanged(state: Int, phoneNumber: String?) {
                         handleCallState(state)
                     }

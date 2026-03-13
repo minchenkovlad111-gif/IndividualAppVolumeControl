@@ -2,6 +2,7 @@ package com.duda.appvolumecontrol.core
 
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -55,9 +56,15 @@ class LocationRuleStore(context: Context) {
     }
 
     fun hasLocationPermission(context: Context): Boolean {
-        val fine = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+        val fine = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+        ) ==
             PackageManager.PERMISSION_GRANTED
-        val coarse = context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+        val coarse = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) ==
             PackageManager.PERMISSION_GRANTED
         return fine || coarse
     }

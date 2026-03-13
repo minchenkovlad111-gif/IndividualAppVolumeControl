@@ -336,7 +336,7 @@ class VolumeStore(context: Context) {
                 editor.putString(RESUME_PREFIX + storageKey, if (override) "on" else "off")
             }
         }
-        val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", null))
+        val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", ""))
         if (defaultMute != null) {
             editor.putString(DEFAULT_MUTE_KEY, defaultMute.id)
         }
