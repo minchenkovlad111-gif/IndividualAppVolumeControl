@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added diagnostics reporting for default mute behavior and per-app mute override count.
 - Added global default mute behavior setting in the main UI.
 - Added per-app mute behavior (mute-only vs mute+pause) stored with presets.
 - Added audio focus rule actions (pause/duck/mute) with rule editor support.

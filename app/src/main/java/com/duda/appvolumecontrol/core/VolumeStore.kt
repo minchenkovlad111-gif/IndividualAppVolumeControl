@@ -142,6 +142,10 @@ class VolumeStore(context: Context) {
         prefs.edit().remove(mutePrefsKey(key)).apply()
     }
 
+    fun countMuteBehaviorOverrides(): Int {
+        return prefs.all.keys.count { it.startsWith(MUTE_PREFIX) }
+    }
+
     fun getDefaultMuteBehavior(): MuteBehavior {
         val raw = prefs.getString(DEFAULT_MUTE_KEY, null)
         return MuteBehavior.parse(raw) ?: MuteBehavior.MUTE_ONLY

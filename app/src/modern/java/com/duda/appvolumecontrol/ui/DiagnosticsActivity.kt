@@ -239,6 +239,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val rules = volumeStore.listRules()
         val enabledRules = rules.filter { it.enabled }
         val ruleSummary = buildRuleSummary(enabledRules)
+        val muteDefault = volumeStore.getDefaultMuteBehavior()
+        val muteOverrideCount = volumeStore.countMuteBehaviorOverrides()
         val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
@@ -305,6 +307,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Rule groups: ${ruleGroups.size}",
             "Rules enabled/total: ${enabledRules.size}/${rules.size}",
             "Rule names: $ruleSummary",
+            "Default mute behavior: ${muteDefault.id}",
+            "Per-app mute overrides: $muteOverrideCount",
             "Current location id: $locationId",
             "Locations stored: $locationCount",
             "Last location fix: $lastFixTime",
