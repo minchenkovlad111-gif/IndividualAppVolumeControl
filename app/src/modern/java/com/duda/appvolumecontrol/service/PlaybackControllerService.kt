@@ -180,8 +180,8 @@ class PlaybackControllerService : Service() {
                 } else {
                     null
                 }
-                val deviceInfo = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-                    .firstOrNull { info ->
+                val outputs = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                val deviceInfo = outputs.firstOrNull { info ->
                         if (info.type != outputDevice.type) return@firstOrNull false
                         if (matchAddress.isNullOrBlank()) return@firstOrNull true
                         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
@@ -201,7 +201,11 @@ class PlaybackControllerService : Service() {
                     }
                 } else {
                     routeMissing += 1
-                    routeDetails.add("${volumeKey.storageKey()}|${formatOutputDevice(outputDevice)}|missing")
+                    val sameTypeCount = outputs.count { it.type == outputDevice.type }
+                    routeDetails.add(
+                        "${volumeKey.storageKey()}|${formatOutputDevice(outputDevice)}|" +
+                            "missing(total=${outputs.size},type=$sameTypeCount)"
+                    )
                     Log.w(TAG, "Preferred output device not found for $packageName")
                 }
             }

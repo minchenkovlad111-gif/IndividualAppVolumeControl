@@ -6,6 +6,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added available output device counts to routing-missing diagnostics details.
 - Capped routing diagnostics detail length to avoid oversized reports.
 - Expanded routing diagnostics details to include per-app output device info and failure reasons.
 - Added location listener diagnostics to legacy Diagnostics screen for parity with modern report.
