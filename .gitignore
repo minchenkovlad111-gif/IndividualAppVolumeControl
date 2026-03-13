@@ -3,3 +3,9 @@ build/
 local.properties
 *.iml
 /.idea/
+/*.zip
+/Lint
+/Task
+/logcat
+/java_pid*.hprof
+/module/system/priv-app/

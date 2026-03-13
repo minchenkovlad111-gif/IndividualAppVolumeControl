@@ -1,4 +1,5 @@
 # Status
+Last update: 2026-03-13
 
 ## Current focus
 - Overlay UX refinements and feature gating groundwork.
@@ -6,6 +7,7 @@
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added legacy multidex support (manifest + dependency), enabled core library desugaring, and pinned legacy core-ktx; ignored local build artifacts and tracked the bundled Magisk module asset.
 - Added per-app audio attribute override storage and applied matching filter in playback control, plus diagnostics counts.
 - Added available output device counts to routing-missing diagnostics details.
 - Capped routing diagnostics detail length to avoid oversized reports.
