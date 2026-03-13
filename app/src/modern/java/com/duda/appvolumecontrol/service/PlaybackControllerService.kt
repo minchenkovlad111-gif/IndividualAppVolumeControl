@@ -193,15 +193,15 @@ class PlaybackControllerService : Service() {
                     val routed = PlaybackUtils.applyPreferredDeviceToPlayer(entry.config, deviceInfo)
                     if (!routed) {
                         routeFailed += 1
-                        routeDetails.add("${volumeKey.storageKey()}=failed")
+                        routeDetails.add("${volumeKey.storageKey()}|${formatOutputDevice(outputDevice)}|failed")
                         Log.w(TAG, "Failed to apply preferred output device for $packageName")
                     } else {
                         routeApplied += 1
-                        routeDetails.add("${volumeKey.storageKey()}=ok")
+                        routeDetails.add("${volumeKey.storageKey()}|${formatOutputDevice(outputDevice)}|ok")
                     }
                 } else {
                     routeMissing += 1
-                    routeDetails.add("${volumeKey.storageKey()}=missing")
+                    routeDetails.add("${volumeKey.storageKey()}|${formatOutputDevice(outputDevice)}|missing")
                     Log.w(TAG, "Preferred output device not found for $packageName")
                 }
             }
@@ -504,6 +504,12 @@ class PlaybackControllerService : Service() {
         } catch (_: Exception) {
             packageName
         }
+    }
+
+    private fun formatOutputDevice(device: VolumeStore.OutputDevice): String {
+        val address = device.address?.takeIf { it.isNotBlank() } ?: "-"
+        val name = device.name?.takeIf { it.isNotBlank() } ?: "-"
+        return "type=${device.type},addr=$address,name=$name"
     }
 
     private fun setupCallStateListener() {
