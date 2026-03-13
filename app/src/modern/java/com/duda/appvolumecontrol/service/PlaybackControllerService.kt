@@ -156,6 +156,13 @@ class PlaybackControllerService : Service() {
                         Log.w(TAG, "Failed to pause player for $packageName")
                     }
                 }
+            } else if (lastPausedKeys.contains(key)) {
+                val resumed = PlaybackUtils.playPlayer(entry.config)
+                if (resumed) {
+                    lastPausedKeys.remove(key)
+                } else {
+                    Log.w(TAG, "Failed to resume player for $packageName")
+                }
             }
 
             if (outputDevice != null) {

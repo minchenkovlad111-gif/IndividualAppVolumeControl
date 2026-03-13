@@ -29,6 +29,7 @@
 
 ## Additional audio settings to consider
 - Audio focus policy per app (pause/duck/mute, or ignore focus while muted).
+- Auto-resume behavior after pause actions (opt-in, guard against resuming user-paused playback).
 - Per-app audio attributes overrides (usage/content type) to affect routing/interruptions.
 - Per-app stream mapping (force music vs. notification stream).
 - Per-app loudness limiter/compressor (keep levels consistent).

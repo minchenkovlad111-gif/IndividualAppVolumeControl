@@ -28,6 +28,7 @@ object PlaybackUtils {
 
     private val setVolumeMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
     private val pauseMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
+    private val playMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
 
     fun getClientPackageName(
         config: AudioPlaybackConfiguration,
@@ -173,11 +174,52 @@ object PlaybackUtils {
         }
     }
 
+    fun playPlayer(config: AudioPlaybackConfiguration): Boolean {
+        return try {
+            val method = playerProxyMethod ?: return false
+            val playerProxy = method.invoke(config) ?: return false
+            val proxyClass = playerProxy.javaClass
+            val play = synchronized(playMethodCache) {
+                playMethodCache[proxyClass] ?: run {
+                    val resolved = resolvePlayMethod(proxyClass) ?: return false
+                    resolved.isAccessible = true
+                    playMethodCache[proxyClass] = resolved
+                    resolved
+                }
+            }
+            try {
+                if (play.parameterTypes.isEmpty()) {
+                    play.invoke(playerProxy)
+                } else {
+                    play.invoke(playerProxy, true)
+                }
+                true
+            } catch (t: Throwable) {
+                synchronized(playMethodCache) {
+                    playMethodCache.remove(proxyClass)
+                }
+                Log.w(TAG, "Failed to start player", t)
+                false
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to start player", t)
+            false
+        }
+    }
+
     private fun resolvePauseMethod(proxyClass: Class<*>): java.lang.reflect.Method? {
         return runCatching {
             proxyClass.getDeclaredMethod("pause")
         }.getOrElse {
             runCatching { proxyClass.getDeclaredMethod("pause", Boolean::class.javaPrimitiveType) }.getOrNull()
+        }
+    }
+
+    private fun resolvePlayMethod(proxyClass: Class<*>): java.lang.reflect.Method? {
+        return runCatching {
+            proxyClass.getDeclaredMethod("start")
+        }.getOrElse {
+            runCatching { proxyClass.getDeclaredMethod("play") }.getOrNull()
         }
     }
 }
