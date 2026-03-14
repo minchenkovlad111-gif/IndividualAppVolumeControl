@@ -2,18 +2,23 @@ package com.duda.appvolumecontrol.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.ComponentName
+import android.content.ActivityNotFoundException
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
+import android.net.Uri
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.duda.appvolumecontrol.core.AccessibilityUtils
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.SetupStatus
+import com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,6 +28,8 @@ class SetupCheckActivity : AppCompatActivity() {
     private lateinit var contentView: TextView
     private lateinit var statusView: TextView
     private lateinit var fixView: TextView
+    private lateinit var overlayPermissionButton: Button
+    private lateinit var accessibilityButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +67,16 @@ class SetupCheckActivity : AppCompatActivity() {
             setOnClickListener { refresh() }
         }
 
+        overlayPermissionButton = Button(this).apply {
+            text = "Grant overlay permission"
+            setOnClickListener { openOverlaySettings() }
+        }
+
+        accessibilityButton = Button(this).apply {
+            text = "Enable volume key listener"
+            setOnClickListener { openAccessibilitySettings() }
+        }
+
         val copyButton = Button(this).apply {
             text = "Copy report"
             setOnClickListener { copyReport() }
@@ -80,6 +97,8 @@ class SetupCheckActivity : AppCompatActivity() {
         root.addView(statusView)
         root.addView(fixView)
         root.addView(refreshButton)
+        root.addView(overlayPermissionButton)
+        root.addView(accessibilityButton)
         root.addView(copyButton)
         root.addView(diagnosticsButton)
         root.addView(contentView)
@@ -102,13 +121,34 @@ class SetupCheckActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
             PackageManager.PERMISSION_GRANTED
+        val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(this)
+        } else {
+            true
+        }
+        val accessibilityEnabled = AccessibilityUtils.isServiceEnabled(
+            this,
+            VolumeKeyAccessibilityService::class.java
+        )
+        overlayPermissionButton.isEnabled = !canDrawOverlays
+        overlayPermissionButton.text = if (canDrawOverlays) {
+            "Overlay permission granted"
+        } else {
+            "Grant overlay permission"
+        }
+        accessibilityButton.isEnabled = !accessibilityEnabled
+        accessibilityButton.text = if (accessibilityEnabled) {
+            "Volume key listener enabled"
+        } else {
+            "Enable volume key listener"
+        }
 
         val snapshot = diagnosticsStore.snapshot()
         val hiddenApiOk = snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1
         val hiddenApiTime = formatTime(snapshot.hiddenApiTime)
 
         val audioManager = getSystemService(AudioManager::class.java)
-        val activeConfigs = audioManager.activePlaybackConfigurations
+        val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
         val activePackages = activeConfigs
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
@@ -125,7 +165,14 @@ class SetupCheckActivity : AppCompatActivity() {
         fixView.text = if (ready) {
             "Great! You can control per-app volume now."
         } else {
-            buildFixText(isSystemApp, isPrivApp, hasModifyAudio, hiddenApiOk)
+            buildFixText(
+                isSystemApp,
+                isPrivApp,
+                hasModifyAudio,
+                hiddenApiOk,
+                canDrawOverlays,
+                accessibilityEnabled
+            )
         }
 
         val lines = listOf(
@@ -141,6 +188,8 @@ class SetupCheckActivity : AppCompatActivity() {
             "WRITE_SECURE_SETTINGS: ${boolLine(hasWriteSecureSettings)}",
             "Hidden API ok: ${boolLine(hiddenApiOk)}",
             "Hidden API last attempt: $hiddenApiTime",
+            "Overlay permission: ${boolLine(canDrawOverlays)}",
+            "Volume key listener: ${boolLine(accessibilityEnabled)}",
             "Active audio apps: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "APK source dir: ${privilegeInfo.sourceDir ?: "-"}",
             "APK public dir: ${privilegeInfo.publicSourceDir ?: "-"}",
@@ -150,7 +199,8 @@ class SetupCheckActivity : AppCompatActivity() {
             "1) Install the module and reboot.",
             "2) Play audio in any app.",
             "3) Move that app's slider.",
-            "4) If Ready is no, open Diagnostics and copy the report."
+            "4) If Ready is no, open Diagnostics and copy the report.",
+            "5) If overlay is missing, grant overlay + enable volume key listener."
         )
 
         contentView.text = lines.joinToString("\n")
@@ -164,7 +214,9 @@ class SetupCheckActivity : AppCompatActivity() {
         isSystemApp: Boolean,
         isPrivApp: Boolean,
         hasModifyAudio: Boolean,
-        hiddenApiOk: Boolean
+        hiddenApiOk: Boolean,
+        canDrawOverlays: Boolean,
+        accessibilityEnabled: Boolean,
     ): String {
         val steps = mutableListOf<String>()
         if (!isSystemApp || !isPrivApp) {
@@ -177,10 +229,39 @@ class SetupCheckActivity : AppCompatActivity() {
         if (!hiddenApiOk) {
             steps.add("Open Diagnostics and try the self-test.")
         }
+        if (!canDrawOverlays) {
+            steps.add("Grant overlay permission to show the volume overlay.")
+        }
+        if (!accessibilityEnabled) {
+            steps.add("Enable the volume key Accessibility service for reliable volume-button triggers.")
+        }
         if (steps.isEmpty()) {
             steps.add("Play audio in any app and run the check again.")
         }
         return "Next steps:\n" + steps.joinToString("\n") { "- $it" }
+    }
+
+    private fun openOverlaySettings() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        startActivity(intent)
+    }
+
+    private fun openAccessibilitySettings() {
+        val component = ComponentName(this, VolumeKeyAccessibilityService::class.java)
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            putExtra("android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME", component)
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
     }
 
     private fun formatTime(value: Long): String {

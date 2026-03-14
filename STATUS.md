@@ -1,12 +1,29 @@
 # Status
-Last update: 2026-03-13
+Last update: 2026-03-14
 
 ## Current focus
 - Overlay UX refinements and feature gating groundwork.
+- Volume-button overlay reliability (accessibility-service key events).
 - Continuing validation on Android 12-15 devices.
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added safe active playback config retrieval with diagnostics logging to avoid crashes when permissions are missing.
+- Added overlay/accessibility status to Setup Check + Diagnostics with quick action buttons to open settings.
+- Added overlay addView failure logging and an accessibility-triggered overlay start error toast.
+- Ensured the overlay watcher restarts on resume when enabled; added a toast when notification controls are used while controls are disabled.
+- Added a toast fallback when the Accessibility service deep link is unavailable.
+- Added a best-effort deep link to the Accessibility service settings from the overlay controls.
+- Added a warning banner when overlay is enabled but the volume key Accessibility listener is disabled.
+- Added overlay section status + button to open Accessibility settings for the volume key listener.
+- Added an AccessibilityService volume-key listener that triggers the overlay without consuming volume changes.
+- Avoided Android 14+ boot-time FGS crash by skipping boot-start for foreground services.
+- Added Android 14+ boot notification with user-initiated start action for services.
+- Fixed Manage Apps layout so action buttons stay within the visible area.
+- Wired `:app:build` to package the Magisk module (modern debug) and print the module output path.
+- Added Magisk module output path to the build completion printout.
+- Added a build-finalizer task to print APK output paths after `:app:build`.
+- Documented debug APK output paths in `docs/BUILD.md`.
 - Added Manage Apps UI for per-app audio attribute overrides (usage/content type filters).
 - Added legacy multidex support (manifest + dependency), enabled core library desugaring, and pinned legacy core-ktx; ignored local build artifacts and tracked the bundled Magisk module asset.
 - Added per-app audio attribute override storage and applied matching filter in playback control, plus diagnostics counts.

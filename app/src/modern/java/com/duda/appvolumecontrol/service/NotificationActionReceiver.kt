@@ -3,6 +3,8 @@ package com.duda.appvolumecontrol.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
+import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.VolumeStore
 
 class NotificationActionReceiver : BroadcastReceiver() {
@@ -12,6 +14,13 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val userId = if (rawUserId == USER_ID_NONE) null else rawUserId
         val store = VolumeStore(context)
         val key = VolumeStore.VolumeKey(packageName, userId)
+        if (!SetupStatus.isControlReady(context)) {
+            Toast.makeText(
+                context,
+                "Controls disabled; open Setup Check",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
         when (intent.action) {
             ACTION_ADJUST -> {
                 val delta = intent.getFloatExtra(EXTRA_DELTA, 0f)

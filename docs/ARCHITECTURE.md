@@ -3,10 +3,11 @@
 ## Components
 - System-privileged app: monitors active audio playback and applies per-app volume via hidden APIs.
 - Magisk module: installs the app into `/system/priv-app/` and supplies `privapp-permissions`.
-- Diagnostics UI: shows last apply stats, errors, and hidden API policy values.
+- Diagnostics UI: shows last apply stats, errors, hidden API policy values, and overlay/accessibility status.
 - Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
 - Overlay service: shows a floating per-app slider panel on volume-button changes (multiple stream settings observers + broadcast actions + polling fallback).
+- Volume-key accessibility service: listens for volume key events system-wide and signals the overlay without consuming the key (volume still changes).
 - Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, optional auto-refresh, and optional auto-hide.
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.
@@ -34,6 +35,7 @@
 7. Call hidden `AudioPlaybackConfiguration.getPlayerProxy()` and `IPlayer.setVolume()`.
    - Fallback: try `setVolume(float,int)` when `setVolume(float)` is unavailable.
 7. When volume buttons change any stream volume, `VolumeOverlayService` shows an overlay with active app sliders.
+8. If AccessibilityService key filtering is enabled, volume key presses also signal `VolumeOverlayService` directly for more reliable detection.
 
 ## Profiles + presets
 - Presets are stored per package, with optional profile keys (`u<userId>:<package>`).

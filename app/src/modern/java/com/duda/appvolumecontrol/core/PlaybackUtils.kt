@@ -3,6 +3,7 @@ package com.duda.appvolumecontrol.core
 import android.content.pm.PackageManager
 import android.media.AudioPlaybackConfiguration
 import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.util.Log
 
 object PlaybackUtils {
@@ -75,6 +76,20 @@ object PlaybackUtils {
             method.invoke(null, uid) as? Int
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    fun getActivePlaybackConfigurationsSafe(
+        audioManager: AudioManager,
+        diagnosticsStore: DiagnosticsStore? = null,
+    ): List<AudioPlaybackConfiguration> {
+        return try {
+            audioManager.activePlaybackConfigurations
+        } catch (t: Throwable) {
+            diagnosticsStore?.recordLastError(
+                "activePlaybackConfigurations failed: ${t.javaClass.simpleName}: ${t.message ?: "unknown"}"
+            )
+            emptyList()
         }
     }
 

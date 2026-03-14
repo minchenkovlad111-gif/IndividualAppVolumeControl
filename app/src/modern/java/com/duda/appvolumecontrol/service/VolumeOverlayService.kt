@@ -131,7 +131,8 @@ class VolumeOverlayService : Service() {
             }
             ACTION_SHOW -> {
                 diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_MANUAL)
-                lastShowReason = DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
+                lastShowReason = intent.getStringExtra(EXTRA_SHOW_REASON)
+                    ?: DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
                 showOverlay(stopWhenHidden = false, autoHide = false)
             }
             null -> {
@@ -207,10 +208,19 @@ class VolumeOverlayService : Service() {
         val root = ensureOverlayView()
         val activeCount = populateList()
         startAutoRefresh()
-        diagnosticsStore.recordOverlayShow(lastShowReason, activeCount)
         if (root.parent == null) {
-            windowManager.addView(root, buildLayoutParams())
+            try {
+                windowManager.addView(root, buildLayoutParams())
+            } catch (t: Throwable) {
+                diagnosticsStore.recordLastError(
+                    "Overlay addView failed: ${t.javaClass.simpleName}: ${t.message ?: "unknown"}"
+                )
+                handler.removeCallbacks(autoRefreshRunnable)
+                Toast.makeText(this, "Overlay failed to show", Toast.LENGTH_SHORT).show()
+                return
+            }
         }
+        diagnosticsStore.recordOverlayShow(lastShowReason, activeCount)
         if (autoHide) {
             scheduleHide()
         } else {
@@ -347,7 +357,7 @@ class VolumeOverlayService : Service() {
     }
 
     private fun loadActiveEntries(): List<AppEntry> {
-        val configs = audioManager.activePlaybackConfigurations
+        val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
         val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
@@ -766,6 +776,8 @@ class VolumeOverlayService : Service() {
         const val ACTION_SHOW = "com.duda.appvolumecontrol.action.SHOW_OVERLAY"
         const val ACTION_START_WATCH = "com.duda.appvolumecontrol.action.START_OVERLAY_WATCH"
         const val ACTION_STOP_WATCH = "com.duda.appvolumecontrol.action.STOP_OVERLAY_WATCH"
+        const val EXTRA_SHOW_REASON = "com.duda.appvolumecontrol.extra.OVERLAY_SHOW_REASON"
+        const val SHOW_REASON_ACCESSIBILITY = "accessibility"
         private const val CHANNEL_ID = "overlay_watcher"
         private const val NOTIFICATION_ID = 1201
         private const val AUTO_HIDE_MS = 3500L

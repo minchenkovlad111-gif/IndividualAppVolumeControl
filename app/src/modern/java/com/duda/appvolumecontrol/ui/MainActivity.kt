@@ -2,6 +2,8 @@ package com.duda.appvolumecontrol.ui
 
 import android.Manifest
 import android.content.Intent
+import android.content.ComponentName
+import android.content.ActivityNotFoundException
 import android.media.AudioManager
 import android.media.AudioPlaybackConfiguration
 import android.net.Uri
@@ -38,6 +40,8 @@ import androidx.core.widget.addTextChangedListener
 import android.widget.CheckBox
 import android.view.HapticFeedbackConstants
 import com.duda.appvolumecontrol.core.ActiveAppStore
+import com.duda.appvolumecontrol.core.AccessibilityUtils
+import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.ModuleInstaller
 import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -73,9 +77,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var profileAdapter: ArrayAdapter<String>
     private lateinit var overlayPrefs: OverlayPrefs
     private lateinit var overlayStatusView: TextView
+    private lateinit var accessibilityStatusView: TextView
+    private lateinit var accessibilityWarningView: TextView
     private lateinit var overlayToggle: CheckBox
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
+    private lateinit var accessibilityButton: Button
     private lateinit var overlayAutoHideToggle: CheckBox
     private lateinit var defaultMuteToggle: CheckBox
     private lateinit var autoResumeToggle: CheckBox
@@ -95,9 +102,10 @@ class MainActivity : AppCompatActivity() {
     private val lastNonZeroVolumes = mutableMapOf<String, Float>()
     private val iconCache = mutableMapOf<String, Drawable>()
     private val handler = Handler(Looper.getMainLooper())
+    private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val refreshRunnable = object : Runnable {
         override fun run() {
-            updateActiveApps(audioManager.activePlaybackConfigurations)
+            updateActiveApps(getActiveConfigs())
             updateLastUpdated()
             handler.postDelayed(this, REFRESH_INTERVAL_MS)
         }
@@ -165,7 +173,7 @@ class MainActivity : AppCompatActivity() {
                     if (profileUpdating) return
                     val option = profileOptions.getOrNull(position) ?: ProfileOption(null, "All profiles")
                     selectedProfileUserId = option.userId
-                    updateActiveApps(audioManager.activePlaybackConfigurations)
+                    updateActiveApps(getActiveConfigs())
                     updatePresetApps()
                 }
 
@@ -184,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         val refreshButton = Button(this).apply {
             text = "Refresh list"
             setOnClickListener {
-                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updateActiveApps(getActiveConfigs())
                 updateLastUpdated()
             }
         }
@@ -197,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                     .setMessage("This clears all saved per-app sliders.")
                     .setPositiveButton("Clear") { _, _ ->
                         volumeStore.clearAll()
-                        updateActiveApps(audioManager.activePlaybackConfigurations)
+                        updateActiveApps(getActiveConfigs())
                         PlaybackControllerService.requestReapply(this@MainActivity)
                     }
                     .setNegativeButton("Cancel", null)
@@ -259,6 +267,25 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, OverlayPermissionActivity::class.java))
             }
+        }
+
+        accessibilityStatusView = TextView(this).apply {
+            text = "Volume key listener: checking..."
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
+
+        accessibilityWarningView = TextView(this).apply {
+            text = "Overlay enabled, but volume key listener is off. Enable Accessibility service for reliable volume-button triggers."
+            textSize = 12f
+            setTextColor(0xFFB71C1C.toInt())
+            setPadding(0, 0, 0, 8)
+            visibility = View.GONE
+        }
+
+        accessibilityButton = Button(this).apply {
+            text = "Enable volume key listener"
+            setOnClickListener { openAccessibilityServiceSettings() }
         }
 
         overlayShowButton = Button(this).apply {
@@ -371,7 +398,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 0f)
                 }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updateActiveApps(getActiveConfigs())
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -384,7 +411,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 0.5f)
                 }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updateActiveApps(getActiveConfigs())
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -397,7 +424,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 1f)
                 }
-                updateActiveApps(audioManager.activePlaybackConfigurations)
+                updateActiveApps(getActiveConfigs())
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -473,6 +500,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayTitle)
         root.addView(overlayStatusView)
         root.addView(overlayPermissionButton)
+        root.addView(accessibilityStatusView)
+        root.addView(accessibilityWarningView)
+        root.addView(accessibilityButton)
         root.addView(overlayShowButton)
         root.addView(overlayToggle)
         root.addView(overlayAutoToggle)
@@ -502,7 +532,7 @@ class MainActivity : AppCompatActivity() {
         updateControlStatus()
         updateOverlayStatus()
         updateBluetoothPermissionButton()
-        updateActiveApps(audioManager.activePlaybackConfigurations)
+        updateActiveApps(getActiveConfigs())
         loadPresetApps()
         updatePresetApps()
     }
@@ -512,6 +542,7 @@ class MainActivity : AppCompatActivity() {
         maybeRequestNotifications()
         updateControlStatus()
         updateOverlayStatus()
+        ensureOverlayWatcher()
         updateBluetoothPermissionButton()
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         loadPresetApps()
@@ -1192,12 +1223,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateOverlayStatus() {
         val canDraw = canDrawOverlays()
+        val accessibilityEnabled = isAccessibilityServiceEnabled()
         overlayStatusView.text = if (canDraw) {
             "Overlay permission: granted"
         } else {
             "Overlay permission: not granted"
         }
+        accessibilityStatusView.text = if (accessibilityEnabled) {
+            "Volume key listener: enabled"
+        } else {
+            "Volume key listener: disabled (enable Accessibility service)"
+        }
+        accessibilityWarningView.visibility = if (
+            overlayPrefs.isOverlayEnabled() && !accessibilityEnabled
+        ) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
         overlayPermissionButton.isEnabled = !canDraw
+        accessibilityButton.isEnabled = !accessibilityEnabled
         overlayShowButton.isEnabled = canDraw
         if (!canDraw && overlayPrefs.isOverlayEnabled()) {
             overlayPrefs.setOverlayEnabled(false)
@@ -1212,6 +1257,56 @@ class MainActivity : AppCompatActivity() {
         }
         overlayToggle.isEnabled = canDraw
         overlayUpdating = false
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        return AccessibilityUtils.isServiceEnabled(
+            this,
+            com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService::class.java
+        )
+    }
+
+    private fun getActiveConfigs(): List<AudioPlaybackConfiguration> {
+        return PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+    }
+
+    private fun openAccessibilityServiceSettings() {
+        val component = ComponentName(
+            this,
+            com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService::class.java
+        )
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            putExtra(
+                "android.provider.extra.ACCESSIBILITY_SERVICE_COMPONENT_NAME",
+                component
+            )
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "Opening Accessibility settings",
+                Toast.LENGTH_SHORT
+            ).show()
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                "Opening Accessibility settings",
+                Toast.LENGTH_SHORT
+            ).show()
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+    }
+
+    private fun ensureOverlayWatcher() {
+        if (!overlayPrefs.isOverlayEnabled()) return
+        if (!canDrawOverlays()) return
+        val intent = Intent(this, VolumeOverlayService::class.java).apply {
+            action = VolumeOverlayService.ACTION_START_WATCH
+        }
+        startService(intent)
     }
 
     private fun updateControlStatus() {

@@ -18,14 +18,17 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.duda.appvolumecontrol.core.AccessibilityUtils
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
+import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.core.AudioSettingsPrefs
 import com.duda.appvolumecontrol.service.PlaybackControllerService
 import com.duda.appvolumecontrol.core.ModuleInstaller
+import com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -224,13 +227,23 @@ class DiagnosticsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasAcrossUsers = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
+        val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(this)
+        } else {
+            true
+        }
+        val accessibilityEnabled = AccessibilityUtils.isServiceEnabled(
+            this,
+            VolumeKeyAccessibilityService::class.java
+        )
+        val overlayPrefEnabled = OverlayPrefs(this).isOverlayEnabled()
         val requestedPermissions = getRequestedPermissions()
         val permissionStatuses = buildPermissionStatuses(requestedPermissions)
         val missingCritical = permissionStatuses
             .filter { it.required && it.requested && !it.granted }
             .map { it.name }
         val audioManager = getSystemService(AudioManager::class.java)
-        val activeConfigs = audioManager.activePlaybackConfigurations
+        val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
         val activePackages = activeConfigs
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
@@ -357,6 +370,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
             "QUERY_ALL_PACKAGES granted: $hasQueryAllPackages",
             "INTERACT_ACROSS_USERS granted: $hasAcrossUsers",
+            "Overlay permission: $canDrawOverlays",
+            "Overlay enabled (pref): $overlayPrefEnabled",
+            "Volume key listener: $accessibilityEnabled",
             "Missing critical permissions: ${if (missingCritical.isEmpty()) "-" else missingCritical.joinToString(", ")}",
             "Permission status:",
             *permissionStatuses.map { it.toReportLine() }.toTypedArray(),
