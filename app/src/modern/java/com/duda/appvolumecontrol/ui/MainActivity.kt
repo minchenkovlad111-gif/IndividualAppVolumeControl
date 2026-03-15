@@ -83,6 +83,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
+    private lateinit var overlayOnlyWhenPlayingToggle: CheckBox
+    private lateinit var overlayFocusBlockButton: Button
+    private lateinit var overlaySnoozeButton: Button
+    private lateinit var overlaySnoozeStatusView: TextView
     private lateinit var overlayAutoHideToggle: CheckBox
     private lateinit var defaultMuteToggle: CheckBox
     private lateinit var autoResumeToggle: CheckBox
@@ -330,6 +334,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        overlayOnlyWhenPlayingToggle = CheckBox(this).apply {
+            text = "Only show overlay when audio is playing"
+            isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setVolumeKeyOnlyWhenPlayingEnabled(isChecked)
+            }
+        }
+
+        overlayFocusBlockButton = Button(this).apply {
+            text = "Suppress overlay for focused apps"
+            setOnClickListener { showOverlayFocusBlockListDialog() }
+        }
+
+        overlaySnoozeStatusView = TextView(this).apply {
+            text = "Snooze: off"
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
+
+        overlaySnoozeButton = Button(this).apply {
+            text = "Snooze overlay"
+            setOnClickListener { showOverlaySnoozeDialog() }
+        }
+
         val audioSettingsTitle = TextView(this).apply {
             text = "Audio settings"
             textSize = 16f
@@ -507,6 +535,10 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayToggle)
         root.addView(overlayAutoToggle)
         root.addView(overlayAutoHideToggle)
+        root.addView(overlayOnlyWhenPlayingToggle)
+        root.addView(overlayFocusBlockButton)
+        root.addView(overlaySnoozeStatusView)
+        root.addView(overlaySnoozeButton)
         root.addView(audioSettingsTitle)
         root.addView(audioSettingsHint)
         root.addView(defaultMuteToggle)
@@ -1257,6 +1289,9 @@ class MainActivity : AppCompatActivity() {
         }
         overlayToggle.isEnabled = canDraw
         overlayUpdating = false
+        overlayOnlyWhenPlayingToggle.isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
+        updateOverlayFocusBlockButton()
+        updateOverlaySnoozeStatus()
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -1300,6 +1335,96 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showOverlayFocusBlockListDialog() {
+        val loadingDialog = AlertDialog.Builder(this)
+            .setTitle("Focused app filter")
+            .setMessage("Loading apps...")
+            .setCancelable(false)
+            .show()
+
+        Thread {
+            val apps = packageManager.getInstalledApplications(0)
+                .map { OverlayAppOption(it.packageName, resolveLabel(it.packageName)) }
+                .sortedBy { it.label.lowercase() }
+            runOnUiThread {
+                loadingDialog.dismiss()
+                if (apps.isEmpty()) {
+                    Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show()
+                    return@runOnUiThread
+                }
+                val initial = overlayPrefs.getOverlayFocusBlockList()
+                val selected = initial.toMutableSet()
+                val labels = apps.map { "${it.label} (${it.packageName})" }.toTypedArray()
+                val checked = BooleanArray(apps.size) { selected.contains(apps[it].packageName) }
+                AlertDialog.Builder(this)
+                    .setTitle("Suppress overlay for focused apps")
+                    .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                        val pkg = apps[which].packageName
+                        if (isChecked) {
+                            selected.add(pkg)
+                        } else {
+                            selected.remove(pkg)
+                        }
+                    }
+                    .setPositiveButton("Save") { _, _ ->
+                        overlayPrefs.setOverlayFocusBlockList(selected)
+                        updateOverlayFocusBlockButton()
+                    }
+                    .setNeutralButton("Clear") { _, _ ->
+                        overlayPrefs.setOverlayFocusBlockList(emptySet())
+                        updateOverlayFocusBlockButton()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }.start()
+    }
+
+    private fun updateOverlayFocusBlockButton() {
+        val count = overlayPrefs.getOverlayFocusBlockList().size
+        overlayFocusBlockButton.text = if (count == 0) {
+            "Suppress overlay for focused apps"
+        } else {
+            "Suppress overlay for focused apps ($count blocked)"
+        }
+    }
+
+    private fun showOverlaySnoozeDialog() {
+        val options = listOf(
+            SnoozeOption("5 minutes", 5),
+            SnoozeOption("15 minutes", 15),
+            SnoozeOption("30 minutes", 30),
+            SnoozeOption("1 hour", 60),
+            SnoozeOption("2 hours", 120)
+        )
+        val labels = options.map { it.label }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Snooze overlay")
+            .setItems(labels) { _, which ->
+                val minutes = options[which].minutes
+                val until = SystemClock.elapsedRealtime() + minutes * 60_000L
+                overlayPrefs.setOverlaySnoozeUntil(until)
+                updateOverlaySnoozeStatus()
+            }
+            .setNeutralButton("Clear") { _, _ ->
+                overlayPrefs.clearOverlaySnooze()
+                updateOverlaySnoozeStatus()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateOverlaySnoozeStatus() {
+        val until = overlayPrefs.getOverlaySnoozeUntil()
+        val now = SystemClock.elapsedRealtime()
+        overlaySnoozeStatusView.text = if (until > now) {
+            val remaining = ((until - now) + 59_999L) / 60_000L
+            "Snooze: $remaining min remaining"
+        } else {
+            "Snooze: off"
+        }
+    }
+
     private fun ensureOverlayWatcher() {
         if (!overlayPrefs.isOverlayEnabled()) return
         if (!canDrawOverlays()) return
@@ -1337,6 +1462,16 @@ class MainActivity : AppCompatActivity() {
     private data class ProfileOption(
         val userId: Int?,
         val label: String,
+    )
+
+    private data class OverlayAppOption(
+        val packageName: String,
+        val label: String,
+    )
+
+    private data class SnoozeOption(
+        val label: String,
+        val minutes: Int,
     )
 
     companion object {

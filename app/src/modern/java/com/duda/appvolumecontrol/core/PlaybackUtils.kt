@@ -93,6 +93,18 @@ object PlaybackUtils {
         }
     }
 
+    fun hasActivePlayback(configs: List<AudioPlaybackConfiguration>): Boolean {
+        for (config in configs) {
+            val isStarted = runCatching {
+                config.playerState == AudioPlaybackConfiguration.PLAYER_STATE_STARTED
+            }.getOrDefault(false)
+            if (isStarted) return true
+            val isActive = runCatching { config.isActive }.getOrDefault(false)
+            if (isActive) return true
+        }
+        return false
+    }
+
     fun applyVolumeToPlayer(config: AudioPlaybackConfiguration, volume: Float): Boolean {
         return try {
             val method = playerProxyMethod ?: return false

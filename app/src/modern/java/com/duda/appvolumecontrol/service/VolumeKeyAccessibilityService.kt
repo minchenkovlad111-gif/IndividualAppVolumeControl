@@ -8,14 +8,22 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import com.duda.appvolumecontrol.core.DiagnosticsStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
+import com.duda.appvolumecontrol.core.PlaybackUtils
 
 class VolumeKeyAccessibilityService : AccessibilityService() {
     private val overlayPrefs by lazy { OverlayPrefs(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
     private var lastStartErrorToastAt: Long = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // No-op: we only care about key events.
+        if (event == null) return
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        ) {
+            val packageName = event.packageName?.toString()
+            overlayPrefs.setLastFocusedPackage(packageName)
+        }
     }
 
     override fun onInterrupt() {
@@ -29,6 +37,15 @@ class VolumeKeyAccessibilityService : AccessibilityService() {
             return false
         }
         if (!overlayPrefs.isOverlayEnabled()) return false
+        if (overlayPrefs.shouldSuppressForFocusedPackage()) return false
+        if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
+            val active = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+            if (!PlaybackUtils.hasActivePlayback(active)) return false
+        }
+        val snoozeUntil = overlayPrefs.getOverlaySnoozeUntil()
+        if (snoozeUntil > 0L && SystemClock.elapsedRealtime() < snoozeUntil) {
+            return false
+        }
         if (event.action == KeyEvent.ACTION_DOWN) {
             val intent = Intent(this, VolumeOverlayService::class.java).apply {
                 action = VolumeOverlayService.ACTION_SHOW

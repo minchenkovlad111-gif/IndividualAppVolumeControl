@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">IndividualAppAudioVolumeControl</string>
-    <string name="accessibility_service_label">Volume button overlay</string>
+    <string name="app_name">App Volume Control</string>
+    <string name="accessibility_service_label">App Volume Control: Volume button overlay</string>
     <string name="accessibility_service_description">Shows the per-app volume overlay when volume buttons are pressed.</string>
 </resources>

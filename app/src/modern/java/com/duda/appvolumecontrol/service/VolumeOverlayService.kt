@@ -194,8 +194,24 @@ class VolumeOverlayService : Service() {
         if (!force && signature == lastVolumeSignature) return
         lastVolumeSignature = signature
         diagnosticsStore.recordOverlaySignal(reason)
+        if (shouldSuppressOverlaySignal()) return
         lastShowReason = reason
         showOverlay(stopWhenHidden = false, autoHide = overlayPrefs.isAutoHideEnabled())
+    }
+
+    private fun shouldSuppressOverlaySignal(): Boolean {
+        if (overlayPrefs.shouldSuppressForFocusedPackage()) return true
+        val snoozeUntil = overlayPrefs.getOverlaySnoozeUntil()
+        if (snoozeUntil > 0L && SystemClock.elapsedRealtime() < snoozeUntil) {
+            return true
+        }
+        if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
+            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+            if (!PlaybackUtils.hasActivePlayback(configs)) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun showOverlay(stopWhenHidden: Boolean, autoHide: Boolean) {
@@ -731,8 +747,8 @@ class VolumeOverlayService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
         )
         return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Volume overlay enabled")
-            .setContentText("Shows per-app sliders when volume changes.")
+            .setContentTitle("Overlay on")
+            .setContentText("Per-app volume")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
