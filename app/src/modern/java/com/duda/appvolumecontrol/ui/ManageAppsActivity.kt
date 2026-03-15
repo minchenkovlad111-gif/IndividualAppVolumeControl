@@ -330,8 +330,7 @@ class ManageAppsActivity : AppCompatActivity() {
 
     private fun buildSavedRow(entry: VolumeStore.VolumeKey, label: String): View {
         val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
             setPadding(0, 8, 0, 8)
         }
 
@@ -415,13 +414,20 @@ class ManageAppsActivity : AppCompatActivity() {
             }
         }
 
+        val actionsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 8, 0, 0)
+        }
+
+        actionsContainer.addView(markerButton)
+        actionsContainer.addView(outputButton)
+        actionsContainer.addView(attrButton)
+        actionsContainer.addView(resumeButton)
+        actionsContainer.addView(muteButton)
+        actionsContainer.addView(deleteButton)
+
         row.addView(nameContainer)
-        row.addView(markerButton)
-        row.addView(outputButton)
-        row.addView(attrButton)
-        row.addView(resumeButton)
-        row.addView(muteButton)
-        row.addView(deleteButton)
+        row.addView(actionsContainer)
         return row
     }
 
@@ -836,9 +842,6 @@ class ManageAppsActivity : AppCompatActivity() {
             AttrOption(AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING, "Voice signaling"),
             AttrOption(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY, "Accessibility"),
             AttrOption(AudioAttributes.USAGE_ASSISTANT, "Assistant"),
-            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_REQUEST, "Comm request"),
-            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT, "Comm instant"),
-            AttrOption(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_DELAYED, "Comm delayed"),
             AttrOption(AudioAttributes.USAGE_NOTIFICATION_EVENT, "Comm event"),
         )
     }
