@@ -1,7 +1,9 @@
 package com.duda.appvolumecontrol.core
 
 import android.content.Context
+import android.annotation.TargetApi
 import android.media.AudioAttributes
+import android.os.Build
 import kotlin.math.max
 import kotlin.math.min
 import org.json.JSONArray
@@ -521,6 +523,12 @@ class VolumeStore(context: Context) {
 
         fun matches(attributes: AudioAttributes?): Boolean {
             if (attributes == null) return false
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return false
+            return matchesApi21(attributes)
+        }
+
+        @TargetApi(21)
+        private fun matchesApi21(attributes: AudioAttributes): Boolean {
             if (usage != null && attributes.usage != usage) return false
             if (contentType != null && attributes.contentType != contentType) return false
             return true

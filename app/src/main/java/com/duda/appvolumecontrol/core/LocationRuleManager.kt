@@ -93,11 +93,13 @@ class LocationRuleManager(private val context: Context) {
     private fun handleLocation(location: Location) {
         applyLocationFix(context, location)
         val accuracy = if (location.hasAccuracy()) location.accuracy else null
-        val isMock = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            location.isMock
-        } else {
-            @Suppress("DEPRECATION")
-            location.isFromMockProvider
+        val isMock = when {
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> location.isMock
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2 -> {
+                @Suppress("DEPRECATION")
+                location.isFromMockProvider
+            }
+            else -> false
         }
         diagnosticsStore.recordLocationFix(
             provider = location.provider,
