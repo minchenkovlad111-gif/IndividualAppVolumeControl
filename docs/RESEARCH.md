@@ -38,6 +38,13 @@
 - Bluetooth absolute volume toggle per app or per device.
 - Per-app spatial audio enable/disable where available.
 
+## Volume key detection research (local project survey)
+- Foreground-only interception: sample code uses `Activity.dispatchKeyEvent` to detect `KEYCODE_VOLUME_UP/DOWN`, but only while the activity is focused.
+- Broadcast-based detection: older samples listen for `android.media.VOLUME_CHANGED_ACTION` and compare `EXTRA_VOLUME_STREAM_VALUE` values. This only triggers on actual volume changes and can be unreliable on newer Android versions.
+- AccessibilityService path (Keysh, Volta, KeyMapper): use an `AccessibilityService` with `flagRequestFilterKeyEvents` and `canRequestFilterKeyEvents="true"` to receive volume key events system-wide.
+- If an AccessibilityService consumes the event (`onKeyEvent` returns `true`), it must re-apply volume changes itself (Volta calls `AudioManager.adjustStreamVolume`) to preserve standard volume behavior.
+- If the AccessibilityService returns `false`, the system handles the volume change normally while still allowing the app to react (overlay trigger).
+
 ## Legacy version considerations
 - `AudioPlaybackConfiguration` arrives in API 26; per-app volume control is limited or impossible below API 26.
 - For API 16-25, consider degraded modes (per-stream volume only, read-only app list, or disable per-app controls).

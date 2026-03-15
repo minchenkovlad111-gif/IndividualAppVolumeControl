@@ -35,6 +35,18 @@
             android:name=".service.VolumeOverlayService"
             android:exported="false" />
         <service
+            android:name=".service.VolumeKeyAccessibilityService"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+        <service
             android:name=".service.OverlayTileService"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -58,6 +70,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".service.BootStartReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.duda.appvolumecontrol.action.START_SERVICES" />
             </intent-filter>
         </receiver>
     </application>

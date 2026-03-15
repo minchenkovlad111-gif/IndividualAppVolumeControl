@@ -18,6 +18,10 @@ Note: Some privileged permissions are not exposed as public SDK constants; use t
 - `android.permission.BLUETOOTH`: Legacy Bluetooth permission for pre-Android 12 devices.
 - `android.permission.READ_PHONE_STATE`: Listen for call state changes to mute playback during calls.
 
+## Accessibility service
+- The volume-key overlay listener is implemented as an `AccessibilityService` with `flagRequestFilterKeyEvents`.
+- The service entry is protected by `android.permission.BIND_ACCESSIBILITY_SERVICE` (no runtime prompt), but it must be enabled in Accessibility settings (or via `WRITE_SECURE_SETTINGS` for system installs).
+
 ## Privapp whitelist
 The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant signature/privileged permissions to the app when installed as a system app.
 
