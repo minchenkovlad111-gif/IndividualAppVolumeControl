@@ -9,3 +9,4 @@ local.properties
 /logcat
 /java_pid*.hprof
 /module/system/priv-app/
+/volumebuttons/

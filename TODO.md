@@ -16,6 +16,9 @@
 14. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Added overlay gating options (only when audio plays, focused-app blocklist, snooze timer).
+2. Compact overlay watcher notification text.
+3. Updated accessibility service label to include the app name.
 1. Added safe active playback config retrieval with diagnostics logging to avoid crashes when permissions are missing.
 2. Added overlay/accessibility status to Setup Check + Diagnostics, with quick action buttons to open settings.
 3. Added overlay addView failure logging and accessibility-triggered overlay start error toast.

@@ -1,5 +1,5 @@
 # Status
-Last update: 2026-03-14
+Last update: 2026-03-15
 
 ## Current focus
 - Overlay UX refinements and feature gating groundwork.
@@ -8,6 +8,10 @@ Last update: 2026-03-14
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added overlay gating options: only show while audio plays, snooze timer, and focused-app blocklist.
+- Added focused app tracking from Accessibility events to support overlay suppression.
+- Made the overlay watcher notification more compact.
+- Updated the accessibility service label to include the app name.
 - Added safe active playback config retrieval with diagnostics logging to avoid crashes when permissions are missing.
 - Added overlay/accessibility status to Setup Check + Diagnostics with quick action buttons to open settings.
 - Added overlay addView failure logging and an accessibility-triggered overlay start error toast.
@@ -234,4 +238,4 @@ Last update: 2026-03-14
 - Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
-- 2026-03-13
+- 2026-03-15
