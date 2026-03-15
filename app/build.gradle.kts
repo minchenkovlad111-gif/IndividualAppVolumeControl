@@ -67,3 +67,48 @@ dependencies {
     add("legacyImplementation", "androidx.appcompat:appcompat:1.4.2")
     add("legacyImplementation", "androidx.multidex:multidex:2.0.1")
 }
+
+tasks.register("printApkPaths") {
+    group = "build"
+    description = "Prints expected APK output paths after build."
+    dependsOn("packageMagiskModule")
+    doLast {
+        val apkDir = layout.buildDirectory.dir("outputs/apk").get().asFile
+        val paths = listOf(
+            "modern/debug/app-modern-debug.apk",
+            "legacy/debug/app-legacy-debug.apk",
+            "modern/release/app-modern-release-unsigned.apk",
+            "legacy/release/app-legacy-release-unsigned.apk",
+        )
+        println("APK outputs:")
+        for (relPath in paths) {
+            val file = File(apkDir, relPath)
+            val status = if (file.exists()) "exists" else "missing"
+            println("- ${file.path} ($status)")
+        }
+        val moduleZip = rootProject.projectDir.resolve("IndividualAppAudioVolumeControl-magisk.zip")
+        val moduleStatus = if (moduleZip.exists()) "exists" else "missing"
+        println("Magisk module output:")
+        println("- ${moduleZip.path} ($moduleStatus)")
+    }
+}
+
+tasks.register<Exec>("packageMagiskModule") {
+    group = "build"
+    description = "Packages the Magisk module using the modern debug APK."
+    val apkPath = layout.buildDirectory.file("outputs/apk/modern/debug/app-modern-debug.apk")
+    val outZip = rootProject.layout.projectDirectory.file("IndividualAppAudioVolumeControl-magisk.zip")
+    val moduleScript = rootProject.layout.projectDirectory.file("module/package.sh")
+    dependsOn("assembleModernDebug")
+    executable = "sh"
+    commandLine(
+        "sh",
+        moduleScript.asFile.path,
+        apkPath.get().asFile.path,
+        outZip.asFile.path,
+    )
+}
+
+tasks.named("build") {
+    finalizedBy("printApkPaths")
+}

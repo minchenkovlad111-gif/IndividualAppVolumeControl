@@ -4,15 +4,21 @@ set -e
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 
-APK_PATH=${1:-"$ROOT_DIR/app/build/outputs/apk/debug/app-debug.apk"}
+DEFAULT_MODERN_APK="$ROOT_DIR/app/build/outputs/apk/modern/debug/app-modern-debug.apk"
+DEFAULT_LEGACY_APK="$ROOT_DIR/app/build/outputs/apk/legacy/debug/app-legacy-debug.apk"
+APK_PATH=${1:-"$DEFAULT_MODERN_APK"}
 OUT_ZIP=${2:-"$ROOT_DIR/IndividualAppAudioVolumeControl-magisk.zip"}
 
 TARGET_DIR="$SCRIPT_DIR/system/priv-app/IndividualAppAudioVolumeControl"
 TARGET_APK="$TARGET_DIR/IndividualAppAudioVolumeControl.apk"
 
 if [ ! -f "$APK_PATH" ]; then
-  echo "APK not found: $APK_PATH" >&2
-  exit 1
+  if [ -f "$DEFAULT_LEGACY_APK" ]; then
+    APK_PATH="$DEFAULT_LEGACY_APK"
+  else
+    echo "APK not found: $APK_PATH" >&2
+    exit 1
+  fi
 fi
 
 mkdir -p "$TARGET_DIR"
