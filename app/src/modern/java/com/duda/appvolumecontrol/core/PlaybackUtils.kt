@@ -27,6 +27,24 @@ object PlaybackUtils {
         }
     }.getOrNull()
 
+    private val playerStateMethod = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredMethod("getPlayerState").apply {
+            isAccessible = true
+        }
+    }.getOrNull()
+
+    private val isActiveMethod = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredMethod("isActive").apply {
+            isAccessible = true
+        }
+    }.getOrNull()
+
+    private val playerStateStartedValue: Int? = runCatching {
+        AudioPlaybackConfiguration::class.java.getDeclaredField("PLAYER_STATE_STARTED").apply {
+            isAccessible = true
+        }.getInt(null)
+    }.getOrNull()
+
     private val setVolumeMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
     private val pauseMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
     private val playMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
@@ -96,10 +114,14 @@ object PlaybackUtils {
     fun hasActivePlayback(configs: List<AudioPlaybackConfiguration>): Boolean {
         for (config in configs) {
             val isStarted = runCatching {
-                config.playerState == AudioPlaybackConfiguration.PLAYER_STATE_STARTED
+                val state = playerStateMethod?.invoke(config) as? Int
+                val startedValue = playerStateStartedValue
+                state != null && startedValue != null && state == startedValue
             }.getOrDefault(false)
             if (isStarted) return true
-            val isActive = runCatching { config.isActive }.getOrDefault(false)
+            val isActive = runCatching {
+                (isActiveMethod?.invoke(config) as? Boolean) == true
+            }.getOrDefault(false)
             if (isActive) return true
         }
         return false
