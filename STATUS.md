@@ -1,5 +1,5 @@
 # Status
-Last update: 2026-03-15
+Last update: 2026-03-16
 
 ## Current focus
 - Overlay UX refinements and feature gating groundwork.
@@ -8,6 +8,8 @@ Last update: 2026-03-15
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added an explicit foreground service type for the overlay watcher to avoid Android 15 FGS startup crashes.
+- Switched playback active checks to reflection-only lookups to avoid hidden API compile errors; added missing `Context` import for the accessibility volume key service.
 - Added overlay gating options: only show while audio plays, snooze timer, and focused-app blocklist.
 - Added focused app tracking from Accessibility events to support overlay suppression.
 - Made the overlay watcher notification more compact.

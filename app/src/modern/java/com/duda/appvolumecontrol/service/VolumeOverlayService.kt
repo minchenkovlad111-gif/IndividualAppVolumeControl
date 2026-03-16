@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo
 import android.database.ContentObserver
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -168,7 +169,16 @@ class VolumeOverlayService : Service() {
         registerReceiver(volumeReceiver, filter)
         isWatching = true
         diagnosticsStore.recordOverlayWatchStart()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        val notification = buildNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
         handler.postDelayed(pollRunnable, POLL_INTERVAL_MS)
     }
 

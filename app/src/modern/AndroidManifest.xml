@@ -33,7 +33,8 @@
             android:exported="false" />
         <service
             android:name=".service.VolumeOverlayService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.VolumeKeyAccessibilityService"
             android:label="@string/accessibility_service_label"
