@@ -16,6 +16,7 @@
 14. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Overlay background set to transparent with clear white borders for root and rows.
 1. Overlay app names now open App Info on tap (long-press still copies package).
 1. Added overlay ignore list (defaults: System UI + Face Unlock label match) and suppress overlay when only ignored apps are active.
 1. Added overlay quick actions to block/unblock the focused app (usage access required).

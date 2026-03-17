@@ -273,9 +273,9 @@ class VolumeOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#F5F5F5"))
+                setColor(Color.TRANSPARENT)
                 cornerRadius = dpToPx(12).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#E0E0E0"))
+                setStroke(dpToPx(1), Color.parseColor("#FFFFFF"))
             }
             setOnTouchListener { _, event ->
                 if (event.action == MotionEvent.ACTION_DOWN) {
@@ -454,9 +454,9 @@ class VolumeOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#FFFFFF"))
+                setColor(Color.TRANSPARENT)
                 cornerRadius = dpToPx(10).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#E0E0E0"))
+                setStroke(dpToPx(1), Color.parseColor("#FFFFFF"))
             }
         }
 
