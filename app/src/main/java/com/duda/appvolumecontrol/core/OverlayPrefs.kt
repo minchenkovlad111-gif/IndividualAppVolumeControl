@@ -72,7 +72,7 @@ class OverlayPrefs(context: Context) {
 
     fun ensureDefaultIgnoreList(packageManager: PackageManager) {
         if (prefs.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
-        val defaults = mutableSetOf("com.android.systemui")
+        val defaults = mutableSetOf("com.android.systemui", "co.aospa.sense")
         runCatching {
             val apps = packageManager.getInstalledApplications(0)
             for (app in apps) {
