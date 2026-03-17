@@ -21,6 +21,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.FrameLayout
@@ -1354,18 +1355,86 @@ class MainActivity : AppCompatActivity() {
                 }
                 val initial = overlayPrefs.getOverlayFocusBlockList()
                 val selected = initial.toMutableSet()
-                val labels = apps.map { "${it.label} (${it.packageName})" }.toTypedArray()
-                val checked = BooleanArray(apps.size) { selected.contains(apps[it].packageName) }
-                AlertDialog.Builder(this)
-                    .setTitle("Suppress overlay for focused apps")
-                    .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-                        val pkg = apps[which].packageName
-                        if (isChecked) {
-                            selected.add(pkg)
-                        } else {
-                            selected.remove(pkg)
+
+                val density = resources.displayMetrics.density
+                val content = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    val padding = (16 * density).toInt()
+                    setPadding(padding, padding, padding, padding)
+                }
+
+                val searchInput = EditText(this).apply {
+                    hint = "Search apps"
+                }
+
+                val listView = ListView(this).apply {
+                    choiceMode = ListView.CHOICE_MODE_MULTIPLE
+                }
+
+                val adapter = ArrayAdapter(
+                    this,
+                    android.R.layout.simple_list_item_multiple_choice,
+                    apps.toMutableList()
+                )
+                listView.adapter = adapter
+
+                fun applyCheckedState() {
+                    for (i in 0 until adapter.count) {
+                        val app = adapter.getItem(i) ?: continue
+                        listView.setItemChecked(i, selected.contains(app.packageName))
+                    }
+                }
+
+                fun updateList(query: String) {
+                    val trimmed = query.trim().lowercase()
+                    val filtered = if (trimmed.isBlank()) {
+                        apps
+                    } else {
+                        apps.filter {
+                            it.label.lowercase().contains(trimmed) ||
+                                it.packageName.lowercase().contains(trimmed)
                         }
                     }
+                    adapter.clear()
+                    adapter.addAll(filtered)
+                    adapter.notifyDataSetChanged()
+                    applyCheckedState()
+                }
+
+                listView.setOnItemClickListener { _, _, position, _ ->
+                    val app = adapter.getItem(position) ?: return@setOnItemClickListener
+                    if (listView.isItemChecked(position)) {
+                        selected.add(app.packageName)
+                    } else {
+                        selected.remove(app.packageName)
+                    }
+                }
+
+                searchInput.addTextChangedListener { editable ->
+                    updateList(editable?.toString().orEmpty())
+                }
+
+                val listHeight = (320 * density).toInt()
+                content.addView(
+                    searchInput,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                )
+                content.addView(
+                    listView,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        listHeight
+                    )
+                )
+
+                updateList("")
+
+                AlertDialog.Builder(this)
+                    .setTitle("Suppress overlay for focused apps")
+                    .setView(content)
                     .setPositiveButton("Save") { _, _ ->
                         overlayPrefs.setOverlayFocusBlockList(selected)
                         updateOverlayFocusBlockButton()
@@ -1467,7 +1536,11 @@ class MainActivity : AppCompatActivity() {
     private data class OverlayAppOption(
         val packageName: String,
         val label: String,
-    )
+    ) {
+        override fun toString(): String {
+            return "$label ($packageName)"
+        }
+    }
 
     private data class SnoozeOption(
         val label: String,

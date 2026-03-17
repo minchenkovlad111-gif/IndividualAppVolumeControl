@@ -42,6 +42,7 @@ import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.OverlayPrefs
 import com.duda.appvolumecontrol.core.MarkerStyle
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.ForegroundAppResolver
 import android.graphics.drawable.Drawable
 import android.widget.Toast
 import com.duda.appvolumecontrol.core.OutputLabelUtils
@@ -55,6 +56,7 @@ class VolumeOverlayService : Service() {
     private val volumeStore by lazy { VolumeStore(this) }
     private val overlayPrefs by lazy { OverlayPrefs(this) }
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
+    private val foregroundResolver by lazy { ForegroundAppResolver(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
     private var overlayView: View? = null
@@ -210,6 +212,10 @@ class VolumeOverlayService : Service() {
     }
 
     private fun shouldSuppressOverlaySignal(): Boolean {
+        val focused = foregroundResolver.getForegroundPackage()
+        if (!focused.isNullOrBlank()) {
+            overlayPrefs.setLastFocusedPackage(focused)
+        }
         if (overlayPrefs.shouldSuppressForFocusedPackage()) return true
         val snoozeUntil = overlayPrefs.getOverlaySnoozeUntil()
         if (snoozeUntil > 0L && SystemClock.elapsedRealtime() < snoozeUntil) {

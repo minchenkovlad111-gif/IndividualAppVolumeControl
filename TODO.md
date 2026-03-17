@@ -16,6 +16,9 @@
 14. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Renamed app display label to IndividualAppVolumeControl (including accessibility label).
+2. Added focused-app blocklist search/filter in the overlay settings dialog.
+3. Added usage-stats foreground fallback for overlay suppression when accessibility focus is stale.
 1. Added overlay gating options (only when audio plays, focused-app blocklist, snooze timer).
 2. Compact overlay watcher notification text.
 3. Updated accessibility service label to include the app name.
