@@ -8,6 +8,7 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Switched overlay to watch outside taps (no full-screen capture), allowing tap-through while dismissing.
 - Hardcoded Face Unlock Service package `co.aospa.sense` into the overlay ignore defaults.
 - Added tap-outside-to-dismiss overlay behavior (full-screen touch catcher).
 - Added next/prev paging for notification controls when more apps are active.
