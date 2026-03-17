@@ -25,7 +25,7 @@ class ForegroundAppResolver(private val context: Context) {
         return stats.maxByOrNull { it.lastTimeUsed }?.packageName
     }
 
-    private fun hasUsageAccess(): Boolean {
+    fun hasUsageAccess(): Boolean {
         val appOpsManager = appOpsManager ?: return true
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             appOpsManager.unsafeCheckOpNoThrow(

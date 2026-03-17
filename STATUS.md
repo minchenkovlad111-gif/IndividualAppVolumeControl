@@ -8,6 +8,7 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added Usage Access gate/check + diagnostics line for focused-app overlay suppression reliability.
 - Renamed app display label to IndividualAppVolumeControl (including accessibility label).
 - Added focused-app blocklist search/filter in the overlay settings dialog.
 - Added usage-stats foreground fallback for overlay suppression when accessibility focus is stale.

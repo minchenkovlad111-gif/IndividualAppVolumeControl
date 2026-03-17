@@ -16,6 +16,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.AccessibilityUtils
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.ForegroundAppResolver
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.SetupStatus
 import com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService
@@ -30,6 +31,7 @@ class SetupCheckActivity : AppCompatActivity() {
     private lateinit var fixView: TextView
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
+    private lateinit var usageAccessButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +79,11 @@ class SetupCheckActivity : AppCompatActivity() {
             setOnClickListener { openAccessibilitySettings() }
         }
 
+        usageAccessButton = Button(this).apply {
+            text = "Grant usage access"
+            setOnClickListener { openUsageAccessSettings() }
+        }
+
         val copyButton = Button(this).apply {
             text = "Copy report"
             setOnClickListener { copyReport() }
@@ -99,6 +106,7 @@ class SetupCheckActivity : AppCompatActivity() {
         root.addView(refreshButton)
         root.addView(overlayPermissionButton)
         root.addView(accessibilityButton)
+        root.addView(usageAccessButton)
         root.addView(copyButton)
         root.addView(diagnosticsButton)
         root.addView(contentView)
@@ -130,6 +138,7 @@ class SetupCheckActivity : AppCompatActivity() {
             this,
             VolumeKeyAccessibilityService::class.java
         )
+        val usageAccessGranted = ForegroundAppResolver(this).hasUsageAccess()
         overlayPermissionButton.isEnabled = !canDrawOverlays
         overlayPermissionButton.text = if (canDrawOverlays) {
             "Overlay permission granted"
@@ -141,6 +150,12 @@ class SetupCheckActivity : AppCompatActivity() {
             "Volume key listener enabled"
         } else {
             "Enable volume key listener"
+        }
+        usageAccessButton.isEnabled = !usageAccessGranted
+        usageAccessButton.text = if (usageAccessGranted) {
+            "Usage access granted"
+        } else {
+            "Grant usage access"
         }
 
         val snapshot = diagnosticsStore.snapshot()
@@ -171,7 +186,8 @@ class SetupCheckActivity : AppCompatActivity() {
                 hasModifyAudio,
                 hiddenApiOk,
                 canDrawOverlays,
-                accessibilityEnabled
+                accessibilityEnabled,
+                usageAccessGranted
             )
         }
 
@@ -190,6 +206,7 @@ class SetupCheckActivity : AppCompatActivity() {
             "Hidden API last attempt: $hiddenApiTime",
             "Overlay permission: ${boolLine(canDrawOverlays)}",
             "Volume key listener: ${boolLine(accessibilityEnabled)}",
+            "Usage access (focused app detection): ${boolLine(usageAccessGranted)}",
             "Active audio apps: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "APK source dir: ${privilegeInfo.sourceDir ?: "-"}",
             "APK public dir: ${privilegeInfo.publicSourceDir ?: "-"}",
@@ -217,6 +234,7 @@ class SetupCheckActivity : AppCompatActivity() {
         hiddenApiOk: Boolean,
         canDrawOverlays: Boolean,
         accessibilityEnabled: Boolean,
+        usageAccessGranted: Boolean,
     ): String {
         val steps = mutableListOf<String>()
         if (!isSystemApp || !isPrivApp) {
@@ -234,6 +252,9 @@ class SetupCheckActivity : AppCompatActivity() {
         }
         if (!accessibilityEnabled) {
             steps.add("Enable the volume key Accessibility service for reliable volume-button triggers.")
+        }
+        if (!usageAccessGranted) {
+            steps.add("Grant Usage Access for reliable focused-app overlay suppression.")
         }
         if (steps.isEmpty()) {
             steps.add("Play audio in any app and run the check again.")
@@ -261,6 +282,14 @@ class SetupCheckActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         } catch (_: Exception) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+    }
+
+    private fun openUsageAccessSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.duda.appvolumecontrol.core.AccessibilityUtils
 import com.duda.appvolumecontrol.core.DiagnosticsStore
+import com.duda.appvolumecontrol.core.ForegroundAppResolver
 import com.duda.appvolumecontrol.core.HiddenApi
 import com.duda.appvolumecontrol.core.PlaybackUtils
 import com.duda.appvolumecontrol.core.OverlayPrefs
@@ -236,6 +237,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             this,
             VolumeKeyAccessibilityService::class.java
         )
+        val usageAccessGranted = ForegroundAppResolver(this).hasUsageAccess()
         val overlayPrefEnabled = OverlayPrefs(this).isOverlayEnabled()
         val requestedPermissions = getRequestedPermissions()
         val permissionStatuses = buildPermissionStatuses(requestedPermissions)
@@ -373,6 +375,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Overlay permission: $canDrawOverlays",
             "Overlay enabled (pref): $overlayPrefEnabled",
             "Volume key listener: $accessibilityEnabled",
+            "Usage access (focused app detection): $usageAccessGranted",
             "Missing critical permissions: ${if (missingCritical.isEmpty()) "-" else missingCritical.joinToString(", ")}",
             "Permission status:",
             *permissionStatuses.map { it.toReportLine() }.toTypedArray(),
