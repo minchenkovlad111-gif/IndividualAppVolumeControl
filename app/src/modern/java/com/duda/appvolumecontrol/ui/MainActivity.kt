@@ -90,6 +90,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlaySnoozeButton: Button
     private lateinit var overlaySnoozeStatusView: TextView
     private lateinit var overlayAutoHideToggle: CheckBox
+    private lateinit var overlayDismissOutsideToggle: CheckBox
     private lateinit var defaultMuteToggle: CheckBox
     private lateinit var autoResumeToggle: CheckBox
     private lateinit var bluetoothPermissionButton: Button
@@ -337,6 +338,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        overlayDismissOutsideToggle = CheckBox(this).apply {
+            text = "Dismiss overlay when tapping outside"
+            isChecked = overlayPrefs.isDismissOnOutsideTapEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setDismissOnOutsideTapEnabled(isChecked)
+            }
+        }
+
         overlayOnlyWhenPlayingToggle = CheckBox(this).apply {
             text = "Only show overlay when audio is playing"
             isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
@@ -543,6 +552,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayToggle)
         root.addView(overlayAutoToggle)
         root.addView(overlayAutoHideToggle)
+        root.addView(overlayDismissOutsideToggle)
         root.addView(overlayOnlyWhenPlayingToggle)
         root.addView(overlayFocusBlockButton)
         root.addView(overlayIgnoreButton)
@@ -1299,6 +1309,7 @@ class MainActivity : AppCompatActivity() {
         overlayToggle.isEnabled = canDraw
         overlayUpdating = false
         overlayOnlyWhenPlayingToggle.isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
+        overlayDismissOutsideToggle.isChecked = overlayPrefs.isDismissOnOutsideTapEnabled()
         updateOverlayFocusBlockButton()
         updateOverlayIgnoreButton()
         updateOverlaySnoozeStatus()
