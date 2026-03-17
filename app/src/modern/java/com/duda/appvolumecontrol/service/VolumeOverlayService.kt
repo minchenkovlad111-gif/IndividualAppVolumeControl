@@ -297,7 +297,9 @@ class VolumeOverlayService : Service() {
             setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_OUTSIDE -> {
-                        removeOverlay()
+                        if (overlayPrefs.isDismissOnOutsideTapEnabled()) {
+                            removeOverlay()
+                        }
                         return@setOnTouchListener false
                     }
                     MotionEvent.ACTION_DOWN -> {
@@ -364,13 +366,17 @@ class VolumeOverlayService : Service() {
             isCheckable = true
             isChecked = overlayPrefs.isOutputOnlyEnabled()
         }
-        val pauseItem = menu.add(0, MENU_PAUSE_OVERLAY, 4, "Pause overlay").apply {
+        val dismissOutsideItem = menu.add(0, MENU_DISMISS_OUTSIDE, 4, "Dismiss on outside tap").apply {
+            isCheckable = true
+            isChecked = overlayPrefs.isDismissOnOutsideTapEnabled()
+        }
+        val pauseItem = menu.add(0, MENU_PAUSE_OVERLAY, 5, "Pause overlay").apply {
             isCheckable = true
             isChecked = overlayPrefs.isOverlayPaused()
         }
-        menu.add(0, MENU_BLOCK_FOCUSED, 5, "Block focused")
-        menu.add(0, MENU_UNBLOCK_FOCUSED, 6, "Unblock focused")
-        menu.add(0, MENU_CLOSE, 7, "Close")
+        menu.add(0, MENU_BLOCK_FOCUSED, 6, "Block focused")
+        menu.add(0, MENU_UNBLOCK_FOCUSED, 7, "Unblock focused")
+        menu.add(0, MENU_CLOSE, 8, "Close")
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 MENU_REFRESH -> {
@@ -400,6 +406,12 @@ class VolumeOverlayService : Service() {
                     overlayPrefs.setOutputOnlyEnabled(enabled)
                     populateList()
                     scheduleHideIfEnabled()
+                    true
+                }
+                MENU_DISMISS_OUTSIDE -> {
+                    val enabled = !dismissOutsideItem.isChecked
+                    dismissOutsideItem.isChecked = enabled
+                    overlayPrefs.setDismissOnOutsideTapEnabled(enabled)
                     true
                 }
                 MENU_PAUSE_OVERLAY -> {
@@ -1010,10 +1022,11 @@ class VolumeOverlayService : Service() {
         private const val MENU_AUTO_REFRESH = 2
         private const val MENU_AUTO_HIDE = 3
         private const val MENU_OUTPUT_ONLY = 4
-        private const val MENU_PAUSE_OVERLAY = 5
-        private const val MENU_BLOCK_FOCUSED = 6
-        private const val MENU_UNBLOCK_FOCUSED = 7
-        private const val MENU_CLOSE = 8
+        private const val MENU_DISMISS_OUTSIDE = 5
+        private const val MENU_PAUSE_OVERLAY = 6
+        private const val MENU_BLOCK_FOCUSED = 7
+        private const val MENU_UNBLOCK_FOCUSED = 8
+        private const val MENU_CLOSE = 9
 
         private val BASE_STREAMS = intArrayOf(
             AudioManager.STREAM_MUSIC,

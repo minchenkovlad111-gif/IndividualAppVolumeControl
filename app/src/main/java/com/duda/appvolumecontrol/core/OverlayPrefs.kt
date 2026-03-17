@@ -46,6 +46,14 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_OVERLAY_PAUSED, paused).apply()
     }
 
+    fun isDismissOnOutsideTapEnabled(): Boolean {
+        return prefs.getBoolean(KEY_OVERLAY_DISMISS_OUTSIDE, true)
+    }
+
+    fun setDismissOnOutsideTapEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_OVERLAY_DISMISS_OUTSIDE, enabled).apply()
+    }
+
     fun isVolumeKeyOnlyWhenPlayingEnabled(): Boolean {
         return prefs.getBoolean(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, false)
     }
@@ -124,5 +132,6 @@ class OverlayPrefs(context: Context) {
         private const val KEY_LAST_FOCUSED_PACKAGE = "overlay_last_focused_package"
         private const val KEY_OVERLAY_SNOOZE_UNTIL = "overlay_snooze_until_elapsed"
         private const val KEY_OVERLAY_PAUSED = "overlay_paused"
+        private const val KEY_OVERLAY_DISMISS_OUTSIDE = "overlay_dismiss_outside"
     }
 }
