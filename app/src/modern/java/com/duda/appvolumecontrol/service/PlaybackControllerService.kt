@@ -29,6 +29,7 @@ import com.duda.appvolumecontrol.core.VolumeStore
 import com.duda.appvolumecontrol.core.LocationRuleStore
 import com.duda.appvolumecontrol.core.LocationRuleManager
 import com.duda.appvolumecontrol.core.AudioSettingsPrefs
+import com.duda.appvolumecontrol.core.OverlayPrefs
 
 @Suppress("DEPRECATION")
 class PlaybackControllerService : Service() {
@@ -36,6 +37,7 @@ class PlaybackControllerService : Service() {
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val audioSettings by lazy { AudioSettingsPrefs(this) }
+    private val overlayPrefs by lazy { OverlayPrefs(this) }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
     private val geofenceRuleManager by lazy { GeofenceRuleManager(this) }
@@ -389,6 +391,11 @@ class PlaybackControllerService : Service() {
             1 -> R.id.notif_75_2
             else -> R.id.notif_75_3
         }
+        val pct100Id = when (index) {
+            0 -> R.id.notif_100_1
+            1 -> R.id.notif_100_2
+            else -> R.id.notif_100_3
+        }
 
         if (entry == null) {
             views.setViewVisibility(rowId, android.view.View.GONE)
@@ -422,6 +429,10 @@ class PlaybackControllerService : Service() {
         views.setOnClickPendingIntent(
             pct75Id,
             buildSetPendingIntent(entry, 75, base + 5)
+        )
+        views.setOnClickPendingIntent(
+            pct100Id,
+            buildSetPendingIntent(entry, 100, base + 6)
         )
     }
 
@@ -503,7 +514,10 @@ class PlaybackControllerService : Service() {
 
     private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): List<NotificationEntry> {
         if (keys.isEmpty()) return emptyList()
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
+        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
         return keys.map { key ->
+            if (ignorePackages.contains(key.packageName)) return@map null
             val label = resolveLabel(key.packageName)
             val volume = volumeStore.getVolume(key) ?: 1f
             NotificationEntry(
@@ -512,7 +526,8 @@ class PlaybackControllerService : Service() {
                 label = label,
                 percent = (volume * 100).toInt().coerceIn(0, 100)
             )
-        }.sortedBy { it.label.lowercase() }
+        }.filterNotNull()
+            .sortedBy { it.label.lowercase() }
             .take(NOTIF_MAX_ROWS)
     }
 

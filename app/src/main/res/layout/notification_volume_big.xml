@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:background="#000000">
 
     <LinearLayout
         android:id="@+id/notif_header_row"
@@ -21,7 +22,12 @@
             android:layout_weight="1"
             android:text="Per-app volume"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0" />
 
         <TextView
             android:id="@+id/notif_open_overlay"
@@ -34,7 +40,12 @@
             android:paddingRight="10dp"
             android:text="Overlay"
             android:textSize="12sp"
-            android:background="@android:drawable/btn_default_small" />
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:background="@drawable/notif_button" />
     </LinearLayout>
 
     <TextView
@@ -43,6 +54,11 @@
         android:layout_height="wrap_content"
         android:text="Tap +/- or quick presets"
         android:textSize="11sp"
+        android:textColor="#FFFFFF"
+        android:shadowColor="#000000"
+        android:shadowRadius="2"
+        android:shadowDx="0"
+        android:shadowDy="0"
         android:paddingBottom="6dp" />
 
     <LinearLayout
@@ -68,7 +84,12 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="App"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0" />
 
             <TextView
                 android:id="@+id/notif_value_1"
@@ -76,6 +97,11 @@
                 android:layout_height="wrap_content"
                 android:text="100%"
                 android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
                 android:paddingEnd="6dp"
                 android:paddingRight="6dp" />
 
@@ -86,7 +112,12 @@
                 android:gravity="center"
                 android:text="-"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_plus_1"
@@ -97,7 +128,12 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
 
         <LinearLayout
@@ -114,7 +150,12 @@
                 android:gravity="center"
                 android:text="Mute"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_25_1"
@@ -125,7 +166,12 @@
                 android:gravity="center"
                 android:text="25%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_50_1"
@@ -136,7 +182,12 @@
                 android:gravity="center"
                 android:text="50%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_75_1"
@@ -147,7 +198,28 @@
                 android:gravity="center"
                 android:text="75%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
+
+            <TextView
+                android:id="@+id/notif_100_1"
+                android:layout_width="40dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:gravity="center"
+                android:text="100"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
     </LinearLayout>
 
@@ -174,7 +246,12 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="App"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0" />
 
             <TextView
                 android:id="@+id/notif_value_2"
@@ -182,6 +259,11 @@
                 android:layout_height="wrap_content"
                 android:text="100%"
                 android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
                 android:paddingEnd="6dp"
                 android:paddingRight="6dp" />
 
@@ -192,7 +274,12 @@
                 android:gravity="center"
                 android:text="-"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_plus_2"
@@ -203,7 +290,12 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
 
         <LinearLayout
@@ -220,7 +312,12 @@
                 android:gravity="center"
                 android:text="Mute"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_25_2"
@@ -231,7 +328,12 @@
                 android:gravity="center"
                 android:text="25%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_50_2"
@@ -242,7 +344,12 @@
                 android:gravity="center"
                 android:text="50%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_75_2"
@@ -253,7 +360,28 @@
                 android:gravity="center"
                 android:text="75%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
+
+            <TextView
+                android:id="@+id/notif_100_2"
+                android:layout_width="40dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:gravity="center"
+                android:text="100"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
     </LinearLayout>
 
@@ -279,7 +407,12 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="App"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0" />
 
             <TextView
                 android:id="@+id/notif_value_3"
@@ -287,6 +420,11 @@
                 android:layout_height="wrap_content"
                 android:text="100%"
                 android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
                 android:paddingEnd="6dp"
                 android:paddingRight="6dp" />
 
@@ -297,7 +435,12 @@
                 android:gravity="center"
                 android:text="-"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_plus_3"
@@ -308,7 +451,12 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="14sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
 
         <LinearLayout
@@ -325,7 +473,12 @@
                 android:gravity="center"
                 android:text="Mute"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_25_3"
@@ -336,7 +489,12 @@
                 android:gravity="center"
                 android:text="25%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_50_3"
@@ -347,7 +505,12 @@
                 android:gravity="center"
                 android:text="50%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
 
             <TextView
                 android:id="@+id/notif_75_3"
@@ -358,7 +521,28 @@
                 android:gravity="center"
                 android:text="75%"
                 android:textSize="11sp"
-                android:background="@android:drawable/btn_default_small" />
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
+
+            <TextView
+                android:id="@+id/notif_100_3"
+                android:layout_width="40dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginLeft="4dp"
+                android:gravity="center"
+                android:text="100"
+                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowRadius="2"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:background="@drawable/notif_button" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

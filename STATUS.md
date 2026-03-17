@@ -8,6 +8,7 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Styled the notification for OLED, added 100% quick button, and applied overlay ignore list filtering.
 - Updated overlay visuals for OLED: transparent root, solid black cards, white borders/text, neon orange sliders, reduced header spacing.
 - Overlay background set to transparent with clear white borders for root and rows.
 - Overlay app names now open App Info on tap (long-press still copies package).
