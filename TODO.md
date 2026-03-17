@@ -16,6 +16,7 @@
 14. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Added overlay quick actions to block/unblock the focused app (usage access required).
 1. Added Usage Access gate/check + diagnostics line for focused-app overlay suppression reliability.
 1. Renamed app display label to IndividualAppVolumeControl (including accessibility label).
 2. Added focused-app blocklist search/filter in the overlay settings dialog.

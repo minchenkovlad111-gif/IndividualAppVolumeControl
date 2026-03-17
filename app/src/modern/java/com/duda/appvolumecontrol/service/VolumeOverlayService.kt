@@ -330,6 +330,22 @@ class VolumeOverlayService : Service() {
             }
         }
 
+        val blockFocusedButton = Button(this).apply {
+            text = "Block focused"
+            setOnClickListener {
+                updateFocusedBlockList(block = true)
+                scheduleHideIfEnabled()
+            }
+        }
+
+        val unblockFocusedButton = Button(this).apply {
+            text = "Unblock focused"
+            setOnClickListener {
+                updateFocusedBlockList(block = false)
+                scheduleHideIfEnabled()
+            }
+        }
+
         val closeButton = Button(this).apply {
             text = "Close"
             setOnClickListener { removeOverlay() }
@@ -340,6 +356,8 @@ class VolumeOverlayService : Service() {
         headerRow.addView(autoToggle)
         headerRow.addView(autoHideToggle)
         headerRow.addView(outputOnlyToggle)
+        headerRow.addView(blockFocusedButton)
+        headerRow.addView(unblockFocusedButton)
         headerRow.addView(closeButton)
 
         listContainer = LinearLayout(this).apply {
@@ -719,6 +737,33 @@ class VolumeOverlayService : Service() {
         val manager = getSystemService(android.content.ClipboardManager::class.java)
         manager.setPrimaryClip(android.content.ClipData.newPlainText("package", text))
         Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateFocusedBlockList(block: Boolean) {
+        if (!foregroundResolver.hasUsageAccess()) {
+            Toast.makeText(this, "Usage access required to detect focused app", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val focused = foregroundResolver.getForegroundPackage()
+        if (focused.isNullOrBlank()) {
+            Toast.makeText(this, "Focused app not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val label = resolveLabel(focused)
+        val blockList = overlayPrefs.getOverlayFocusBlockList().toMutableSet()
+        val changed = if (block) {
+            blockList.add(focused)
+        } else {
+            blockList.remove(focused)
+        }
+        if (!changed) {
+            val status = if (block) "already blocked" else "not blocked"
+            Toast.makeText(this, "$label is $status", Toast.LENGTH_SHORT).show()
+            return
+        }
+        overlayPrefs.setOverlayFocusBlockList(blockList)
+        val verb = if (block) "Blocked" else "Unblocked"
+        Toast.makeText(this, "$verb $label", Toast.LENGTH_SHORT).show()
     }
 
     private fun buildLayoutParams(): WindowManager.LayoutParams {
