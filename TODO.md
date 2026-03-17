@@ -1,7 +1,6 @@
 # TODO
 
-1. Improve notification controls: add next/prev paging for more apps.
-2. Investigate why Face Unlock Service package is unknown; add a default ignore package once identified.
+1. Investigate why Face Unlock Service package is unknown; add a default ignore package once identified.
 
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks).
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
@@ -19,6 +18,7 @@
 14. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Added next/prev paging for notification controls when more apps are active.
 1. Reworked overlay header controls into a single dropdown menu.
 2. Added an overlay pause toggle (menu + watcher notification) to suppress overlay until resumed.
 3. Moved overlay row controls to the left of sliders to reduce height.

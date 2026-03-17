@@ -30,6 +30,52 @@
             android:shadowDy="0" />
 
         <TextView
+            android:id="@+id/notif_page"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1/1"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:paddingEnd="6dp"
+            android:paddingRight="6dp" />
+
+        <TextView
+            android:id="@+id/notif_prev"
+            android:layout_width="40dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="Prev"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:background="@drawable/notif_button"
+            android:layout_marginEnd="4dp"
+            android:layout_marginRight="4dp" />
+
+        <TextView
+            android:id="@+id/notif_next"
+            android:layout_width="40dp"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="Next"
+            android:textSize="11sp"
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:background="@drawable/notif_button"
+            android:layout_marginEnd="6dp"
+            android:layout_marginRight="6dp" />
+
+        <TextView
             android:id="@+id/notif_open_overlay"
             android:layout_width="wrap_content"
             android:layout_height="28dp"

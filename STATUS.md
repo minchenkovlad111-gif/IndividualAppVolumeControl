@@ -8,6 +8,7 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added next/prev paging for notification controls when more apps are active.
 - Collapsed overlay header controls into a dropdown menu and added a pause/resume toggle (menu + watcher notification).
 - Suppressed volume-key overlay triggers while paused and resume on manual overlay action.
 - Moved overlay row controls (mute/percent) to the left of sliders.

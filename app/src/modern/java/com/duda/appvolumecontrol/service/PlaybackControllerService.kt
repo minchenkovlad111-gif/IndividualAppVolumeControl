@@ -38,6 +38,7 @@ class PlaybackControllerService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val audioSettings by lazy { AudioSettingsPrefs(this) }
     private val overlayPrefs by lazy { OverlayPrefs(this) }
+    private val notifPrefs by lazy { getSharedPreferences(PREFS_NOTIFICATION, Context.MODE_PRIVATE) }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
     private val geofenceRuleManager by lazy { GeofenceRuleManager(this) }
@@ -45,6 +46,10 @@ class PlaybackControllerService : Service() {
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
     private var lastNotificationSignature: String? = null
+    private var lastNotificationPage: Int = 0
+    private var lastNotificationPages: Int = 0
+    private var lastNotificationTotal: Int = 0
+    private var lastNotificationKeys: Set<VolumeStore.VolumeKey> = emptySet()
     private val lastPausedKeys = mutableSetOf<String>()
     private var callMuteActive: Boolean = false
     private var telephonyCallback: TelephonyCallback? = null
@@ -95,6 +100,10 @@ class PlaybackControllerService : Service() {
             ACTION_LOCATION_SYNC -> {
                 locationRuleManager.syncBackgroundUpdates()
                 geofenceRuleManager.syncGeofences()
+            }
+            ACTION_NOTIFICATION_REFRESH -> {
+                refreshNotificationPage()
+                updateNotification(lastNotifiedCount)
             }
         }
         return START_STICKY
@@ -239,7 +248,12 @@ class PlaybackControllerService : Service() {
                 details = detailBlob
             )
         }
-        lastNotificationEntries = buildNotificationEntries(activeVolumeKeys)
+        lastNotificationKeys = activeVolumeKeys.toSet()
+        val page = buildNotificationEntries(activeVolumeKeys)
+        lastNotificationEntries = page.entries
+        lastNotificationPage = page.page
+        lastNotificationPages = page.totalPages
+        lastNotificationTotal = page.totalEntries
         updateNotification(activeEntries.size)
     }
 
@@ -319,11 +333,11 @@ class PlaybackControllerService : Service() {
     }
 
     private fun buildNotificationSignature(): String {
-        if (lastNotificationEntries.isEmpty()) return ""
-        return lastNotificationEntries.joinToString("|") { entry ->
+        val base = lastNotificationEntries.joinToString("|") { entry ->
             val userPart = entry.userId?.toString() ?: "x"
             "${entry.packageName}@$userPart:${entry.percent}"
         }
+        return "p=$lastNotificationPage/$lastNotificationPages/t=$lastNotificationTotal|$base"
     }
 
     private data class ActiveConfig(
@@ -335,14 +349,54 @@ class PlaybackControllerService : Service() {
     private fun buildBigRemoteViews(): RemoteViews {
         val views = RemoteViews(packageName, R.layout.notification_volume_big)
         val entries = lastNotificationEntries
+        val page = lastNotificationPage
+        val totalPages = lastNotificationPages
         views.setOnClickPendingIntent(
             R.id.notif_open_overlay,
             buildOverlayPendingIntent()
         )
+        views.setOnClickPendingIntent(
+            R.id.notif_prev,
+            buildPagePendingIntent(NotificationActionReceiver.ACTION_PAGE_PREV, 200)
+        )
+        views.setOnClickPendingIntent(
+            R.id.notif_next,
+            buildPagePendingIntent(NotificationActionReceiver.ACTION_PAGE_NEXT, 201)
+        )
+        if (totalPages > 1) {
+            views.setViewVisibility(R.id.notif_prev, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.notif_next, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.notif_page, android.view.View.VISIBLE)
+            views.setTextViewText(R.id.notif_page, "${page + 1}/$totalPages")
+            views.setTextViewText(
+                R.id.notif_subtitle,
+                "Tap +/- or quick presets · Page ${page + 1}/$totalPages"
+            )
+        } else {
+            views.setViewVisibility(R.id.notif_prev, android.view.View.GONE)
+            views.setViewVisibility(R.id.notif_next, android.view.View.GONE)
+            views.setViewVisibility(R.id.notif_page, android.view.View.GONE)
+            views.setTextViewText(R.id.notif_subtitle, "Tap +/- or quick presets")
+        }
         bindNotificationRow(views, 0, entries.getOrNull(0))
         bindNotificationRow(views, 1, entries.getOrNull(1))
         bindNotificationRow(views, 2, entries.getOrNull(2))
         return views
+    }
+
+    private fun refreshNotificationPage() {
+        if (lastNotificationKeys.isEmpty()) {
+            lastNotificationEntries = emptyList()
+            lastNotificationPage = 0
+            lastNotificationPages = 0
+            lastNotificationTotal = 0
+            return
+        }
+        val page = buildNotificationEntries(lastNotificationKeys)
+        lastNotificationEntries = page.entries
+        lastNotificationPage = page.page
+        lastNotificationPages = page.totalPages
+        lastNotificationTotal = page.totalEntries
     }
 
     private fun bindNotificationRow(views: RemoteViews, index: Int, entry: NotificationEntry?) {
@@ -512,11 +566,23 @@ class PlaybackControllerService : Service() {
         )
     }
 
-    private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): List<NotificationEntry> {
-        if (keys.isEmpty()) return emptyList()
+    private fun buildPagePendingIntent(action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            this.action = action
+        }
+        return PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
+    }
+
+    private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): NotificationPage {
+        if (keys.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
         overlayPrefs.ensureDefaultIgnoreList(packageManager)
         val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
-        return keys.map { key ->
+        val entries = keys.map { key ->
             if (ignorePackages.contains(key.packageName)) return@map null
             val label = resolveLabel(key.packageName)
             val volume = volumeStore.getVolume(key) ?: 1f
@@ -528,7 +594,23 @@ class PlaybackControllerService : Service() {
             )
         }.filterNotNull()
             .sortedBy { it.label.lowercase() }
-            .take(NOTIF_MAX_ROWS)
+        if (entries.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
+        val totalPages = ((entries.size - 1) / NOTIF_MAX_ROWS) + 1
+        val currentPage = getNotificationPage().coerceIn(0, totalPages - 1)
+        setNotificationPageIfChanged(currentPage)
+        val fromIndex = currentPage * NOTIF_MAX_ROWS
+        val toIndex = (fromIndex + NOTIF_MAX_ROWS).coerceAtMost(entries.size)
+        val pageEntries = entries.subList(fromIndex, toIndex)
+        return NotificationPage(pageEntries, currentPage, totalPages, entries.size)
+    }
+
+    private fun getNotificationPage(): Int {
+        return notifPrefs.getInt(KEY_NOTIFICATION_PAGE, 0)
+    }
+
+    private fun setNotificationPageIfChanged(page: Int) {
+        if (notifPrefs.getInt(KEY_NOTIFICATION_PAGE, 0) == page) return
+        notifPrefs.edit().putInt(KEY_NOTIFICATION_PAGE, page).apply()
     }
 
     private fun resolveLabel(packageName: String): String {
@@ -629,9 +711,12 @@ class PlaybackControllerService : Service() {
         const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
         const val ACTION_LOCATION_REFRESH = "com.duda.appvolumecontrol.action.LOCATION_REFRESH"
         const val ACTION_LOCATION_SYNC = "com.duda.appvolumecontrol.action.LOCATION_SYNC"
+        const val ACTION_NOTIFICATION_REFRESH = "com.duda.appvolumecontrol.action.NOTIFICATION_REFRESH"
         private const val NOTIF_MAX_ROWS = 3
         private const val MAX_ROUTE_DETAIL_CHARS = 600
         private const val NOTIF_VOLUME_STEP = 0.05f
+        private const val PREFS_NOTIFICATION = "notif_paging"
+        private const val KEY_NOTIFICATION_PAGE = "page"
 
         fun requestReapply(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
@@ -656,6 +741,12 @@ class PlaybackControllerService : Service() {
             intent.action = ACTION_LOCATION_SYNC
             context.startForegroundService(intent)
         }
+
+        fun requestNotificationRefresh(context: Context) {
+            val intent = Intent(context, PlaybackControllerService::class.java)
+            intent.action = ACTION_NOTIFICATION_REFRESH
+            context.startForegroundService(intent)
+        }
     }
 
     private data class NotificationEntry(
@@ -663,5 +754,12 @@ class PlaybackControllerService : Service() {
         val userId: Int?,
         val label: String,
         val percent: Int,
+    )
+
+    private data class NotificationPage(
+        val entries: List<NotificationEntry>,
+        val page: Int,
+        val totalPages: Int,
+        val totalEntries: Int,
     )
 }

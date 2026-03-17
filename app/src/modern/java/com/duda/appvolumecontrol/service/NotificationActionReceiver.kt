@@ -9,6 +9,18 @@ import com.duda.appvolumecontrol.core.VolumeStore
 
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        when (intent.action) {
+            ACTION_PAGE_NEXT -> {
+                updateNotificationPage(context, 1)
+                PlaybackControllerService.requestNotificationRefresh(context)
+                return
+            }
+            ACTION_PAGE_PREV -> {
+                updateNotificationPage(context, -1)
+                PlaybackControllerService.requestNotificationRefresh(context)
+                return
+            }
+        }
         val packageName = intent.getStringExtra(EXTRA_PACKAGE) ?: return
         val rawUserId = intent.getIntExtra(EXTRA_USER_ID, USER_ID_NONE)
         val userId = if (rawUserId == USER_ID_NONE) null else rawUserId
@@ -67,15 +79,26 @@ class NotificationActionReceiver : BroadcastReceiver() {
         return if (prefs.contains(key.storageKey())) prefs.getFloat(key.storageKey(), 1f) else null
     }
 
+    private fun updateNotificationPage(context: Context, delta: Int) {
+        val prefs = context.getSharedPreferences(PREFS_PAGING, Context.MODE_PRIVATE)
+        val current = prefs.getInt(KEY_PAGE, 0)
+        val next = (current + delta).coerceAtLeast(0)
+        prefs.edit().putInt(KEY_PAGE, next).apply()
+    }
+
     companion object {
         const val ACTION_ADJUST = "com.duda.appvolumecontrol.action.NOTIF_ADJUST"
         const val ACTION_SET = "com.duda.appvolumecontrol.action.NOTIF_SET"
         const val ACTION_TOGGLE_MUTE = "com.duda.appvolumecontrol.action.NOTIF_TOGGLE_MUTE"
+        const val ACTION_PAGE_NEXT = "com.duda.appvolumecontrol.action.NOTIF_PAGE_NEXT"
+        const val ACTION_PAGE_PREV = "com.duda.appvolumecontrol.action.NOTIF_PAGE_PREV"
         const val EXTRA_PACKAGE = "package"
         const val EXTRA_USER_ID = "user_id"
         const val EXTRA_DELTA = "delta"
         const val EXTRA_PERCENT = "percent"
         const val USER_ID_NONE = -1
         private const val PREFS_NAME = "notif_volume"
+        private const val PREFS_PAGING = "notif_paging"
+        private const val KEY_PAGE = "page"
     }
 }
