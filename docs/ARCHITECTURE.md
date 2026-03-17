@@ -8,7 +8,7 @@
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
 - Overlay service: shows a floating per-app slider panel on volume-button changes (multiple stream settings observers + broadcast actions + polling fallback).
 - Volume-key accessibility service: listens for volume key events system-wide and signals the overlay without consuming the key (volume still changes).
-- Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, optional auto-refresh, optional auto-hide, and optional gating (only show while audio plays, snooze, focused-app blocklist).
+- Overlay UX: per-app mute toggle, segmented tick markers, snap-to-segment resistance, dropdown header menu, pause/resume toggle, optional auto-refresh, optional auto-hide, and optional gating (only show while audio plays, snooze, focused-app blocklist).
 - Overlay permission flow: dedicated screen to request `SYSTEM_ALERT_WINDOW`.
 - Quick settings tile: opens the overlay on demand.
 - Boot receiver: restarts the playback controller (and overlay watcher if enabled) after reboot/app update.

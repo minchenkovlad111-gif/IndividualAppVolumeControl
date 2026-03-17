@@ -28,12 +28,12 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.SeekBar
 import android.widget.TextView
 import com.duda.appvolumecontrol.core.PlaybackUtils
@@ -133,7 +133,14 @@ class VolumeOverlayService : Service() {
                 stopWatching()
                 stopSelf()
             }
+            ACTION_TOGGLE_PAUSE -> {
+                val paused = !overlayPrefs.isOverlayPaused()
+                setOverlayPaused(paused, fromUser = true)
+            }
             ACTION_SHOW -> {
+                if (overlayPrefs.isOverlayPaused()) {
+                    setOverlayPaused(false, fromUser = true)
+                }
                 diagnosticsStore.recordOverlaySignal(DiagnosticsStore.OVERLAY_SIGNAL_MANUAL)
                 lastShowReason = intent.getStringExtra(EXTRA_SHOW_REASON)
                     ?: DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
@@ -217,6 +224,7 @@ class VolumeOverlayService : Service() {
         if (!focused.isNullOrBlank()) {
             overlayPrefs.setLastFocusedPackage(focused)
         }
+        if (overlayPrefs.isOverlayPaused()) return true
         if (overlayPrefs.shouldSuppressForFocusedPackage()) return true
         val snoozeUntil = overlayPrefs.getOverlaySnoozeUntil()
         if (snoozeUntil > 0L && SystemClock.elapsedRealtime() < snoozeUntil) {
@@ -230,6 +238,16 @@ class VolumeOverlayService : Service() {
             }
         }
         return false
+    }
+
+    private fun setOverlayPaused(paused: Boolean, fromUser: Boolean) {
+        overlayPrefs.setOverlayPaused(paused)
+        if (paused) {
+            removeOverlay()
+        }
+        if (fromUser) {
+            updateWatcherNotification()
+        }
     }
 
     private fun showOverlay(stopWhenHidden: Boolean, autoHide: Boolean) {
@@ -296,83 +314,14 @@ class VolumeOverlayService : Service() {
         }
         applyOverlayTextStyle(title)
 
-        val refreshButton = Button(this).apply {
-            text = "Refresh"
-            setOnClickListener {
-                activeSignature = buildActiveSignature()
-                populateList()
-                scheduleHideIfEnabled()
-            }
+        val menuButton = Button(this).apply {
+            text = "Menu"
+            setOnClickListener { showHeaderMenu(this) }
         }
-        applyOverlayTextStyle(refreshButton)
-
-        val autoToggle = CheckBox(this).apply {
-            text = "Auto refresh"
-            textSize = 12f
-            isChecked = overlayPrefs.isAutoRefreshEnabled()
-            setOnCheckedChangeListener { _, isChecked ->
-                overlayPrefs.setAutoRefreshEnabled(isChecked)
-                scheduleHideIfEnabled()
-            }
-        }
-        applyOverlayTextStyle(autoToggle)
-
-        val autoHideToggle = CheckBox(this).apply {
-            text = "Auto hide"
-            textSize = 12f
-            isChecked = overlayPrefs.isAutoHideEnabled()
-            setOnCheckedChangeListener { _, isChecked ->
-                overlayPrefs.setAutoHideEnabled(isChecked)
-                autoHideEnabled = isChecked
-                scheduleHideIfEnabled()
-            }
-        }
-        applyOverlayTextStyle(autoHideToggle)
-
-        val outputOnlyToggle = CheckBox(this).apply {
-            text = "Output only"
-            textSize = 12f
-            isChecked = overlayPrefs.isOutputOnlyEnabled()
-            setOnCheckedChangeListener { _, isChecked ->
-                overlayPrefs.setOutputOnlyEnabled(isChecked)
-                populateList()
-                scheduleHideIfEnabled()
-            }
-        }
-        applyOverlayTextStyle(outputOnlyToggle)
-
-        val blockFocusedButton = Button(this).apply {
-            text = "Block focused"
-            setOnClickListener {
-                updateFocusedBlockList(block = true)
-                scheduleHideIfEnabled()
-            }
-        }
-        applyOverlayTextStyle(blockFocusedButton)
-
-        val unblockFocusedButton = Button(this).apply {
-            text = "Unblock focused"
-            setOnClickListener {
-                updateFocusedBlockList(block = false)
-                scheduleHideIfEnabled()
-            }
-        }
-        applyOverlayTextStyle(unblockFocusedButton)
-
-        val closeButton = Button(this).apply {
-            text = "Close"
-            setOnClickListener { removeOverlay() }
-        }
-        applyOverlayTextStyle(closeButton)
+        applyOverlayTextStyle(menuButton)
 
         headerRow.addView(title)
-        headerRow.addView(refreshButton)
-        headerRow.addView(autoToggle)
-        headerRow.addView(autoHideToggle)
-        headerRow.addView(outputOnlyToggle)
-        headerRow.addView(blockFocusedButton)
-        headerRow.addView(unblockFocusedButton)
-        headerRow.addView(closeButton)
+        headerRow.addView(menuButton)
 
         listContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -391,6 +340,86 @@ class VolumeOverlayService : Service() {
         root.addView(listContainer)
         overlayView = root
         return root
+    }
+
+    private fun showHeaderMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        val menu = popup.menu
+        menu.add(0, MENU_REFRESH, 0, "Refresh")
+        val autoRefreshItem = menu.add(0, MENU_AUTO_REFRESH, 1, "Auto refresh").apply {
+            isCheckable = true
+            isChecked = overlayPrefs.isAutoRefreshEnabled()
+        }
+        val autoHideItem = menu.add(0, MENU_AUTO_HIDE, 2, "Auto hide").apply {
+            isCheckable = true
+            isChecked = overlayPrefs.isAutoHideEnabled()
+        }
+        val outputOnlyItem = menu.add(0, MENU_OUTPUT_ONLY, 3, "Output only").apply {
+            isCheckable = true
+            isChecked = overlayPrefs.isOutputOnlyEnabled()
+        }
+        val pauseItem = menu.add(0, MENU_PAUSE_OVERLAY, 4, "Pause overlay").apply {
+            isCheckable = true
+            isChecked = overlayPrefs.isOverlayPaused()
+        }
+        menu.add(0, MENU_BLOCK_FOCUSED, 5, "Block focused")
+        menu.add(0, MENU_UNBLOCK_FOCUSED, 6, "Unblock focused")
+        menu.add(0, MENU_CLOSE, 7, "Close")
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                MENU_REFRESH -> {
+                    activeSignature = buildActiveSignature()
+                    populateList()
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_AUTO_REFRESH -> {
+                    val enabled = !autoRefreshItem.isChecked
+                    autoRefreshItem.isChecked = enabled
+                    overlayPrefs.setAutoRefreshEnabled(enabled)
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_AUTO_HIDE -> {
+                    val enabled = !autoHideItem.isChecked
+                    autoHideItem.isChecked = enabled
+                    overlayPrefs.setAutoHideEnabled(enabled)
+                    autoHideEnabled = enabled
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_OUTPUT_ONLY -> {
+                    val enabled = !outputOnlyItem.isChecked
+                    outputOnlyItem.isChecked = enabled
+                    overlayPrefs.setOutputOnlyEnabled(enabled)
+                    populateList()
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_PAUSE_OVERLAY -> {
+                    val enabled = !pauseItem.isChecked
+                    pauseItem.isChecked = enabled
+                    setOverlayPaused(enabled, fromUser = true)
+                    true
+                }
+                MENU_BLOCK_FOCUSED -> {
+                    updateFocusedBlockList(block = true)
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_UNBLOCK_FOCUSED -> {
+                    updateFocusedBlockList(block = false)
+                    scheduleHideIfEnabled()
+                    true
+                }
+                MENU_CLOSE -> {
+                    removeOverlay()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
     private fun populateList(): Int {
@@ -531,16 +560,55 @@ class VolumeOverlayService : Service() {
         val valueView = TextView(this).apply {
             text = "${(stored * 100).toInt()}%"
             textSize = 11f
-            setPadding(dpToPx(6), 0, 0, 0)
+            setPadding(0, 0, dpToPx(6), 0)
         }
         applyOverlayTextStyle(valueView)
+
+        lateinit var slider: SeekBar
+        lateinit var muteButton: ImageButton
+
+        muteButton = ImageButton(this).apply {
+            background = null
+            layoutParams = LinearLayout.LayoutParams(dpToPx(28), dpToPx(28)).apply {
+                marginEnd = dpToPx(4)
+            }
+        }
+
+        updateMuteIcon(muteButton, stored)
+        muteButton.setOnClickListener {
+            val currentVolume = volumeStore.getVolume(entry.key) ?: 1f
+            if (currentVolume > 0f) {
+                lastNonZeroVolumes[entry.key.storageKey()] = currentVolume
+                applyVolume(entry, 0, valueView)
+                slider.progress = 0
+                updateMuteIcon(muteButton, 0f)
+            } else {
+                val restored = lastNonZeroVolumes[entry.key.storageKey()] ?: 1f
+                val percent = (restored * 100).roundToInt()
+                applyVolume(entry, percent, valueView)
+                slider.progress = percent
+                updateMuteIcon(muteButton, restored)
+            }
+            scheduleHideIfEnabled()
+        }
 
         val sliderRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        lateinit var muteButton: ImageButton
+        val controlRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = dpToPx(6)
+            }
+        }
+        controlRow.addView(muteButton)
+        controlRow.addView(valueView)
 
         val sliderFrame = FrameLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -555,7 +623,7 @@ class VolumeOverlayService : Service() {
         }
         applyCustomMarkers(ticksView, entry.key)
 
-        val slider = SeekBar(this).apply {
+        slider = SeekBar(this).apply {
             max = 100
             progress = (stored * 100).toInt()
             progressTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
@@ -611,35 +679,8 @@ class VolumeOverlayService : Service() {
 
         sliderFrame.addView(ticksView)
         sliderFrame.addView(slider)
+        sliderRow.addView(controlRow)
         sliderRow.addView(sliderFrame)
-        sliderRow.addView(valueView)
-
-        muteButton = ImageButton(this).apply {
-            background = null
-            layoutParams = LinearLayout.LayoutParams(dpToPx(28), dpToPx(28)).apply {
-                marginStart = dpToPx(6)
-            }
-        }
-
-        updateMuteIcon(muteButton, stored)
-        muteButton.setOnClickListener {
-            val currentVolume = volumeStore.getVolume(entry.key) ?: 1f
-            if (currentVolume > 0f) {
-                lastNonZeroVolumes[entry.key.storageKey()] = currentVolume
-                applyVolume(entry, 0, valueView)
-                slider.progress = 0
-                updateMuteIcon(muteButton, 0f)
-            } else {
-                val restored = lastNonZeroVolumes[entry.key.storageKey()] ?: 1f
-                val percent = (restored * 100).roundToInt()
-                applyVolume(entry, percent, valueView)
-                slider.progress = percent
-                updateMuteIcon(muteButton, restored)
-            }
-            scheduleHideIfEnabled()
-        }
-
-        headerRow.addView(muteButton)
 
         card.addView(headerRow)
         card.addView(sliderRow)
@@ -854,6 +895,16 @@ class VolumeOverlayService : Service() {
             channel.description = "Shows overlay when volume buttons are pressed"
             manager.createNotificationChannel(channel)
         }
+        val paused = overlayPrefs.isOverlayPaused()
+        val toggleIntent = Intent(this, VolumeOverlayService::class.java).apply {
+            action = ACTION_TOGGLE_PAUSE
+        }
+        val togglePending = PendingIntent.getService(
+            this,
+            2,
+            toggleIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
+        )
         val stopIntent = Intent(this, VolumeOverlayService::class.java).apply {
             action = ACTION_STOP_WATCH
         }
@@ -864,13 +915,20 @@ class VolumeOverlayService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
         )
         return Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Overlay on")
-            .setContentText("Per-app volume")
+            .setContentTitle(if (paused) "Overlay paused" else "Overlay on")
+            .setContentText(if (paused) "Per-app volume paused" else "Per-app volume")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .addAction(Notification.Action.Builder(null, if (paused) "Resume" else "Pause", togglePending).build())
             .addAction(Notification.Action.Builder(null, "Stop", stopPending).build())
             .build()
+    }
+
+    private fun updateWatcherNotification() {
+        if (!isWatching) return
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, buildNotification())
     }
 
     private fun pendingIntentImmutable(): Int {
@@ -909,6 +967,7 @@ class VolumeOverlayService : Service() {
         const val ACTION_SHOW = "com.duda.appvolumecontrol.action.SHOW_OVERLAY"
         const val ACTION_START_WATCH = "com.duda.appvolumecontrol.action.START_OVERLAY_WATCH"
         const val ACTION_STOP_WATCH = "com.duda.appvolumecontrol.action.STOP_OVERLAY_WATCH"
+        const val ACTION_TOGGLE_PAUSE = "com.duda.appvolumecontrol.action.TOGGLE_OVERLAY_PAUSE"
         const val EXTRA_SHOW_REASON = "com.duda.appvolumecontrol.extra.OVERLAY_SHOW_REASON"
         const val SHOW_REASON_ACCESSIBILITY = "accessibility"
         private const val CHANNEL_ID = "overlay_watcher"
@@ -939,6 +998,15 @@ class VolumeOverlayService : Service() {
         private val OVERLAY_TEXT = Color.parseColor("#FFFFFF")
         private val OVERLAY_ORANGE = Color.parseColor("#FF6A00")
         private val OVERLAY_TRACK = Color.parseColor("#303030")
+
+        private const val MENU_REFRESH = 1
+        private const val MENU_AUTO_REFRESH = 2
+        private const val MENU_AUTO_HIDE = 3
+        private const val MENU_OUTPUT_ONLY = 4
+        private const val MENU_PAUSE_OVERLAY = 5
+        private const val MENU_BLOCK_FOCUSED = 6
+        private const val MENU_UNBLOCK_FOCUSED = 7
+        private const val MENU_CLOSE = 8
 
         private val BASE_STREAMS = intArrayOf(
             AudioManager.STREAM_MUSIC,

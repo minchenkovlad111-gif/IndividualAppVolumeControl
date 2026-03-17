@@ -38,6 +38,7 @@ class VolumeKeyAccessibilityService : AccessibilityService() {
             return false
         }
         if (!overlayPrefs.isOverlayEnabled()) return false
+        if (overlayPrefs.isOverlayPaused()) return false
         if (overlayPrefs.shouldSuppressForFocusedPackage()) return false
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
             overlayPrefs.ensureDefaultIgnoreList(packageManager)

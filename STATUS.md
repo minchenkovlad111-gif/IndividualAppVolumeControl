@@ -8,6 +8,9 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Collapsed overlay header controls into a dropdown menu and added a pause/resume toggle (menu + watcher notification).
+- Suppressed volume-key overlay triggers while paused and resume on manual overlay action.
+- Moved overlay row controls (mute/percent) to the left of sliders.
 - Styled the notification for OLED, added 100% quick button, and applied overlay ignore list filtering.
 - Updated overlay visuals for OLED: transparent root, solid black cards, white borders/text, neon orange sliders, reduced header spacing.
 - Overlay background set to transparent with clear white borders for root and rows.
@@ -250,4 +253,4 @@ Last update: 2026-03-17
 - Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
-- 2026-03-15
+- 2026-03-17
