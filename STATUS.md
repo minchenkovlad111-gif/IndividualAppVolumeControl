@@ -8,6 +8,7 @@ Last update: 2026-03-17
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Overlay app names now open App Info on tap (long-press still copies package).
 - Added overlay ignore list (defaults: System UI + Face Unlock label match) and suppress overlay when only ignored apps are active.
 - Added overlay quick actions to block/unblock the focused app (usage access required).
 - Added Usage Access gate/check + diagnostics line for focused-app overlay suppression reliability.

@@ -478,6 +478,9 @@ class VolumeOverlayService : Service() {
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener {
+                openAppInfo(entry.key.packageName)
+            }
             setOnLongClickListener {
                 copyToClipboard(entry.key.packageName)
                 true
@@ -760,6 +763,17 @@ class VolumeOverlayService : Service() {
         val manager = getSystemService(android.content.ClipboardManager::class.java)
         manager.setPrimaryClip(android.content.ClipData.newPlainText("package", text))
         Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openAppInfo(packageName: String) {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { startActivity(intent) }
+            .onFailure {
+                Toast.makeText(this, "Unable to open app info", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun updateFocusedBlockList(block: Boolean) {
