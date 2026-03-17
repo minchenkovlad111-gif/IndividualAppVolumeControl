@@ -1,6 +1,7 @@
 package com.duda.appvolumecontrol.core
 
 import android.content.Context
+import android.content.pm.PackageManager
 
 class OverlayPrefs(context: Context) {
     private val prefs = context.getSharedPreferences("overlay_prefs", Context.MODE_PRIVATE)
@@ -53,6 +54,31 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putStringSet(KEY_OVERLAY_FOCUS_BLOCKLIST, packages).apply()
     }
 
+    fun getOverlayIgnorePackageList(): Set<String> {
+        return prefs.getStringSet(KEY_OVERLAY_IGNORE_PACKAGES, emptySet())?.toSet() ?: emptySet()
+    }
+
+    fun setOverlayIgnorePackageList(packages: Set<String>) {
+        prefs.edit().putStringSet(KEY_OVERLAY_IGNORE_PACKAGES, packages).apply()
+    }
+
+    fun ensureDefaultIgnoreList(packageManager: PackageManager) {
+        if (prefs.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
+        val defaults = mutableSetOf("com.android.systemui")
+        runCatching {
+            val apps = packageManager.getInstalledApplications(0)
+            for (app in apps) {
+                val label = packageManager.getApplicationLabel(app).toString()
+                if (label.contains("face unlock", ignoreCase = true)) {
+                    defaults.add(app.packageName)
+                }
+            }
+        }
+        if (defaults.isNotEmpty()) {
+            prefs.edit().putStringSet(KEY_OVERLAY_IGNORE_PACKAGES, defaults).apply()
+        }
+    }
+
     fun setLastFocusedPackage(packageName: String?) {
         prefs.edit().putString(KEY_LAST_FOCUSED_PACKAGE, packageName).apply()
     }
@@ -86,6 +112,7 @@ class OverlayPrefs(context: Context) {
         private const val KEY_OUTPUT_ONLY = "overlay_output_only"
         private const val KEY_VOLUME_KEY_ONLY_WHEN_PLAYING = "overlay_volume_key_only_when_playing"
         private const val KEY_OVERLAY_FOCUS_BLOCKLIST = "overlay_focus_blocklist"
+        private const val KEY_OVERLAY_IGNORE_PACKAGES = "overlay_ignore_packages"
         private const val KEY_LAST_FOCUSED_PACKAGE = "overlay_last_focused_package"
         private const val KEY_OVERLAY_SNOOZE_UNTIL = "overlay_snooze_until_elapsed"
     }

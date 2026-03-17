@@ -86,6 +86,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var accessibilityButton: Button
     private lateinit var overlayOnlyWhenPlayingToggle: CheckBox
     private lateinit var overlayFocusBlockButton: Button
+    private lateinit var overlayIgnoreButton: Button
     private lateinit var overlaySnoozeButton: Button
     private lateinit var overlaySnoozeStatusView: TextView
     private lateinit var overlayAutoHideToggle: CheckBox
@@ -130,6 +131,7 @@ class MainActivity : AppCompatActivity() {
         volumeStore = VolumeStore(this)
         activeStore = ActiveAppStore(this)
         overlayPrefs = OverlayPrefs(this)
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -348,6 +350,11 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { showOverlayFocusBlockListDialog() }
         }
 
+        overlayIgnoreButton = Button(this).apply {
+            text = "Ignore apps for overlay"
+            setOnClickListener { showOverlayIgnoreListDialog() }
+        }
+
         overlaySnoozeStatusView = TextView(this).apply {
             text = "Snooze: off"
             textSize = 12f
@@ -538,6 +545,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayAutoHideToggle)
         root.addView(overlayOnlyWhenPlayingToggle)
         root.addView(overlayFocusBlockButton)
+        root.addView(overlayIgnoreButton)
         root.addView(overlaySnoozeStatusView)
         root.addView(overlaySnoozeButton)
         root.addView(audioSettingsTitle)
@@ -1292,6 +1300,7 @@ class MainActivity : AppCompatActivity() {
         overlayUpdating = false
         overlayOnlyWhenPlayingToggle.isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
         updateOverlayFocusBlockButton()
+        updateOverlayIgnoreButton()
         updateOverlaySnoozeStatus()
     }
 
@@ -1455,6 +1464,141 @@ class MainActivity : AppCompatActivity() {
             "Suppress overlay for focused apps"
         } else {
             "Suppress overlay for focused apps ($count blocked)"
+        }
+    }
+
+    private fun showOverlayIgnoreListDialog() {
+        val loadingDialog = AlertDialog.Builder(this)
+            .setTitle("Ignore apps for overlay")
+            .setMessage("Loading apps...")
+            .setCancelable(false)
+            .show()
+
+        Thread {
+            val apps = packageManager.getInstalledApplications(0)
+                .map { OverlayAppOption(it.packageName, resolveLabel(it.packageName)) }
+                .sortedBy { it.label.lowercase() }
+            runOnUiThread {
+                loadingDialog.dismiss()
+                if (apps.isEmpty()) {
+                    Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show()
+                    return@runOnUiThread
+                }
+                val initial = overlayPrefs.getOverlayIgnorePackageList()
+                val selected = initial.toMutableSet()
+
+                val density = resources.displayMetrics.density
+                val content = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    val padding = (16 * density).toInt()
+                    setPadding(padding, padding, padding, padding)
+                }
+
+                val helper = TextView(this).apply {
+                    text = "Ignored apps are treated as silent and will not trigger the overlay."
+                    textSize = 12f
+                    setPadding(0, 0, 0, (8 * density).toInt())
+                }
+
+                val searchInput = EditText(this).apply {
+                    hint = "Search apps"
+                }
+
+                val listView = ListView(this).apply {
+                    choiceMode = ListView.CHOICE_MODE_MULTIPLE
+                }
+
+                val adapter = ArrayAdapter(
+                    this,
+                    android.R.layout.simple_list_item_multiple_choice,
+                    apps.toMutableList()
+                )
+                listView.adapter = adapter
+
+                fun applyCheckedState() {
+                    for (i in 0 until adapter.count) {
+                        val app = adapter.getItem(i) ?: continue
+                        listView.setItemChecked(i, selected.contains(app.packageName))
+                    }
+                }
+
+                fun updateList(query: String) {
+                    val trimmed = query.trim().lowercase()
+                    val filtered = if (trimmed.isBlank()) {
+                        apps
+                    } else {
+                        apps.filter {
+                            it.label.lowercase().contains(trimmed) ||
+                                it.packageName.lowercase().contains(trimmed)
+                        }
+                    }
+                    adapter.clear()
+                    adapter.addAll(filtered)
+                    adapter.notifyDataSetChanged()
+                    applyCheckedState()
+                }
+
+                listView.setOnItemClickListener { _, _, position, _ ->
+                    val app = adapter.getItem(position) ?: return@setOnItemClickListener
+                    if (listView.isItemChecked(position)) {
+                        selected.add(app.packageName)
+                    } else {
+                        selected.remove(app.packageName)
+                    }
+                }
+
+                searchInput.addTextChangedListener { editable ->
+                    updateList(editable?.toString().orEmpty())
+                }
+
+                val listHeight = (320 * density).toInt()
+                content.addView(
+                    helper,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                )
+                content.addView(
+                    searchInput,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                )
+                content.addView(
+                    listView,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        listHeight
+                    )
+                )
+
+                updateList("")
+
+                AlertDialog.Builder(this)
+                    .setTitle("Ignore apps for overlay")
+                    .setView(content)
+                    .setPositiveButton("Save") { _, _ ->
+                        overlayPrefs.setOverlayIgnorePackageList(selected)
+                        updateOverlayIgnoreButton()
+                    }
+                    .setNeutralButton("Clear") { _, _ ->
+                        overlayPrefs.setOverlayIgnorePackageList(emptySet())
+                        updateOverlayIgnoreButton()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }.start()
+    }
+
+    private fun updateOverlayIgnoreButton() {
+        val count = overlayPrefs.getOverlayIgnorePackageList().size
+        overlayIgnoreButton.text = if (count == 0) {
+            "Ignore apps for overlay"
+        } else {
+            "Ignore apps for overlay ($count)"
         }
     }
 

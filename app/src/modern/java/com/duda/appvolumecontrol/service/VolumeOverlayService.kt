@@ -222,8 +222,9 @@ class VolumeOverlayService : Service() {
             return true
         }
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
+            overlayPrefs.ensureDefaultIgnoreList(packageManager)
             val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
-            if (!PlaybackUtils.hasActivePlayback(configs)) {
+            if (!hasNonIgnoredPlayback(configs)) {
                 return true
             }
         }
@@ -239,6 +240,12 @@ class VolumeOverlayService : Service() {
         autoHideEnabled = autoHide
         val root = ensureOverlayView()
         val activeCount = populateList()
+        if (activeCount == 0) {
+            if (root.parent != null) {
+                removeOverlay()
+            }
+            return
+        }
         startAutoRefresh()
         if (root.parent == null) {
             try {
@@ -390,6 +397,7 @@ class VolumeOverlayService : Service() {
                 status.visibility = View.VISIBLE
             }
         }
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
         val outputOnly = overlayPrefs.isOutputOnlyEnabled()
         val entries = if (outputOnly) {
             loadActiveEntries().filter { volumeStore.getOutputDevice(it.key) != null }
@@ -397,7 +405,9 @@ class VolumeOverlayService : Service() {
             loadActiveEntries()
         }
         if (entries.isEmpty()) {
-            container.addView(buildEmptyRow("No active audio."))
+            if (overlayView?.parent != null) {
+                removeOverlay()
+            }
             return 0
         }
         for (entry in entries) {
@@ -407,10 +417,13 @@ class VolumeOverlayService : Service() {
     }
 
     private fun loadActiveEntries(): List<AppEntry> {
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
+        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
         val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
         val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            if (ignorePackages.contains(packageName)) continue
             val uid = PlaybackUtils.getClientUid(config)
             val userId = PlaybackUtils.getUserIdFromUid(uid)
             val key = VolumeStore.VolumeKey(packageName, userId)
@@ -419,6 +432,16 @@ class VolumeOverlayService : Service() {
         return counts.map { (key, count) ->
             AppEntry(key, resolveLabel(key.packageName), count)
         }.sortedBy { it.label.lowercase() }
+    }
+
+    private fun hasNonIgnoredPlayback(configs: List<android.media.AudioPlaybackConfiguration>): Boolean {
+        if (configs.isEmpty()) return false
+        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
+        for (config in configs) {
+            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            if (!ignorePackages.contains(packageName)) return true
+        }
+        return false
     }
 
     private fun buildVolumeRow(entry: AppEntry): View {

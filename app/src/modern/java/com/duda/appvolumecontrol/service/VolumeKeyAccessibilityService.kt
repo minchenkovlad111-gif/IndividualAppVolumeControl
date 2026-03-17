@@ -40,8 +40,14 @@ class VolumeKeyAccessibilityService : AccessibilityService() {
         if (!overlayPrefs.isOverlayEnabled()) return false
         if (overlayPrefs.shouldSuppressForFocusedPackage()) return false
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
+            overlayPrefs.ensureDefaultIgnoreList(packageManager)
             val active = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
-            if (!PlaybackUtils.hasActivePlayback(active)) return false
+            val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
+            val hasNonIgnored = active.any { config ->
+                val packageName = PlaybackUtils.getClientPackageName(config, packageManager)
+                packageName != null && !ignorePackages.contains(packageName)
+            }
+            if (!hasNonIgnored) return false
         }
         val snoozeUntil = overlayPrefs.getOverlaySnoozeUntil()
         if (snoozeUntil > 0L && SystemClock.elapsedRealtime() < snoozeUntil) {
