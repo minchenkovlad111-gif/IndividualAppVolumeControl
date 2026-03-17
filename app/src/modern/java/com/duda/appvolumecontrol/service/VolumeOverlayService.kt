@@ -61,6 +61,7 @@ class VolumeOverlayService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
     private var overlayView: View? = null
+    private var overlayCard: View? = null
     private var listContainer: LinearLayout? = null
     private var statusView: TextView? = null
     private var isWatching: Boolean = false
@@ -288,11 +289,25 @@ class VolumeOverlayService : Service() {
 
     private fun ensureOverlayView(): View {
         overlayView?.let { return it }
-        val root = LinearLayout(this).apply {
+        val root = FrameLayout(this).apply {
+            setPadding(0, 0, 0, 0)
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+            }
+        }
+
+        val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8))
             background = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
+            }
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = dpToPx(32)
             }
             setOnTouchListener { _, event ->
                 if (event.action == MotionEvent.ACTION_DOWN) {
@@ -300,6 +315,18 @@ class VolumeOverlayService : Service() {
                 }
                 false
             }
+        }
+        overlayCard = card
+
+        root.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                val cardView = overlayCard
+                if (cardView != null && !isTouchInsideView(event, cardView)) {
+                    removeOverlay()
+                    return@setOnTouchListener true
+                }
+            }
+            false
         }
 
         val headerRow = LinearLayout(this).apply {
@@ -335,9 +362,10 @@ class VolumeOverlayService : Service() {
         }
         applyOverlayTextStyle(statusView!!)
 
-        root.addView(headerRow)
-        root.addView(statusView)
-        root.addView(listContainer)
+        card.addView(headerRow)
+        card.addView(statusView)
+        card.addView(listContainer)
+        root.addView(card)
         overlayView = root
         return root
     }
@@ -872,7 +900,7 @@ class VolumeOverlayService : Service() {
         }
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -880,8 +908,16 @@ class VolumeOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(32)
+            y = 0
         }
+    }
+
+    private fun isTouchInsideView(event: MotionEvent, view: View): Boolean {
+        val rect = android.graphics.Rect()
+        view.getGlobalVisibleRect(rect)
+        val x = event.rawX.toInt()
+        val y = event.rawY.toInt()
+        return rect.contains(x, y)
     }
 
     private fun buildNotification(): Notification {
