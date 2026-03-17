@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.content.res.ColorStateList
 import android.database.ContentObserver
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -271,11 +272,9 @@ class VolumeOverlayService : Service() {
         overlayView?.let { return it }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
+            setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8))
             background = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
-                cornerRadius = dpToPx(12).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#FFFFFF"))
             }
             setOnTouchListener { _, event ->
                 if (event.action == MotionEvent.ACTION_DOWN) {
@@ -295,6 +294,7 @@ class VolumeOverlayService : Service() {
             textSize = 14f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
+        applyOverlayTextStyle(title)
 
         val refreshButton = Button(this).apply {
             text = "Refresh"
@@ -304,6 +304,7 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(refreshButton)
 
         val autoToggle = CheckBox(this).apply {
             text = "Auto refresh"
@@ -314,6 +315,7 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(autoToggle)
 
         val autoHideToggle = CheckBox(this).apply {
             text = "Auto hide"
@@ -325,6 +327,7 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(autoHideToggle)
 
         val outputOnlyToggle = CheckBox(this).apply {
             text = "Output only"
@@ -336,6 +339,7 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(outputOnlyToggle)
 
         val blockFocusedButton = Button(this).apply {
             text = "Block focused"
@@ -344,6 +348,7 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(blockFocusedButton)
 
         val unblockFocusedButton = Button(this).apply {
             text = "Unblock focused"
@@ -352,11 +357,13 @@ class VolumeOverlayService : Service() {
                 scheduleHideIfEnabled()
             }
         }
+        applyOverlayTextStyle(unblockFocusedButton)
 
         val closeButton = Button(this).apply {
             text = "Close"
             setOnClickListener { removeOverlay() }
         }
+        applyOverlayTextStyle(closeButton)
 
         headerRow.addView(title)
         headerRow.addView(refreshButton)
@@ -373,10 +380,11 @@ class VolumeOverlayService : Service() {
 
         statusView = TextView(this).apply {
             textSize = 12f
-            setTextColor(Color.parseColor("#B71C1C"))
-            setPadding(0, dpToPx(6), 0, dpToPx(6))
+            setTextColor(OVERLAY_TEXT)
+            setPadding(0, dpToPx(2), 0, dpToPx(2))
             visibility = View.GONE
         }
+        applyOverlayTextStyle(statusView!!)
 
         root.addView(headerRow)
         root.addView(statusView)
@@ -454,9 +462,9 @@ class VolumeOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
             background = GradientDrawable().apply {
-                setColor(Color.TRANSPARENT)
+                setColor(OVERLAY_BG)
                 cornerRadius = dpToPx(10).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#FFFFFF"))
+                setStroke(dpToPx(1), OVERLAY_BORDER)
             }
         }
 
@@ -486,14 +494,15 @@ class VolumeOverlayService : Service() {
                 true
             }
         }
+        applyOverlayTextStyle(nameView)
 
         val profileView = TextView(this).apply {
             text = ProfileUtils.buildProfileLabel(this@VolumeOverlayService, entry.key.userId)
             textSize = 11f
-            setTextColor(Color.parseColor("#616161"))
             visibility = if (entry.key.userId != null) View.VISIBLE else View.GONE
             setPadding(dpToPx(6), 0, 0, 0)
         }
+        applyOverlayTextStyle(profileView)
 
         val countView = TextView(this).apply {
             text = "x${entry.activeCount}"
@@ -501,15 +510,16 @@ class VolumeOverlayService : Service() {
             setPadding(dpToPx(6), 0, 0, 0)
             visibility = if (entry.activeCount > 1) View.VISIBLE else View.GONE
         }
+        applyOverlayTextStyle(countView)
 
         val outputBadge = TextView(this).apply {
             val output = volumeStore.getOutputDevice(entry.key)
             text = output?.let { "${OutputLabelUtils.shortType(it.type)} ${it.name ?: "Output"}" } ?: "Output"
             textSize = 10f
             setPadding(dpToPx(6), 0, 0, 0)
-            setTextColor(Color.parseColor("#455A64"))
             visibility = if (output == null) View.GONE else View.VISIBLE
         }
+        applyOverlayTextStyle(outputBadge)
 
         headerRow.addView(iconView)
         headerRow.addView(nameView)
@@ -523,6 +533,7 @@ class VolumeOverlayService : Service() {
             textSize = 11f
             setPadding(dpToPx(6), 0, 0, 0)
         }
+        applyOverlayTextStyle(valueView)
 
         val sliderRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -547,6 +558,9 @@ class VolumeOverlayService : Service() {
         val slider = SeekBar(this).apply {
             max = 100
             progress = (stored * 100).toInt()
+            progressTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
+            thumbTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
+            progressBackgroundTintList = ColorStateList.valueOf(OVERLAY_TRACK)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -733,6 +747,11 @@ class VolumeOverlayService : Service() {
         ticksView.setCustomMarkers(markers, segments)
     }
 
+    private fun applyOverlayTextStyle(textView: TextView) {
+        textView.setTextColor(OVERLAY_TEXT)
+        textView.setShadowLayer(2f, 0f, 0f, Color.BLACK)
+    }
+
     private fun updateMuteIcon(button: ImageButton, volume: Float) {
         button.setImageResource(
             if (volume <= 0f) android.R.drawable.ic_lock_silent_mode
@@ -915,6 +934,11 @@ class VolumeOverlayService : Service() {
         private const val SNAP_THRESHOLD = 2
         private const val SNAP_DELTA_MAX = 2
         private const val SNAP_TIME_MIN_MS = 50L
+        private val OVERLAY_BG = Color.parseColor("#000000")
+        private val OVERLAY_BORDER = Color.parseColor("#FFFFFF")
+        private val OVERLAY_TEXT = Color.parseColor("#FFFFFF")
+        private val OVERLAY_ORANGE = Color.parseColor("#FF6A00")
+        private val OVERLAY_TRACK = Color.parseColor("#303030")
 
         private val BASE_STREAMS = intArrayOf(
             AudioManager.STREAM_MUSIC,

@@ -1,5 +1,12 @@
 # TODO
 
+1. Rework overlay header controls into a single dropdown menu (move checkboxes/buttons into the menu).
+2. Add an overlay pause toggle that suppresses overlay until re-enabled via notification or app.
+3. Move overlay controls to the left of sliders to reduce height.
+4. Improve notification controls: add 100% button, custom styling/colors, and next/prev paging for more apps.
+5. Ensure overlay ignore list is applied to notification entries (hide ignored apps like System UI).
+6. Investigate why Face Unlock Service package is unknown; add a default ignore package once identified.
+
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks).
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
 3. Investigate intermittent white screen on resume/reopen (collect repro steps + logcat).
