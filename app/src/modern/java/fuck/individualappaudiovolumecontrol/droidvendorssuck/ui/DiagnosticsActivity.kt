@@ -10,8 +10,11 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -37,9 +40,11 @@ import java.util.Locale
 class DiagnosticsActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
+    private lateinit var searchView: EditText
     private var lastReport: String = ""
     private var lastCompatibilityRow: String = ""
     private var lastBundle: String = ""
+    private var lastReportLines: List<String> = emptyList()
     private lateinit var volumeStore: VolumeStore
     private lateinit var bluetoothPermissionButton: Button
 
@@ -63,6 +68,21 @@ class DiagnosticsActivity : AppCompatActivity() {
                 "Look for \"Ready to control volume: yes\"."
             textSize = 13f
             setPadding(0, 8, 0, 8)
+        }
+
+        searchView = EditText(this).apply {
+            hint = "Search diagnostics"
+            setSingleLine(true)
+            setPadding(0, 8, 0, 8)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    applyReportFilter()
+                }
+
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
         }
 
         val refreshButton = Button(this).apply {
@@ -153,6 +173,7 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(helper)
+        root.addView(searchView)
         root.addView(refreshButton)
         root.addView(selfTestButton)
         root.addView(hiddenApiButton)
@@ -384,8 +405,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             *permissionStatuses.map { it.toReportLine() }.toTypedArray(),
         )
 
+        lastReportLines = lines
         lastReport = lines.joinToString("\n")
-        contentView.text = lastReport
+        applyReportFilter()
         lastCompatibilityRow = buildCompatibilityRow(
             isPrivApp,
             snapshot.hiddenApiVmRuntimeOk,
@@ -412,6 +434,20 @@ class DiagnosticsActivity : AppCompatActivity() {
             1 -> "yes"
             0 -> "no"
             else -> "-"
+        }
+    }
+
+    private fun applyReportFilter() {
+        val query = searchView.text?.toString()?.trim().orEmpty()
+        if (query.isBlank()) {
+            contentView.text = lastReport
+            return
+        }
+        val filtered = lastReportLines.filter { it.contains(query, ignoreCase = true) }
+        contentView.text = if (filtered.isEmpty()) {
+            "No diagnostics rows match \"$query\"."
+        } else {
+            filtered.joinToString("\n")
         }
     }
 

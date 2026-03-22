@@ -9,7 +9,10 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.net.Uri
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -29,11 +32,14 @@ import kotlin.concurrent.thread
 class SetupCheckActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
     private lateinit var contentView: TextView
+    private lateinit var searchView: EditText
     private lateinit var statusView: TextView
     private lateinit var fixView: TextView
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
     private lateinit var usageAccessButton: Button
+    private var lastReport: String = ""
+    private var lastReportLines: List<String> = emptyList()
     private val refreshInProgress = AtomicBoolean(false)
 
     private data class RefreshResult(
@@ -66,6 +72,21 @@ class SetupCheckActivity : AppCompatActivity() {
             text = "This checks if the app is installed correctly and can control volume."
             textSize = 13f
             setPadding(0, 8, 0, 8)
+        }
+
+        searchView = EditText(this).apply {
+            hint = "Search checklist"
+            setSingleLine(true)
+            setPadding(0, 8, 0, 8)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    applyReportFilter()
+                }
+
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
         }
 
         statusView = TextView(this).apply {
@@ -116,6 +137,7 @@ class SetupCheckActivity : AppCompatActivity() {
 
         root.addView(header)
         root.addView(helper)
+        root.addView(searchView)
         root.addView(statusView)
         root.addView(fixView)
         root.addView(refreshButton)
@@ -271,7 +293,9 @@ class SetupCheckActivity : AppCompatActivity() {
                     "5) If overlay is missing, grant overlay + enable volume key listener."
                 )
 
-                contentView.text = lines.joinToString("\n")
+                lastReportLines = lines
+                lastReport = lines.joinToString("\n")
+                applyReportFilter()
                 refreshInProgress.set(false)
             }
         }
@@ -353,10 +377,24 @@ class SetupCheckActivity : AppCompatActivity() {
         return dateFormat.format(Date(value))
     }
 
+    private fun applyReportFilter() {
+        val query = searchView.text?.toString()?.trim().orEmpty()
+        if (query.isBlank()) {
+            contentView.text = lastReport
+            return
+        }
+        val filtered = lastReportLines.filter { it.contains(query, ignoreCase = true) }
+        contentView.text = if (filtered.isEmpty()) {
+            "No checklist rows match \"$query\"."
+        } else {
+            filtered.joinToString("\n")
+        }
+    }
+
     private fun copyReport() {
         val manager = getSystemService(android.content.ClipboardManager::class.java)
         manager.setPrimaryClip(
-            android.content.ClipData.newPlainText("setup_check", contentView.text)
+            android.content.ClipData.newPlainText("setup_check", lastReport)
         )
         android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show()
     }
