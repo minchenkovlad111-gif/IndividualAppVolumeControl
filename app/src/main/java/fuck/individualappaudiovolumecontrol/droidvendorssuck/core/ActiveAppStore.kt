@@ -3,27 +3,27 @@ package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 import android.content.Context
 
 class ActiveAppStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("active_app_store", Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, "active_app_store")
 
     fun recordActive(key: VolumeStore.VolumeKey, timestamp: Long = System.currentTimeMillis()) {
         val storageKey = key.storageKey()
-        val first = prefs.getLong(firstKey(storageKey), 0L)
-        val last = prefs.getLong(lastKey(storageKey), 0L)
+        val first = store.getLong(firstKey(storageKey)) ?: 0L
+        val last = store.getLong(lastKey(storageKey)) ?: 0L
         if (first > 0L && timestamp - last < MIN_PERSIST_INTERVAL_MS) {
             return
         }
-        prefs.edit().apply {
+        store.update {
             if (first <= 0L) {
-                putLong(firstKey(storageKey), timestamp)
+                put(firstKey(storageKey), timestamp)
             }
-            putLong(lastKey(storageKey), timestamp)
-        }.apply()
+            put(lastKey(storageKey), timestamp)
+        }
     }
 
     fun getInfo(key: VolumeStore.VolumeKey): ActiveInfo? {
         val storageKey = key.storageKey()
-        val first = prefs.getLong(firstKey(storageKey), 0L)
-        val last = prefs.getLong(lastKey(storageKey), 0L)
+        val first = store.getLong(firstKey(storageKey)) ?: 0L
+        val last = store.getLong(lastKey(storageKey)) ?: 0L
         if (first <= 0L && last <= 0L) return null
         return ActiveInfo(
             firstActiveTime = if (first > 0L) first else null,

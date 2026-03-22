@@ -1,31 +1,30 @@
 # TODO
 
 ## High priority
-1. Done: added playback-controller notification persistence diagnostics plus a forced foreground-notification refresh path, so Diagnostics can show service state, notification enablement, and channel importance.
-2. Done: fixed slider tick/percentage guide alignment so the visible 10% guides use the same horizontal insets as the actual `SeekBar` track in the main UI and overlay.
-3. Done: added a per-active-app notification presentation mode that keeps one foreground controller notification alive and posts one secondary notification per active app.
-
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks). See `docs/VALIDATION.md`.
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
 3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
-5. Done: investigated a real custom notification volume slider per app; `RemoteViews` drag constraints make it impractical, so the notification now uses per-app visual level bars plus discrete tap controls and the limit is documented.
-6. Done: made notification presentation configurable between multi-app pages and a single-app pager, with `Next` / `Prev` single-notification paging kept as the fallback mode.
-7. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
-8. Validate required privileged permissions on Android 12-15 devices.
-9. Validate hidden API policy keys and behavior on Android 12-15.
-10. Verify behavior on Android 12-15 and document compatibility.
-11. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-12. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
-13. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
-14. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
-15. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
-16. Audio routing between apps (virtual output sources and sinks).
-17. Network audio routing (send/receive per-app audio streams over LAN).
-18. Virtual microphone + effects (voice changer pipeline).
-19. Audio sharing to other devices (LAN streaming + Linux client).
-20. Validate cross-profile (work profile) playback detection and controls on Android 12-15.
+4. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
+5. Validate required privileged permissions on Android 12-15 devices.
+6. Validate hidden API policy keys and behavior on Android 12-15.
+7. Verify behavior on Android 12-15 and document compatibility.
+8. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
+9. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
+10. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
+11. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
+12. Audio routing between apps (virtual output sources and sinks).
+13. Network audio routing (send/receive per-app audio streams over LAN).
+14. Virtual microphone + effects (voice changer pipeline).
+15. Audio sharing to other devices (LAN streaming + Linux client).
+16. Validate cross-profile (work profile) playback detection and controls on Android 12-15.
 
 ## Done (recent)
+1. Audited the remaining high-frequency `SharedPreferences.apply()` paths and moved active-app timestamps, location updates, overlay state, volume presets, and notification paging onto a deferred background-commit store to reduce `QueuedWork.waitToFinish()` ANR risk.
+1. Added a per-active-app notification presentation mode that keeps one foreground controller notification alive and posts one secondary notification per active app.
+1. Fixed slider tick/percentage guide alignment so the visible 10% guides use the same horizontal insets as the actual `SeekBar` track in the main UI and overlay.
+1. Added playback-controller notification persistence diagnostics plus a forced foreground-notification refresh path, so Diagnostics can show service state, notification enablement, and channel importance.
+1. Investigated a real custom notification volume slider per app; `RemoteViews` drag constraints make it impractical, so the notification now uses per-app visual level bars plus discrete tap controls and the limit is documented.
+1. Made notification presentation configurable between multi-app pages and a single-app pager, with `Next` / `Prev` single-notification paging kept as the fallback mode.
 1. Limited root fallback to the no-`INTERACT_ACROSS_USERS` case and added a manual cross-profile scan button in the main UI.
 1. Reduced root fallback churn by caching `su` checks longer and reusing root `dumpsys` results across short UI/overlay refresh windows.
 1. Made manual `Show overlay now` display a test preview card when no app is playing audio, without affecting normal volume-button overlay behavior.

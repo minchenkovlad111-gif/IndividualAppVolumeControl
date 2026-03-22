@@ -3,14 +3,14 @@ package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 import android.content.Context
 
 class AudioSettingsPrefs(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, PREFS_NAME)
 
     fun isAutoResumeEnabled(): Boolean {
-        return prefs.getBoolean(KEY_AUTO_RESUME, true)
+        return store.getBoolean(KEY_AUTO_RESUME, true)
     }
 
     fun setAutoResumeEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO_RESUME, enabled).apply()
+        store.update { put(KEY_AUTO_RESUME, enabled) }
     }
 
     companion object {

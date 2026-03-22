@@ -3,10 +3,10 @@ package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 import android.content.Context
 
 class NotificationPrefs(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, PREFS_NAME)
 
     fun getPresentationMode(): String {
-        val stored = prefs.getString(KEY_PRESENTATION_MODE, MODE_MULTI_ROW_PAGED)
+        val stored = store.getString(KEY_PRESENTATION_MODE) ?: MODE_MULTI_ROW_PAGED
         return when (stored) {
             MODE_SINGLE_ROW_PAGED,
             MODE_PER_APP -> stored
@@ -20,7 +20,7 @@ class NotificationPrefs(context: Context) {
             MODE_PER_APP -> mode
             else -> MODE_MULTI_ROW_PAGED
         }
-        prefs.edit().putString(KEY_PRESENTATION_MODE, normalized).apply()
+        store.update { put(KEY_PRESENTATION_MODE, normalized) }
     }
 
     fun getRowsPerPage(): Int {
@@ -32,11 +32,11 @@ class NotificationPrefs(context: Context) {
     }
 
     fun getPage(): Int {
-        return prefs.getInt(KEY_PAGE, 0)
+        return store.getInt(KEY_PAGE) ?: 0
     }
 
     fun setPage(page: Int) {
-        prefs.edit().putInt(KEY_PAGE, page.coerceAtLeast(0)).apply()
+        store.update { put(KEY_PAGE, page.coerceAtLeast(0)) }
     }
 
     companion object {

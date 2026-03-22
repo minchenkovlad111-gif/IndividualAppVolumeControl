@@ -10,7 +10,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class VolumeStore(context: Context) {
-    private val prefs = context.getSharedPreferences("volume_store", Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, "volume_store")
 
     enum class MuteBehavior(val id: String) {
         MUTE_ONLY("mute_only"),
@@ -27,7 +27,9 @@ class VolumeStore(context: Context) {
     fun setVolume(packageName: String, volume: Float, userId: Int? = null) {
         if (volume.isNaN()) return
         val normalized = min(1f, max(0f, volume))
-        prefs.edit().putFloat(buildKey(packageName, userId), normalized).apply()
+        store.update {
+            put(buildKey(packageName, userId), normalized)
+        }
     }
 
     fun setVolume(key: VolumeKey, volume: Float) {
@@ -36,12 +38,12 @@ class VolumeStore(context: Context) {
 
     fun getVolume(packageName: String, userId: Int? = null): Float? {
         val key = buildKey(packageName, userId)
-        if (prefs.contains(key)) {
-            val stored = prefs.getFloat(key, 1f)
+        if (store.contains(key)) {
+            val stored = store.getFloat(key) ?: 1f
             return if (stored.isNaN()) null else stored
         }
-        if (userId != null && prefs.contains(packageName)) {
-            val stored = prefs.getFloat(packageName, 1f)
+        if (userId != null && store.contains(packageName)) {
+            val stored = store.getFloat(packageName) ?: 1f
             return if (stored.isNaN()) null else stored
         }
         return null
@@ -52,15 +54,15 @@ class VolumeStore(context: Context) {
     }
 
     fun clearAll() {
-        prefs.edit().clear().apply()
+        store.clear()
     }
 
     fun countPresets(): Int {
-        return prefs.all.keys.count { !it.startsWith("_") }
+        return store.all().keys.count { !it.startsWith("_") }
     }
 
     fun listPresetEntries(): List<VolumeKey> {
-        return prefs.all.keys
+        return store.all().keys
             .filterNot { it.startsWith("_") }
             .mapNotNull { parseKey(it) }
             .sortedWith(compareBy({ it.userId ?: -1 }, { it.packageName }))
@@ -72,21 +74,21 @@ class VolumeStore(context: Context) {
 
     fun removePreset(packageName: String, userId: Int? = null) {
         val key = VolumeKey(packageName, userId)
-        prefs.edit()
-            .remove(buildKey(packageName, userId))
-            .remove(markerPrefsKey(key))
-            .remove(outputPrefsKey(key))
-            .remove(mutePrefsKey(key))
-            .remove(attrPrefsKey(key))
-            .apply()
+        store.update {
+            remove(buildKey(packageName, userId))
+            remove(markerPrefsKey(key))
+            remove(outputPrefsKey(key))
+            remove(mutePrefsKey(key))
+            remove(attrPrefsKey(key))
+        }
     }
 
     fun getMarkerConfig(key: VolumeKey): MarkerConfig? {
-        val raw = prefs.getString(markerPrefsKey(key), null)
+        val raw = store.getString(markerPrefsKey(key))
         val parsed = parseMarkerConfig(raw)
         if (parsed != null) return parsed
         if (key.userId != null) {
-            val fallback = prefs.getString(markerPrefsKey(VolumeKey(key.packageName, null)), null)
+            val fallback = store.getString(markerPrefsKey(VolumeKey(key.packageName, null)))
             return parseMarkerConfig(fallback)
         }
         return null
@@ -97,19 +99,21 @@ class VolumeStore(context: Context) {
             clearMarkerConfig(key)
             return
         }
-        prefs.edit().putString(markerPrefsKey(key), config.toJson().toString()).apply()
+        store.update {
+            put(markerPrefsKey(key), config.toJson().toString())
+        }
     }
 
     fun clearMarkerConfig(key: VolumeKey) {
-        prefs.edit().remove(markerPrefsKey(key)).apply()
+        store.update { remove(markerPrefsKey(key)) }
     }
 
     fun getOutputDevice(key: VolumeKey): OutputDevice? {
-        val raw = prefs.getString(outputPrefsKey(key), null)
+        val raw = store.getString(outputPrefsKey(key))
         val parsed = parseOutputDevice(raw)
         if (parsed != null) return parsed
         if (key.userId != null) {
-            val fallback = prefs.getString(outputPrefsKey(VolumeKey(key.packageName, null)), null)
+            val fallback = store.getString(outputPrefsKey(VolumeKey(key.packageName, null)))
             return parseOutputDevice(fallback)
         }
         return null
@@ -120,19 +124,21 @@ class VolumeStore(context: Context) {
             clearOutputDevice(key)
             return
         }
-        prefs.edit().putString(outputPrefsKey(key), device.toJson().toString()).apply()
+        store.update {
+            put(outputPrefsKey(key), device.toJson().toString())
+        }
     }
 
     fun clearOutputDevice(key: VolumeKey) {
-        prefs.edit().remove(outputPrefsKey(key)).apply()
+        store.update { remove(outputPrefsKey(key)) }
     }
 
     fun getAudioAttributesOverride(key: VolumeKey): AudioAttributesOverride? {
-        val raw = prefs.getString(attrPrefsKey(key), null)
+        val raw = store.getString(attrPrefsKey(key))
         val parsed = parseAudioAttributesOverride(raw)
         if (parsed != null) return parsed
         if (key.userId != null) {
-            val fallback = prefs.getString(attrPrefsKey(VolumeKey(key.packageName, null)), null)
+            val fallback = store.getString(attrPrefsKey(VolumeKey(key.packageName, null)))
             return parseAudioAttributesOverride(fallback)
         }
         return null
@@ -143,46 +149,48 @@ class VolumeStore(context: Context) {
             clearAudioAttributesOverride(key)
             return
         }
-        prefs.edit().putString(attrPrefsKey(key), override.toJson().toString()).apply()
+        store.update {
+            put(attrPrefsKey(key), override.toJson().toString())
+        }
     }
 
     fun clearAudioAttributesOverride(key: VolumeKey) {
-        prefs.edit().remove(attrPrefsKey(key)).apply()
+        store.update { remove(attrPrefsKey(key)) }
     }
 
     fun countAudioAttributesOverrides(): Int {
-        return prefs.all.keys.count { it.startsWith(ATTR_PREFIX) }
+        return store.all().keys.count { it.startsWith(ATTR_PREFIX) }
     }
 
     fun getMuteBehavior(key: VolumeKey): MuteBehavior {
-        val raw = prefs.getString(mutePrefsKey(key), null)
+        val raw = store.getString(mutePrefsKey(key))
         val parsed = MuteBehavior.parse(raw)
         if (parsed != null) return parsed
         if (key.userId != null) {
-            val fallback = prefs.getString(mutePrefsKey(VolumeKey(key.packageName, null)), null)
+            val fallback = store.getString(mutePrefsKey(VolumeKey(key.packageName, null)))
             return MuteBehavior.parse(fallback) ?: getDefaultMuteBehavior()
         }
         return getDefaultMuteBehavior()
     }
 
     fun setMuteBehavior(key: VolumeKey, behavior: MuteBehavior) {
-        prefs.edit().putString(mutePrefsKey(key), behavior.id).apply()
+        store.update { put(mutePrefsKey(key), behavior.id) }
     }
 
     fun clearMuteBehavior(key: VolumeKey) {
-        prefs.edit().remove(mutePrefsKey(key)).apply()
+        store.update { remove(mutePrefsKey(key)) }
     }
 
     fun countMuteBehaviorOverrides(): Int {
-        return prefs.all.keys.count { it.startsWith(MUTE_PREFIX) }
+        return store.all().keys.count { it.startsWith(MUTE_PREFIX) }
     }
 
     fun getAutoResumeOverride(key: VolumeKey): Boolean? {
-        val raw = prefs.getString(resumePrefsKey(key), null)
+        val raw = store.getString(resumePrefsKey(key))
         val parsed = parseBooleanOverride(raw)
         if (parsed != null) return parsed
         if (key.userId != null) {
-            val fallback = prefs.getString(resumePrefsKey(VolumeKey(key.packageName, null)), null)
+            val fallback = store.getString(resumePrefsKey(VolumeKey(key.packageName, null)))
             return parseBooleanOverride(fallback)
         }
         return null
@@ -193,48 +201,51 @@ class VolumeStore(context: Context) {
             clearAutoResumeOverride(key)
             return
         }
-        prefs.edit().putString(resumePrefsKey(key), if (enabled) "on" else "off").apply()
+        store.update {
+            put(resumePrefsKey(key), if (enabled) "on" else "off")
+        }
     }
 
     fun clearAutoResumeOverride(key: VolumeKey) {
-        prefs.edit().remove(resumePrefsKey(key)).apply()
+        store.update { remove(resumePrefsKey(key)) }
     }
 
     fun countAutoResumeOverrides(): Int {
-        return prefs.all.keys.count { it.startsWith(RESUME_PREFIX) }
+        return store.all().keys.count { it.startsWith(RESUME_PREFIX) }
     }
 
     fun getDefaultMuteBehavior(): MuteBehavior {
-        val raw = prefs.getString(DEFAULT_MUTE_KEY, null)
+        val raw = store.getString(DEFAULT_MUTE_KEY)
         return MuteBehavior.parse(raw) ?: MuteBehavior.MUTE_ONLY
     }
 
     fun setDefaultMuteBehavior(behavior: MuteBehavior) {
-        prefs.edit().putString(DEFAULT_MUTE_KEY, behavior.id).apply()
+        store.update { put(DEFAULT_MUTE_KEY, behavior.id) }
     }
 
     fun exportJson(): String {
         val obj = JSONObject()
+        val allValues = store.all()
         obj.put("_version", 1)
         obj.put("_exported_at", System.currentTimeMillis())
         obj.put("_preset_count", countPresets())
-        val keys = prefs.all.keys
+        val keys = allValues.keys
             .filterNot { it.startsWith("_") }
             .sorted()
         for (key in keys) {
-            val value = prefs.all[key]
+            val value = allValues[key]
             if (value is Float && !value.isNaN()) {
                 obj.put(key, value)
             }
         }
-        val markerEntries = prefs.all.keys
+        val markerEntries = allValues.keys
             .filter { it.startsWith(MARKER_PREFIX) }
             .sorted()
         if (markerEntries.isNotEmpty()) {
             val markerObj = JSONObject()
             for (markerKey in markerEntries) {
                 val storedKey = markerKey.removePrefix(MARKER_PREFIX)
-                val raw = prefs.getString(markerKey, null) ?: continue
+                val raw = allValues[markerKey] as? String ?: continue
                 val config = parseMarkerConfig(raw) ?: continue
                 markerObj.put(storedKey, config.toJson())
             }
@@ -242,14 +253,14 @@ class VolumeStore(context: Context) {
                 obj.put("_marker_configs", markerObj)
             }
         }
-        val outputEntries = prefs.all.keys
+        val outputEntries = allValues.keys
             .filter { it.startsWith(OUTPUT_PREFIX) }
             .sorted()
         if (outputEntries.isNotEmpty()) {
             val outputObj = JSONObject()
             for (outputKey in outputEntries) {
                 val storedKey = outputKey.removePrefix(OUTPUT_PREFIX)
-                val raw = prefs.getString(outputKey, null) ?: continue
+                val raw = allValues[outputKey] as? String ?: continue
                 val config = parseOutputDevice(raw) ?: continue
                 outputObj.put(storedKey, config.toJson())
             }
@@ -257,14 +268,14 @@ class VolumeStore(context: Context) {
                 obj.put("_output_configs", outputObj)
             }
         }
-        val muteEntries = prefs.all.keys
+        val muteEntries = allValues.keys
             .filter { it.startsWith(MUTE_PREFIX) }
             .sorted()
         if (muteEntries.isNotEmpty()) {
             val muteObj = JSONObject()
             for (muteKey in muteEntries) {
                 val storedKey = muteKey.removePrefix(MUTE_PREFIX)
-                val raw = prefs.getString(muteKey, null)
+                val raw = allValues[muteKey] as? String
                 val behavior = MuteBehavior.parse(raw) ?: continue
                 muteObj.put(storedKey, behavior.id)
             }
@@ -272,14 +283,14 @@ class VolumeStore(context: Context) {
                 obj.put("_mute_behaviors", muteObj)
             }
         }
-        val resumeEntries = prefs.all.keys
+        val resumeEntries = allValues.keys
             .filter { it.startsWith(RESUME_PREFIX) }
             .sorted()
         if (resumeEntries.isNotEmpty()) {
             val resumeObj = JSONObject()
             for (resumeKey in resumeEntries) {
                 val storedKey = resumeKey.removePrefix(RESUME_PREFIX)
-                val raw = prefs.getString(resumeKey, null)
+                val raw = allValues[resumeKey] as? String
                 val override = parseBooleanOverride(raw) ?: continue
                 resumeObj.put(storedKey, if (override) "on" else "off")
             }
@@ -287,14 +298,14 @@ class VolumeStore(context: Context) {
                 obj.put("_resume_overrides", resumeObj)
             }
         }
-        val attrEntries = prefs.all.keys
+        val attrEntries = allValues.keys
             .filter { it.startsWith(ATTR_PREFIX) }
             .sorted()
         if (attrEntries.isNotEmpty()) {
             val attrObj = JSONObject()
             for (attrKey in attrEntries) {
                 val storedKey = attrKey.removePrefix(ATTR_PREFIX)
-                val raw = prefs.getString(attrKey, null) ?: continue
+                val raw = allValues[attrKey] as? String ?: continue
                 val config = parseAudioAttributesOverride(raw) ?: continue
                 attrObj.put(storedKey, config.toJson())
             }
@@ -327,122 +338,115 @@ class VolumeStore(context: Context) {
 
     fun importJson(json: String): Int {
         val obj = JSONObject(json)
-        val editor = prefs.edit()
         var count = 0
-        for (key in obj.keys()) {
-            if (key.startsWith("_")) continue
-            val value = obj.optDouble(key, Double.NaN)
-            if (!value.isNaN()) {
-                val normalized = min(1f, max(0f, value.toFloat()))
-                editor.putFloat(key, normalized)
-                count += 1
+        store.update {
+            for (key in obj.keys()) {
+                if (key.startsWith("_")) continue
+                val value = obj.optDouble(key, Double.NaN)
+                if (!value.isNaN()) {
+                    put(key, min(1f, max(0f, value.toFloat())))
+                    count += 1
+                }
+            }
+            val markerObj = obj.optJSONObject("_marker_configs")
+            if (markerObj != null) {
+                val keys = markerObj.keys()
+                while (keys.hasNext()) {
+                    val storageKey = keys.next()
+                    if (storageKey.isBlank()) continue
+                    val raw = markerObj.optJSONObject(storageKey) ?: continue
+                    val config = parseMarkerConfig(raw.toString()) ?: continue
+                    put(MARKER_PREFIX + storageKey, config.toJson().toString())
+                }
+            }
+            val outputObj = obj.optJSONObject("_output_configs")
+            if (outputObj != null) {
+                val keys = outputObj.keys()
+                while (keys.hasNext()) {
+                    val storageKey = keys.next()
+                    if (storageKey.isBlank()) continue
+                    val raw = outputObj.optJSONObject(storageKey) ?: continue
+                    val config = parseOutputDevice(raw) ?: continue
+                    put(OUTPUT_PREFIX + storageKey, config.toJson().toString())
+                }
+            }
+            val muteObj = obj.optJSONObject("_mute_behaviors")
+            if (muteObj != null) {
+                val keys = muteObj.keys()
+                while (keys.hasNext()) {
+                    val storageKey = keys.next()
+                    if (storageKey.isBlank()) continue
+                    val raw = muteObj.optString(storageKey)
+                    val behavior = MuteBehavior.parse(raw) ?: continue
+                    put(MUTE_PREFIX + storageKey, behavior.id)
+                }
+            }
+            val resumeObj = obj.optJSONObject("_resume_overrides")
+            if (resumeObj != null) {
+                val keys = resumeObj.keys()
+                while (keys.hasNext()) {
+                    val storageKey = keys.next()
+                    if (storageKey.isBlank()) continue
+                    val raw = resumeObj.optString(storageKey)
+                    val override = parseBooleanOverride(raw) ?: continue
+                    put(RESUME_PREFIX + storageKey, if (override) "on" else "off")
+                }
+            }
+            val attrObj = obj.optJSONObject("_attr_overrides")
+            if (attrObj != null) {
+                val keys = attrObj.keys()
+                while (keys.hasNext()) {
+                    val storageKey = keys.next()
+                    if (storageKey.isBlank()) continue
+                    val raw = attrObj.optJSONObject(storageKey) ?: continue
+                    val config = parseAudioAttributesOverride(raw) ?: continue
+                    put(ATTR_PREFIX + storageKey, config.toJson().toString())
+                }
+            }
+            val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", ""))
+            if (defaultMute != null) {
+                put(DEFAULT_MUTE_KEY, defaultMute.id)
+            }
+            val ruleGroups = parseRuleGroups(obj.optJSONArray("_rule_groups"))
+            if (ruleGroups != null) {
+                if (ruleGroups.isEmpty()) remove(RULE_GROUPS_KEY)
+                else put(RULE_GROUPS_KEY, serializeRuleGroups(ruleGroups))
+            }
+            val rules = parseRules(obj.optJSONArray("_rules"))
+            if (rules != null) {
+                if (rules.isEmpty()) remove(RULES_KEY)
+                else put(RULES_KEY, serializeRules(rules))
             }
         }
-        val markerObj = obj.optJSONObject("_marker_configs")
-        if (markerObj != null) {
-            val keys = markerObj.keys()
-            while (keys.hasNext()) {
-                val storageKey = keys.next()
-                if (storageKey.isBlank()) continue
-                val raw = markerObj.optJSONObject(storageKey) ?: continue
-                val config = parseMarkerConfig(raw.toString()) ?: continue
-                editor.putString(MARKER_PREFIX + storageKey, config.toJson().toString())
-            }
-        }
-        val outputObj = obj.optJSONObject("_output_configs")
-        if (outputObj != null) {
-            val keys = outputObj.keys()
-            while (keys.hasNext()) {
-                val storageKey = keys.next()
-                if (storageKey.isBlank()) continue
-                val raw = outputObj.optJSONObject(storageKey) ?: continue
-                val config = parseOutputDevice(raw) ?: continue
-                editor.putString(OUTPUT_PREFIX + storageKey, config.toJson().toString())
-            }
-        }
-        val muteObj = obj.optJSONObject("_mute_behaviors")
-        if (muteObj != null) {
-            val keys = muteObj.keys()
-            while (keys.hasNext()) {
-                val storageKey = keys.next()
-                if (storageKey.isBlank()) continue
-                val raw = muteObj.optString(storageKey)
-                val behavior = MuteBehavior.parse(raw) ?: continue
-                editor.putString(MUTE_PREFIX + storageKey, behavior.id)
-            }
-        }
-        val resumeObj = obj.optJSONObject("_resume_overrides")
-        if (resumeObj != null) {
-            val keys = resumeObj.keys()
-            while (keys.hasNext()) {
-                val storageKey = keys.next()
-                if (storageKey.isBlank()) continue
-                val raw = resumeObj.optString(storageKey)
-                val override = parseBooleanOverride(raw) ?: continue
-                editor.putString(RESUME_PREFIX + storageKey, if (override) "on" else "off")
-            }
-        }
-        val attrObj = obj.optJSONObject("_attr_overrides")
-        if (attrObj != null) {
-            val keys = attrObj.keys()
-            while (keys.hasNext()) {
-                val storageKey = keys.next()
-                if (storageKey.isBlank()) continue
-                val raw = attrObj.optJSONObject(storageKey) ?: continue
-                val config = parseAudioAttributesOverride(raw) ?: continue
-                editor.putString(ATTR_PREFIX + storageKey, config.toJson().toString())
-            }
-        }
-        val defaultMute = MuteBehavior.parse(obj.optString("_mute_default", ""))
-        if (defaultMute != null) {
-            editor.putString(DEFAULT_MUTE_KEY, defaultMute.id)
-        }
-        val ruleGroups = parseRuleGroups(obj.optJSONArray("_rule_groups"))
-        if (ruleGroups != null) {
-            if (ruleGroups.isEmpty()) {
-                editor.remove(RULE_GROUPS_KEY)
-            } else {
-                editor.putString(RULE_GROUPS_KEY, serializeRuleGroups(ruleGroups))
-            }
-        }
-        val rules = parseRules(obj.optJSONArray("_rules"))
-        if (rules != null) {
-            if (rules.isEmpty()) {
-                editor.remove(RULES_KEY)
-            } else {
-                editor.putString(RULES_KEY, serializeRules(rules))
-            }
-        }
-        editor.apply()
         return count
     }
 
     fun listRuleGroups(): List<RuleGroup> {
-        val raw = prefs.getString(RULE_GROUPS_KEY, null) ?: return emptyList()
+        val raw = store.getString(RULE_GROUPS_KEY) ?: return emptyList()
         val groups = parseRuleGroups(raw) ?: return emptyList()
         return groups.sortedBy { it.name }
     }
 
     fun setRuleGroups(groups: List<RuleGroup>) {
         if (groups.isEmpty()) {
-            prefs.edit().remove(RULE_GROUPS_KEY).apply()
+            store.update { remove(RULE_GROUPS_KEY) }
             return
         }
-        prefs.edit().putString(RULE_GROUPS_KEY, serializeRuleGroups(groups)).apply()
+        store.update { put(RULE_GROUPS_KEY, serializeRuleGroups(groups)) }
     }
 
     fun listRules(): List<Rule> {
-        val raw = prefs.getString(RULES_KEY, null) ?: return emptyList()
+        val raw = store.getString(RULES_KEY) ?: return emptyList()
         val rules = parseRules(raw) ?: return emptyList()
         return rules.sortedWith(compareByDescending<Rule> { it.priority }.thenBy { it.name })
     }
 
     fun setRules(rules: List<Rule>) {
         if (rules.isEmpty()) {
-            prefs.edit().remove(RULES_KEY).apply()
+            store.update { remove(RULES_KEY) }
             return
         }
-        prefs.edit().putString(RULES_KEY, serializeRules(rules)).apply()
+        store.update { put(RULES_KEY, serializeRules(rules)) }
     }
 
     data class VolumeKey(

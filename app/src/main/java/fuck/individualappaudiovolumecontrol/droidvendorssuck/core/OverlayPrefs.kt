@@ -5,86 +5,86 @@ import android.content.pm.PackageManager
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore.VolumeKey
 
 class OverlayPrefs(context: Context) {
-    private val prefs = context.getSharedPreferences("overlay_prefs", Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, "overlay_prefs")
 
     fun isOverlayEnabled(): Boolean {
-        return prefs.getBoolean(KEY_ENABLED, false)
+        return store.getBoolean(KEY_ENABLED, false)
     }
 
     fun setOverlayEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
+        store.update { put(KEY_ENABLED, enabled) }
     }
 
     fun isAutoRefreshEnabled(): Boolean {
-        return prefs.getBoolean(KEY_AUTO_REFRESH, true)
+        return store.getBoolean(KEY_AUTO_REFRESH, true)
     }
 
     fun setAutoRefreshEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO_REFRESH, enabled).apply()
+        store.update { put(KEY_AUTO_REFRESH, enabled) }
     }
 
     fun isAutoHideEnabled(): Boolean {
-        return prefs.getBoolean(KEY_AUTO_HIDE, true)
+        return store.getBoolean(KEY_AUTO_HIDE, true)
     }
 
     fun setAutoHideEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO_HIDE, enabled).apply()
+        store.update { put(KEY_AUTO_HIDE, enabled) }
     }
 
     fun isOutputOnlyEnabled(): Boolean {
-        return prefs.getBoolean(KEY_OUTPUT_ONLY, false)
+        return store.getBoolean(KEY_OUTPUT_ONLY, false)
     }
 
     fun setOutputOnlyEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_OUTPUT_ONLY, enabled).apply()
+        store.update { put(KEY_OUTPUT_ONLY, enabled) }
     }
 
     fun isOverlayPaused(): Boolean {
-        return prefs.getBoolean(KEY_OVERLAY_PAUSED, false)
+        return store.getBoolean(KEY_OVERLAY_PAUSED, false)
     }
 
     fun setOverlayPaused(paused: Boolean) {
-        prefs.edit().putBoolean(KEY_OVERLAY_PAUSED, paused).apply()
+        store.update { put(KEY_OVERLAY_PAUSED, paused) }
     }
 
     fun isDismissOnOutsideTapEnabled(): Boolean {
-        return prefs.getBoolean(KEY_OVERLAY_DISMISS_OUTSIDE, true)
+        return store.getBoolean(KEY_OVERLAY_DISMISS_OUTSIDE, true)
     }
 
     fun setDismissOnOutsideTapEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_OVERLAY_DISMISS_OUTSIDE, enabled).apply()
+        store.update { put(KEY_OVERLAY_DISMISS_OUTSIDE, enabled) }
     }
 
     fun isVolumeKeyOnlyWhenPlayingEnabled(): Boolean {
-        return prefs.getBoolean(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, false)
+        return store.getBoolean(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, false)
     }
 
     fun setVolumeKeyOnlyWhenPlayingEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, enabled).apply()
+        store.update { put(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, enabled) }
     }
 
     fun isRootAudioFallbackEnabled(): Boolean {
-        return prefs.getBoolean(KEY_ROOT_AUDIO_FALLBACK, false)
+        return store.getBoolean(KEY_ROOT_AUDIO_FALLBACK, false)
     }
 
     fun setRootAudioFallbackEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_ROOT_AUDIO_FALLBACK, enabled).apply()
+        store.update { put(KEY_ROOT_AUDIO_FALLBACK, enabled) }
     }
 
     fun getOverlayFocusBlockList(): Set<String> {
-        return prefs.getStringSet(KEY_OVERLAY_FOCUS_BLOCKLIST, emptySet())?.toSet() ?: emptySet()
+        return store.getStringSet(KEY_OVERLAY_FOCUS_BLOCKLIST) ?: emptySet()
     }
 
     fun setOverlayFocusBlockList(packages: Set<String>) {
-        prefs.edit().putStringSet(KEY_OVERLAY_FOCUS_BLOCKLIST, packages).apply()
+        store.update { put(KEY_OVERLAY_FOCUS_BLOCKLIST, packages.toSet()) }
     }
 
     fun getOverlayIgnorePackageList(): Set<String> {
-        return prefs.getStringSet(KEY_OVERLAY_IGNORE_PACKAGES, emptySet())?.toSet() ?: emptySet()
+        return store.getStringSet(KEY_OVERLAY_IGNORE_PACKAGES) ?: emptySet()
     }
 
     fun setOverlayIgnorePackageList(packages: Set<String>) {
-        prefs.edit().putStringSet(KEY_OVERLAY_IGNORE_PACKAGES, packages).apply()
+        store.update { put(KEY_OVERLAY_IGNORE_PACKAGES, packages.toSet()) }
     }
 
     fun isOverlayIgnored(key: VolumeKey): Boolean {
@@ -108,7 +108,7 @@ class OverlayPrefs(context: Context) {
     }
 
     fun ensureDefaultIgnoreList(packageManager: PackageManager) {
-        if (prefs.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
+        if (store.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
         val defaults = mutableSetOf(
             "com.android.systemui",
             "com.android.location.fused",
@@ -125,16 +125,19 @@ class OverlayPrefs(context: Context) {
             }
         }
         if (defaults.isNotEmpty()) {
-            prefs.edit().putStringSet(KEY_OVERLAY_IGNORE_PACKAGES, defaults).apply()
+            store.update { put(KEY_OVERLAY_IGNORE_PACKAGES, defaults.toSet()) }
         }
     }
 
     fun setLastFocusedPackage(packageName: String?) {
-        prefs.edit().putString(KEY_LAST_FOCUSED_PACKAGE, packageName).apply()
+        store.update {
+            if (packageName == null) remove(KEY_LAST_FOCUSED_PACKAGE)
+            else put(KEY_LAST_FOCUSED_PACKAGE, packageName)
+        }
     }
 
     fun getLastFocusedPackage(): String? {
-        return prefs.getString(KEY_LAST_FOCUSED_PACKAGE, null)
+        return store.getString(KEY_LAST_FOCUSED_PACKAGE)
     }
 
     fun shouldSuppressForFocusedPackage(): Boolean {
@@ -144,15 +147,15 @@ class OverlayPrefs(context: Context) {
     }
 
     fun setOverlaySnoozeUntil(untilElapsedRealtime: Long) {
-        prefs.edit().putLong(KEY_OVERLAY_SNOOZE_UNTIL, untilElapsedRealtime).apply()
+        store.update { put(KEY_OVERLAY_SNOOZE_UNTIL, untilElapsedRealtime) }
     }
 
     fun getOverlaySnoozeUntil(): Long {
-        return prefs.getLong(KEY_OVERLAY_SNOOZE_UNTIL, 0L)
+        return store.getLong(KEY_OVERLAY_SNOOZE_UNTIL) ?: 0L
     }
 
     fun clearOverlaySnooze() {
-        prefs.edit().remove(KEY_OVERLAY_SNOOZE_UNTIL).apply()
+        store.update { remove(KEY_OVERLAY_SNOOZE_UNTIL) }
     }
 
     companion object {

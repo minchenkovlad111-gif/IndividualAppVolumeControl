@@ -5,6 +5,7 @@
 - Magisk module: installs the app into `/system/priv-app/` and supplies `privapp-permissions`.
 - Diagnostics UI: shows last apply stats, errors, hidden API policy values, and overlay/accessibility status.
 - Diagnostics persistence: keeps the latest diagnostics snapshot in-process and flushes it to `SharedPreferences` on a dedicated background thread, avoiding `QueuedWork.waitToFinish()` stalls when activities stop.
+- Deferred preference persistence: high-churn stores (`VolumeStore`, `OverlayPrefs`, `LocationRuleStore`, `ActiveAppStore`, `NotificationPrefs`, `AudioSettingsPrefs`) coalesce in-process updates and flush them with background `commit()` calls instead of main-thread `apply()` bursts.
 - Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
 - Overlay service: shows a floating per-app slider panel on volume-button changes (multiple stream settings observers + broadcast actions + polling fallback).

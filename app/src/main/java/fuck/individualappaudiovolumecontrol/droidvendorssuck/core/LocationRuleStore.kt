@@ -7,32 +7,32 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class LocationRuleStore(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val store = DeferredPreferenceStore(context, PREFS_NAME)
 
     fun setCurrentLocationId(id: String?) {
         val trimmed = id?.trim().orEmpty()
         if (trimmed.isBlank()) {
-            prefs.edit().remove(KEY_CURRENT_ID).apply()
+            store.update { remove(KEY_CURRENT_ID) }
         } else {
-            prefs.edit().putString(KEY_CURRENT_ID, trimmed).apply()
+            store.update { put(KEY_CURRENT_ID, trimmed) }
         }
     }
 
     fun getCurrentLocationId(): String? {
-        return prefs.getString(KEY_CURRENT_ID, null)
+        return store.getString(KEY_CURRENT_ID)
     }
 
     fun setLastFixTime(timeMs: Long) {
         if (timeMs <= 0L) return
-        prefs.edit().putLong(KEY_LAST_FIX_TIME, timeMs).apply()
+        store.update { put(KEY_LAST_FIX_TIME, timeMs) }
     }
 
     fun getLastFixTime(): Long {
-        return prefs.getLong(KEY_LAST_FIX_TIME, 0L)
+        return store.getLong(KEY_LAST_FIX_TIME) ?: 0L
     }
 
     fun listLocations(): List<LocationRule> {
-        val raw = prefs.getString(KEY_LOCATIONS, null) ?: return emptyList()
+        val raw = store.getString(KEY_LOCATIONS) ?: return emptyList()
         val array = runCatching { JSONArray(raw) }.getOrNull() ?: return emptyList()
         val entries = mutableListOf<LocationRule>()
         for (i in 0 until array.length()) {
@@ -45,14 +45,14 @@ class LocationRuleStore(context: Context) {
 
     fun setLocations(locations: List<LocationRule>) {
         if (locations.isEmpty()) {
-            prefs.edit().remove(KEY_LOCATIONS).apply()
+            store.update { remove(KEY_LOCATIONS) }
             return
         }
         val array = JSONArray()
         for (entry in locations) {
             array.put(entry.toJson())
         }
-        prefs.edit().putString(KEY_LOCATIONS, array.toString()).apply()
+        store.update { put(KEY_LOCATIONS, array.toString()) }
     }
 
     fun hasLocationPermission(context: Context): Boolean {
@@ -70,13 +70,12 @@ class LocationRuleStore(context: Context) {
     }
 
     fun isBackgroundUpdatesEnabled(): Boolean {
-        return prefs.getBoolean(KEY_BACKGROUND_ENABLED, false)
+        return store.getBoolean(KEY_BACKGROUND_ENABLED, false)
     }
 
     fun setBackgroundUpdatesEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_BACKGROUND_ENABLED, enabled).apply()
+        store.update { put(KEY_BACKGROUND_ENABLED, enabled) }
     }
-
 
     data class LocationRule(
         val id: String,

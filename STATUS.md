@@ -2,8 +2,7 @@
 Last update: 2026-03-22
 
 ## Current focus
-- Build stability for full multi-variant `gradle build` runs (lint + release dex heap sizing).
-- Setup Check / diagnostics ANR triage on device (activity stop/resume stability).
+- Setup Check / diagnostics ANR validation on device after deferred `SharedPreferences` write hardening.
 - Package rename to `fuck.individualappaudiovolumecontrol.droidvendorssuck` with Magisk/module safety validation.
 - Privapp allowlist minimization after KernelSU bootloop reports on Android 15.
 - Build hardening for module packaging (signed release APK + allowlist validation).
@@ -13,6 +12,8 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added a shared deferred `SharedPreferences` writer and moved `VolumeStore`, `OverlayPrefs`, `LocationRuleStore`, `ActiveAppStore`, `NotificationPrefs`, and `AudioSettingsPrefs` onto background `commit()` flushes so hot write paths no longer queue frequent main-process `apply()` work.
+- Closed the high-priority ANR audit item for remaining high-frequency preference writes and moved it to the done section in `TODO.md`.
 - Added a per-app notification presentation mode that keeps the foreground controller notification for service survival and posts a separate secondary notification for each active app.
 - Fixed slider guide alignment by making the 10% tick overlay use the same left/right insets as the actual `SeekBar` track in both the main UI and the overlay.
 - Added high-priority playback-notification persistence diagnostics and a forced foreground-notification refresh path so Diagnostics can show whether the controller service is alive, whether notifications/channels are enabled, and when the controller last posted its notification.
