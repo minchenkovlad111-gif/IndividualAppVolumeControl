@@ -461,6 +461,14 @@ class VolumeOverlayService : Service() {
             loadActiveEntries()
         }
         if (entries.isEmpty()) {
+            if (shouldShowManualPreview()) {
+                container.addView(buildManualPreviewRow())
+                statusView?.let { status ->
+                    status.text = "Test overlay preview. Start audio to show real app controls."
+                    status.visibility = View.VISIBLE
+                }
+                return 1
+            }
             if (overlayView?.parent != null) {
                 removeOverlay()
             }
@@ -470,6 +478,10 @@ class VolumeOverlayService : Service() {
             container.addView(buildVolumeRow(entry))
         }
         return entries.size
+    }
+
+    private fun shouldShowManualPreview(): Boolean {
+        return lastShowReason == DiagnosticsStore.OVERLAY_SIGNAL_MANUAL
     }
 
     private fun loadActiveEntries(): List<AppEntry> {
@@ -705,6 +717,92 @@ class VolumeOverlayService : Service() {
         card.addView(sliderRow)
         row.addView(card)
 
+        return row
+    }
+
+    private fun buildManualPreviewRow(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dpToPx(8), 0, dpToPx(8))
+        }
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
+            background = GradientDrawable().apply {
+                setColor(OVERLAY_BG)
+                cornerRadius = dpToPx(10).toFloat()
+                setStroke(dpToPx(1), OVERLAY_BORDER)
+            }
+        }
+
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val iconView = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(20), dpToPx(20)).apply {
+                marginEnd = dpToPx(6)
+            }
+            setImageResource(android.R.drawable.ic_media_play)
+            imageTintList = ColorStateList.valueOf(OVERLAY_TEXT)
+        }
+
+        val nameView = TextView(this).apply {
+            text = "Test overlay"
+            textSize = 13f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        applyOverlayTextStyle(nameView)
+
+        val badgeView = TextView(this).apply {
+            text = "Preview"
+            textSize = 10f
+            setPadding(dpToPx(6), 0, 0, 0)
+        }
+        applyOverlayTextStyle(badgeView)
+
+        headerRow.addView(iconView)
+        headerRow.addView(nameView)
+        headerRow.addView(badgeView)
+
+        val noteView = TextView(this).apply {
+            text = "No active audio apps. This is only a visual preview."
+            textSize = 11f
+            setPadding(0, dpToPx(4), 0, dpToPx(6))
+        }
+        applyOverlayTextStyle(noteView)
+
+        val sliderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val valueView = TextView(this).apply {
+            text = "50%"
+            textSize = 11f
+            setPadding(0, 0, dpToPx(6), 0)
+        }
+        applyOverlayTextStyle(valueView)
+
+        val slider = SeekBar(this).apply {
+            max = 100
+            progress = 50
+            isEnabled = false
+            progressTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
+            thumbTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
+            progressBackgroundTintList = ColorStateList.valueOf(OVERLAY_TRACK)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        sliderRow.addView(valueView)
+        sliderRow.addView(slider)
+
+        card.addView(headerRow)
+        card.addView(noteView)
+        card.addView(sliderRow)
+        row.addView(card)
         return row
     }
 
