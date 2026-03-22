@@ -12,6 +12,7 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added `INTERACT_ACROSS_USERS_FULL` to the manifest and privapp allowlist so cross-profile control can be granted on enforcing ROMs.
 - Ensured playback callbacks reapply volumes using cross-profile configs when across-users permission is granted, and exposed INTERACT_ACROSS_USERS_FULL in diagnostics.
 - Added `org.lineageos.settings` to the default overlay ignore list.
 - Added a diagnostics action to force a cross-profile probe and a report header to group cross-profile rows.
