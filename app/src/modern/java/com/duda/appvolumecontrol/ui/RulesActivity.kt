@@ -1223,7 +1223,7 @@ class RulesActivity : AppCompatActivity() {
                     resultsContainer.addView(buildEmptyRow("No matching apps."))
                     return
                 }
-                for (entry in filtered.sortedBy { it.label.lowercase() }) {
+                for (entry in sortAppPickerEntries(filtered, selected)) {
                     val row = LinearLayout(this@RulesActivity).apply {
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.CENTER_VERTICAL
@@ -1274,6 +1274,17 @@ class RulesActivity : AppCompatActivity() {
         }
         installedAppsCache = entries
         return entries
+    }
+
+    private fun sortAppPickerEntries(
+        entries: List<AppEntry>,
+        selected: Set<String>,
+    ): List<AppEntry> {
+        return entries.sortedWith(
+            compareBy<AppEntry> { !selected.contains(it.packageName) }
+                .thenBy { it.label.lowercase() }
+                .thenBy { it.packageName.lowercase() }
+        )
     }
 
     private fun resolveLabel(packageName: String): String {

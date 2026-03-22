@@ -12,6 +12,7 @@ Last update: 2026-03-20
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Pinned selected apps to the top of searchable multi-select app dialogs so overlay ignore/block lists and the rules app picker keep chosen entries visible above the remaining results.
 - Debounced diagnostics persistence and throttled `ActiveAppStore` writes so UI refresh loops do not keep scheduling `SharedPreferences` flushes every couple of seconds.
 - Moved `SetupCheckActivity` refresh work off the UI thread so the setup screen no longer does audio-session/privilege checks synchronously on launch or manual refresh.
 - Reworked `DiagnosticsStore` to keep an in-process snapshot and flush via a dedicated background `commit()` thread instead of frequent `SharedPreferences.apply()` calls, to avoid `QueuedWork.waitToFinish()` ANRs when `SetupCheckActivity` stops.

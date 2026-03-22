@@ -1416,7 +1416,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     adapter.clear()
-                    adapter.addAll(filtered)
+                    adapter.addAll(sortOverlayDialogApps(filtered, selected))
                     adapter.notifyDataSetChanged()
                     applyCheckedState()
                 }
@@ -1428,6 +1428,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         selected.remove(app.packageName)
                     }
+                    updateList(searchInput.text?.toString().orEmpty())
                 }
 
                 searchInput.addTextChangedListener { editable ->
@@ -1544,7 +1545,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     adapter.clear()
-                    adapter.addAll(filtered)
+                    adapter.addAll(sortOverlayDialogApps(filtered, selected))
                     adapter.notifyDataSetChanged()
                     applyCheckedState()
                 }
@@ -1556,6 +1557,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         selected.remove(app.packageName)
                     }
+                    updateList(searchInput.text?.toString().orEmpty())
                 }
 
                 searchInput.addTextChangedListener { editable ->
@@ -1675,6 +1677,17 @@ class MainActivity : AppCompatActivity() {
         } else {
             true
         }
+    }
+
+    private fun sortOverlayDialogApps(
+        apps: List<OverlayAppOption>,
+        selected: Set<String>,
+    ): List<OverlayAppOption> {
+        return apps.sortedWith(
+            compareBy<OverlayAppOption> { !selected.contains(it.packageName) }
+                .thenBy { it.label.lowercase() }
+                .thenBy { it.packageName.lowercase() }
+        )
     }
 
     private data class AppEntry(
