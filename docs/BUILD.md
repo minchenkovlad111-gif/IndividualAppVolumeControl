@@ -29,9 +29,10 @@
 - Default APK input: signed modern release; falls back to unsigned release outputs, then debug artifacts if release outputs are missing.
 - The installed Android package name is `fuck.individualappaudiovolumecontrol.droidvendorssuck`.
 - The Magisk module mount path remains `system/priv-app/IndividualAppAudioVolumeControl/IndividualAppAudioVolumeControl.apk` to avoid unnecessary module path churn.
+- On KernelSU, a metamodule is required for the module `system/` tree to mount. If no metamodule is active, flashing the ZIP is not enough to make the app a privileged system app.
 - `module/package.sh` now recreates the output archive from scratch before zipping, so stale APK paths are not retained across rebuilds.
 - `module/package.sh` validates that the APK package name matches the privapp XML, derives expected allowlisted permissions from any `AndroidManifest.xml` under `app/src` that mark permissions with `tools:ignore="ProtectedPermissions"`, and rejects stale XML entries before it writes the ZIP.
-- The module intentionally keeps the privapp allowlist minimal. On current builds that means `MODIFY_AUDIO_ROUTING` only, to avoid boot failures from overbroad privileged permission requests on enforcing ROMs.
+- The module intentionally keeps the privapp allowlist minimal. Current source/configuration requests `MODIFY_AUDIO_ROUTING` and `INTERACT_ACROSS_USERS`; both should be treated as boot-critical on enforcing ROMs and revalidated on-device.
 - Packaging the top-level module ZIP also syncs the bundled asset copy used by the in-app installer, so both distribution paths share the same archive.
 - For bootloop diagnosis, the module `service.sh` captures logcat to `/data/adb/individualappaudiovolumecontrol-boot.log` (rotating) on boot, with a fallback to `/cache/individualappaudiovolumecontrol-boot.log` if `/data` is unavailable. Module id defaults to `individualappaudiovolumecontrol`.
 

@@ -21,6 +21,9 @@ A root-required Android app + Magisk module for per-app volume control, designed
   - Magisk installs modules under `/data/adb/modules/<module>/`.
   - This maps to `/data/adb/modules/<module>/system/priv-app/IndividualAppAudioVolumeControl/IndividualAppAudioVolumeControl.apk`,
     which Magisk overlays into the system partition at boot (typically `/system/priv-app/` or `/system_ext/priv-app/`).
+- On KernelSU, install a working metamodule first (for example `meta-overlayfs`) before flashing this module.
+  - Without a metamodule, KernelSU does not mount the module `system/` tree, so the APK will not become a real priv-app and the privapp permission XML will not be applied.
+  - For this app that means privileged features, including cross-profile detection via `INTERACT_ACROSS_USERS`, can fail even if the module ZIP appears installed.
 - Zip the `module/` folder and install via Magisk (or run `module/package.sh`).
 
 ## Status
