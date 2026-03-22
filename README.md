@@ -13,6 +13,7 @@ A root-required Android app + Magisk module for per-app volume control, designed
 ## Notes
 - The app relies on hidden audio APIs to set per-player volume and therefore needs root + privileged installation.
 - Volume control is applied per active playback configuration.
+- Installed Android package name: `fuck.individualappaudiovolumecontrol.droidvendorssuck`.
 
 ## Quick start
 - Build the app APK (see `docs/BUILD.md`).

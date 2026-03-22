@@ -3,19 +3,24 @@
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks).
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
 3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
-4. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
-5. Validate required privileged permissions on Android 12-15 devices.
-6. Validate hidden API policy keys and behavior on Android 12-15.
-7. Verify behavior on Android 12-15 and document compatibility.
-8. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-9. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
-10. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
-11. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
-12. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
-13. Audio routing between apps (virtual output sources and sinks).
-14. Network audio routing (send/receive per-app audio streams over LAN).
-15. Virtual microphone + effects (voice changer pipeline).
-16. Audio sharing to other devices (LAN streaming + Linux client).
+4. Rename the app source directory structure to match the current package namespace.
+5. In multi-select app search dialogs (for example overlay ignore/block lists), pin selected apps to the top before the remaining search results.
+6. Add a per-active-app notification mode so each currently playing app can expose its own notification controls when the platform/device allows it.
+7. Investigate a real custom notification volume slider per app; if `RemoteViews` constraints make that impractical, document the limit and keep the best available control layout.
+8. Make notification presentation configurable, with single-notification paging (`Next` / `Prev`) as the fallback mode when multi-notification display is limited or undesired.
+9. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
+10. Validate required privileged permissions on Android 12-15 devices.
+11. Validate hidden API policy keys and behavior on Android 12-15.
+12. Verify behavior on Android 12-15 and document compatibility.
+13. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
+14. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
+15. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
+16. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
+17. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
+18. Audio routing between apps (virtual output sources and sinks).
+19. Network audio routing (send/receive per-app audio streams over LAN).
+20. Virtual microphone + effects (voice changer pipeline).
+21. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
 1. Renamed the Android app package/namespace to `fuck.individualappaudiovolumecontrol.droidvendorssuck` while keeping folder structure and Magisk mount paths unchanged.

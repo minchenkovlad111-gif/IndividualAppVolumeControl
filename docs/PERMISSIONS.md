@@ -22,6 +22,7 @@ Note: Some privileged permissions are not exposed as public SDK constants; use t
 
 ## Privapp whitelist
 The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant signature/privileged permissions to the app when installed as a system app.
+The current privileged app package name is `fuck.individualappaudiovolumecontrol.droidvendorssuck`, and the whitelist XML must target that exact package.
 The whitelist must stay aligned with every privileged permission requested in the manifest or boot-time package scan can fail on enforcing ROMs.
 Packaging now derives the expected allowlist from manifest permissions marked with `tools:ignore="ProtectedPermissions"` and rejects stale XML entries so the whitelist cannot silently drift.
 To reduce boot-loop risk on enforcing Android 15 ROMs and KernelSU installs, the module now allowlists only the core `MODIFY_AUDIO_ROUTING` permission. Optional features such as usage-access fallback and hidden-API policy tweaking must degrade gracefully without extra privileged grants.
