@@ -29,6 +29,7 @@ import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleSt
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleManager
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AudioSettingsPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
 
 @Suppress("DEPRECATION")
 class PlaybackControllerService : Service() {
@@ -411,6 +412,11 @@ class PlaybackControllerService : Service() {
             1 -> R.id.notif_value_2
             else -> R.id.notif_value_3
         }
+        val profileId = when (index) {
+            0 -> R.id.notif_profile_1
+            1 -> R.id.notif_profile_2
+            else -> R.id.notif_profile_3
+        }
         val minusId = when (index) {
             0 -> R.id.notif_minus_1
             1 -> R.id.notif_minus_2
@@ -459,6 +465,7 @@ class PlaybackControllerService : Service() {
         views.setViewVisibility(rowId, android.view.View.VISIBLE)
         views.setTextViewText(appId, entry.label)
         views.setTextViewText(valueId, "${entry.percent}%")
+        views.setTextViewText(profileId, entry.profileLabel)
         views.setProgressBar(progressId, 100, entry.percent, false)
         views.setTextViewText(muteId, if (entry.percent <= 0) "Unmute" else "Mute")
         val base = index * 10
@@ -591,6 +598,7 @@ class PlaybackControllerService : Service() {
                 packageName = key.packageName,
                 userId = key.userId,
                 label = label,
+                profileLabel = ProfileUtils.buildProfileLabel(this, key.userId),
                 percent = (volume * 100).toInt().coerceIn(0, 100)
             )
         }.filterNotNull()
@@ -754,6 +762,7 @@ class PlaybackControllerService : Service() {
         val packageName: String,
         val userId: Int?,
         val label: String,
+        val profileLabel: String,
         val percent: Int,
     )
 

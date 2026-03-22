@@ -13,6 +13,7 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added profile labels to each notification row so cross-profile entries show whether they belong to Personal, Work, or another user in the notification itself.
 - Investigated custom notification sliders: documented the `RemoteViews` drag limitation, kept notification controls button-based, and added per-app visual level bars so notification rows still read like sliders.
 - Root fallback now only activates when `INTERACT_ACROSS_USERS(_FULL)` is unavailable, and the main UI has a manual cross-profile scan button for forcing a fresh root-based audio probe.
 - Reduced root fallback churn by extending `su` availability caching and root `dumpsys` result caching so cross-profile detection does fewer expensive refreshes while the UI or overlay is open.

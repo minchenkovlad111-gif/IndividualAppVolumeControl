@@ -182,6 +182,19 @@
                 android:background="@drawable/notif_button" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/notif_profile_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Personal (u0)"
+            android:textSize="10sp"
+            android:textColor="#B0B0B0"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:paddingBottom="4dp" />
+
         <ProgressBar
             android:id="@+id/notif_progress_1"
             style="?android:attr/progressBarStyleHorizontal"
@@ -354,6 +367,19 @@
                 android:background="@drawable/notif_button" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/notif_profile_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Personal (u0)"
+            android:textSize="10sp"
+            android:textColor="#B0B0B0"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:paddingBottom="4dp" />
+
         <ProgressBar
             android:id="@+id/notif_progress_2"
             style="?android:attr/progressBarStyleHorizontal"
@@ -524,6 +550,19 @@
                 android:shadowDy="0"
                 android:background="@drawable/notif_button" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/notif_profile_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Personal (u0)"
+            android:textSize="10sp"
+            android:textColor="#B0B0B0"
+            android:shadowColor="#000000"
+            android:shadowRadius="2"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:paddingBottom="4dp" />
 
         <ProgressBar
             android:id="@+id/notif_progress_3"
