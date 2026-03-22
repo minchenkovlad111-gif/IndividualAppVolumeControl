@@ -13,6 +13,7 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Investigated custom notification sliders: documented the `RemoteViews` drag limitation, kept notification controls button-based, and added per-app visual level bars so notification rows still read like sliders.
 - Root fallback now only activates when `INTERACT_ACROSS_USERS(_FULL)` is unavailable, and the main UI has a manual cross-profile scan button for forcing a fresh root-based audio probe.
 - Reduced root fallback churn by extending `su` availability caching and root `dumpsys` result caching so cross-profile detection does fewer expensive refreshes while the UI or overlay is open.
 - Made manual `Show overlay now` display a test preview card when no app is currently playing audio, without changing volume-button-triggered empty-overlay behavior, and kept the Setup Check disabled message when controls are unavailable.

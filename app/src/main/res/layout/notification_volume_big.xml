@@ -98,7 +98,7 @@
         android:id="@+id/notif_subtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tap +/- or quick presets"
+        android:text="Visual slider bar + tap controls"
         android:textSize="11sp"
         android:textColor="#FFFFFF"
         android:shadowColor="#000000"
@@ -181,6 +181,16 @@
                 android:shadowDy="0"
                 android:background="@drawable/notif_button" />
         </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/notif_progress_1"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="100"
+            android:progress="100"
+            android:progressDrawable="@drawable/notif_progress"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/notif_row_1_quick"
@@ -344,6 +354,16 @@
                 android:background="@drawable/notif_button" />
         </LinearLayout>
 
+        <ProgressBar
+            android:id="@+id/notif_progress_2"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="100"
+            android:progress="100"
+            android:progressDrawable="@drawable/notif_progress"
+            android:layout_marginBottom="4dp" />
+
         <LinearLayout
             android:id="@+id/notif_row_2_quick"
             android:layout_width="match_parent"
@@ -504,6 +524,16 @@
                 android:shadowDy="0"
                 android:background="@drawable/notif_button" />
         </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/notif_progress_3"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="100"
+            android:progress="100"
+            android:progressDrawable="@drawable/notif_progress"
+            android:layout_marginBottom="4dp" />
 
         <LinearLayout
             android:id="@+id/notif_row_3_quick"

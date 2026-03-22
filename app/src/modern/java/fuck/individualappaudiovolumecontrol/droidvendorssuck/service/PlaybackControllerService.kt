@@ -366,13 +366,13 @@ class PlaybackControllerService : Service() {
             views.setTextViewText(R.id.notif_page, "${page + 1}/$totalPages")
             views.setTextViewText(
                 R.id.notif_subtitle,
-                "Tap +/- or quick presets · Page ${page + 1}/$totalPages"
+                "Visual slider bar + tap controls · Page ${page + 1}/$totalPages"
             )
         } else {
             views.setViewVisibility(R.id.notif_prev, android.view.View.GONE)
             views.setViewVisibility(R.id.notif_next, android.view.View.GONE)
             views.setViewVisibility(R.id.notif_page, android.view.View.GONE)
-            views.setTextViewText(R.id.notif_subtitle, "Tap +/- or quick presets")
+            views.setTextViewText(R.id.notif_subtitle, "Visual slider bar + tap controls")
         }
         bindNotificationRow(views, 0, entries.getOrNull(0))
         bindNotificationRow(views, 1, entries.getOrNull(1))
@@ -426,6 +426,11 @@ class PlaybackControllerService : Service() {
             1 -> R.id.notif_mute_2
             else -> R.id.notif_mute_3
         }
+        val progressId = when (index) {
+            0 -> R.id.notif_progress_1
+            1 -> R.id.notif_progress_2
+            else -> R.id.notif_progress_3
+        }
         val pct25Id = when (index) {
             0 -> R.id.notif_25_1
             1 -> R.id.notif_25_2
@@ -454,6 +459,7 @@ class PlaybackControllerService : Service() {
         views.setViewVisibility(rowId, android.view.View.VISIBLE)
         views.setTextViewText(appId, entry.label)
         views.setTextViewText(valueId, "${entry.percent}%")
+        views.setProgressBar(progressId, 100, entry.percent, false)
         views.setTextViewText(muteId, if (entry.percent <= 0) "Unmute" else "Mute")
         val base = index * 10
         views.setOnClickPendingIntent(
