@@ -10,3 +10,4 @@ local.properties
 /java_pid*.hprof
 /module/system/priv-app/
 /volumebuttons/
+/overlay-watcher-validation/
