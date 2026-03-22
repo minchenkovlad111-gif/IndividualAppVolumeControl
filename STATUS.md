@@ -12,6 +12,7 @@ Last update: 2026-03-20
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Renamed the on-disk source tree for the app code to match the package namespace across `main`, `modern`, and `legacy` source sets.
 - Pinned selected apps to the top of searchable multi-select app dialogs so overlay ignore/block lists and the rules app picker keep chosen entries visible above the remaining results.
 - Debounced diagnostics persistence and throttled `ActiveAppStore` writes so UI refresh loops do not keep scheduling `SharedPreferences` flushes every couple of seconds.
 - Moved `SetupCheckActivity` refresh work off the UI thread so the setup screen no longer does audio-session/privilege checks synchronously on launch or manual refresh.

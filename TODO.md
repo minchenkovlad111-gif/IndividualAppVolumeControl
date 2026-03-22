@@ -3,25 +3,25 @@
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks).
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
 3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
-4. Rename the app source directory structure to match the current package namespace.
-5. Add a per-active-app notification mode so each currently playing app can expose its own notification controls when the platform/device allows it.
-6. Investigate a real custom notification volume slider per app; if `RemoteViews` constraints make that impractical, document the limit and keep the best available control layout.
-7. Make notification presentation configurable, with single-notification paging (`Next` / `Prev`) as the fallback mode when multi-notification display is limited or undesired.
-8. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
-9. Validate required privileged permissions on Android 12-15 devices.
-10. Validate hidden API policy keys and behavior on Android 12-15.
-11. Verify behavior on Android 12-15 and document compatibility.
-12. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-13. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
-14. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
-15. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
-16. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
-17. Audio routing between apps (virtual output sources and sinks).
-18. Network audio routing (send/receive per-app audio streams over LAN).
-19. Virtual microphone + effects (voice changer pipeline).
-20. Audio sharing to other devices (LAN streaming + Linux client).
+4. Add a per-active-app notification mode so each currently playing app can expose its own notification controls when the platform/device allows it.
+5. Investigate a real custom notification volume slider per app; if `RemoteViews` constraints make that impractical, document the limit and keep the best available control layout.
+6. Make notification presentation configurable, with single-notification paging (`Next` / `Prev`) as the fallback mode when multi-notification display is limited or undesired.
+7. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
+8. Validate required privileged permissions on Android 12-15 devices.
+9. Validate hidden API policy keys and behavior on Android 12-15.
+10. Verify behavior on Android 12-15 and document compatibility.
+11. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
+12. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
+13. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
+14. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
+15. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
+16. Audio routing between apps (virtual output sources and sinks).
+17. Network audio routing (send/receive per-app audio streams over LAN).
+18. Virtual microphone + effects (voice changer pipeline).
+19. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Renamed the source tree under `app/src/main`, `app/src/modern`, and `app/src/legacy` to match the package namespace `fuck.individualappaudiovolumecontrol.droidvendorssuck`.
 1. Pinned selected apps to the top of searchable multi-select app dialogs (overlay ignore/block lists and rules app picker).
 1. Renamed the Android app package/namespace to `fuck.individualappaudiovolumecontrol.droidvendorssuck` while keeping folder structure and Magisk mount paths unchanged.
 2. Trimmed the module privapp allowlist back to `android.permission.MODIFY_AUDIO_ROUTING` only to reduce boot-loop risk on enforcing Android 15 ROMs and KernelSU installs.
