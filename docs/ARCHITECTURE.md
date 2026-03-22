@@ -14,7 +14,7 @@
 - Quick settings tile: opens the overlay on demand.
 - Boot receiver: restarts the playback controller (and overlay watcher if enabled) after reboot/app update.
 - Call state listener: mutes active playback during ringing/off-hook calls.
-- Foreground notification: persistent status with per-app visual level bars plus tap actions (`+/-`, mute, 25/50/75/100%) and an overlay shortcut.
+- Foreground notification: persistent status with configurable presentation modes, using either multi-app pages or a single-app pager; each row shows per-app visual level bars plus tap actions (`+/-`, mute, 25/50/75/100%) and an overlay shortcut.
 - Rules engine: optional group presets + conditional overrides (co-active apps/time windows) applied before base presets, plus audio focus actions (pause/duck/mute).
 - Per-app mute behavior: choose mute-only or mute+pause when a preset is set to 0%.
 - Default mute behavior: global fallback for apps without a per-app override.

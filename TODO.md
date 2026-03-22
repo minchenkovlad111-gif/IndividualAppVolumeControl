@@ -5,7 +5,7 @@
 3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
 4. Add a per-active-app notification mode so each currently playing app can expose its own notification controls when the platform/device allows it.
 5. Done: investigated a real custom notification volume slider per app; `RemoteViews` drag constraints make it impractical, so the notification now uses per-app visual level bars plus discrete tap controls and the limit is documented.
-6. Make notification presentation configurable, with single-notification paging (`Next` / `Prev`) as the fallback mode when multi-notification display is limited or undesired.
+6. Done: made notification presentation configurable between multi-app pages and a single-app pager, with `Next` / `Prev` single-notification paging kept as the fallback mode.
 7. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
 8. Validate required privileged permissions on Android 12-15 devices.
 9. Validate hidden API policy keys and behavior on Android 12-15.

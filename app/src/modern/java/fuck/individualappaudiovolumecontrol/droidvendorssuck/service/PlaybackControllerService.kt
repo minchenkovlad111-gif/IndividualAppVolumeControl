@@ -28,6 +28,7 @@ import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleManager
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AudioSettingsPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.NotificationPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
 
@@ -38,7 +39,7 @@ class PlaybackControllerService : Service() {
     private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val audioSettings by lazy { AudioSettingsPrefs(this) }
     private val overlayPrefs by lazy { OverlayPrefs(this) }
-    private val notifPrefs by lazy { getSharedPreferences(PREFS_NOTIFICATION, Context.MODE_PRIVATE) }
+    private val notificationPrefs by lazy { NotificationPrefs(this) }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
     private val lastApplied = mutableMapOf<String, Float>()
@@ -324,7 +325,7 @@ class PlaybackControllerService : Service() {
             val userPart = entry.userId?.toString() ?: "x"
             "${entry.packageName}@$userPart:${entry.percent}"
         }
-        return "p=$lastNotificationPage/$lastNotificationPages/t=$lastNotificationTotal|$base"
+        return "mode=${notificationPrefs.getPresentationMode()}|p=$lastNotificationPage/$lastNotificationPages/t=$lastNotificationTotal|$base"
     }
 
     private data class ActiveConfig(
@@ -338,6 +339,7 @@ class PlaybackControllerService : Service() {
         val entries = lastNotificationEntries
         val page = lastNotificationPage
         val totalPages = lastNotificationPages
+        val isSingleRow = notificationPrefs.getPresentationMode() == NotificationPrefs.MODE_SINGLE_ROW_PAGED
         views.setOnClickPendingIntent(
             R.id.notif_open_overlay,
             buildOverlayPendingIntent()
@@ -357,13 +359,20 @@ class PlaybackControllerService : Service() {
             views.setTextViewText(R.id.notif_page, "${page + 1}/$totalPages")
             views.setTextViewText(
                 R.id.notif_subtitle,
-                "Visual slider bar + tap controls · Page ${page + 1}/$totalPages"
+                if (isSingleRow) {
+                    "Single-app pager · Page ${page + 1}/$totalPages"
+                } else {
+                    "Multi-app page · Page ${page + 1}/$totalPages"
+                }
             )
         } else {
             views.setViewVisibility(R.id.notif_prev, android.view.View.GONE)
             views.setViewVisibility(R.id.notif_next, android.view.View.GONE)
             views.setViewVisibility(R.id.notif_page, android.view.View.GONE)
-            views.setTextViewText(R.id.notif_subtitle, "Visual slider bar + tap controls")
+            views.setTextViewText(
+                R.id.notif_subtitle,
+                if (isSingleRow) "Single-app pager" else "Multi-app page"
+            )
         }
         bindNotificationRow(views, 0, entries.getOrNull(0))
         bindNotificationRow(views, 1, entries.getOrNull(1))
@@ -594,22 +603,23 @@ class PlaybackControllerService : Service() {
         }.filterNotNull()
             .sortedBy { it.label.lowercase() }
         if (entries.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
-        val totalPages = ((entries.size - 1) / NOTIF_MAX_ROWS) + 1
+        val rowsPerPage = notificationPrefs.getRowsPerPage()
+        val totalPages = ((entries.size - 1) / rowsPerPage) + 1
         val currentPage = getNotificationPage().coerceIn(0, totalPages - 1)
         setNotificationPageIfChanged(currentPage)
-        val fromIndex = currentPage * NOTIF_MAX_ROWS
-        val toIndex = (fromIndex + NOTIF_MAX_ROWS).coerceAtMost(entries.size)
+        val fromIndex = currentPage * rowsPerPage
+        val toIndex = (fromIndex + rowsPerPage).coerceAtMost(entries.size)
         val pageEntries = entries.subList(fromIndex, toIndex)
         return NotificationPage(pageEntries, currentPage, totalPages, entries.size)
     }
 
     private fun getNotificationPage(): Int {
-        return notifPrefs.getInt(KEY_NOTIFICATION_PAGE, 0)
+        return notificationPrefs.getPage()
     }
 
     private fun setNotificationPageIfChanged(page: Int) {
-        if (notifPrefs.getInt(KEY_NOTIFICATION_PAGE, 0) == page) return
-        notifPrefs.edit().putInt(KEY_NOTIFICATION_PAGE, page).apply()
+        if (notificationPrefs.getPage() == page) return
+        notificationPrefs.setPage(page)
     }
 
     private fun resolveLabel(packageName: String): String {
@@ -711,11 +721,8 @@ class PlaybackControllerService : Service() {
         const val ACTION_LOCATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_REFRESH"
         const val ACTION_LOCATION_SYNC = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_SYNC"
         const val ACTION_NOTIFICATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIFICATION_REFRESH"
-        private const val NOTIF_MAX_ROWS = 3
         private const val MAX_ROUTE_DETAIL_CHARS = 600
         private const val NOTIF_VOLUME_STEP = 0.05f
-        private const val PREFS_NOTIFICATION = "notif_paging"
-        private const val KEY_NOTIFICATION_PAGE = "page"
 
         fun requestReapply(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.NotificationPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 
@@ -80,10 +81,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     private fun updateNotificationPage(context: Context, delta: Int) {
-        val prefs = context.getSharedPreferences(PREFS_PAGING, Context.MODE_PRIVATE)
-        val current = prefs.getInt(KEY_PAGE, 0)
+        val prefs = NotificationPrefs(context)
+        val current = prefs.getPage()
         val next = (current + delta).coerceAtLeast(0)
-        prefs.edit().putInt(KEY_PAGE, next).apply()
+        prefs.setPage(next)
     }
 
     companion object {
@@ -98,7 +99,5 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val EXTRA_PERCENT = "percent"
         const val USER_ID_NONE = -1
         private const val PREFS_NAME = "notif_volume"
-        private const val PREFS_PAGING = "notif_paging"
-        private const val KEY_PAGE = "page"
     }
 }

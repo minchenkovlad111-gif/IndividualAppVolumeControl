@@ -45,6 +45,7 @@ import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AccessibilityU
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ModuleInstaller
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.MarkerStyle
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.NotificationPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
@@ -84,6 +85,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayShowButton: Button
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
+    private lateinit var notificationPresentationSpinner: Spinner
+    private lateinit var notificationPresentationAdapter: ArrayAdapter<String>
+    private lateinit var notificationPresentationHint: TextView
     private lateinit var overlayOnlyWhenPlayingToggle: CheckBox
     private lateinit var overlayRootFallbackToggle: CheckBox
     private lateinit var overlayRootFallbackHint: TextView
@@ -113,6 +117,7 @@ class MainActivity : AppCompatActivity() {
     private val iconCache = mutableMapOf<String, Drawable>()
     private val handler = Handler(Looper.getMainLooper())
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
+    private val notificationPrefs by lazy { NotificationPrefs(this) }
     private val refreshRunnable = object : Runnable {
         override fun run() {
             updateActiveApps()
@@ -265,6 +270,51 @@ class MainActivity : AppCompatActivity() {
             text = "Overlay controls"
             textSize = 16f
             setPadding(0, 24, 0, 8)
+        }
+
+        val notificationTitle = TextView(this).apply {
+            text = "Notification controls"
+            textSize = 16f
+            setPadding(0, 24, 0, 8)
+        }
+
+        notificationPresentationAdapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            mutableListOf("Multi-app page (up to 3)", "Single-app pager")
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        notificationPresentationSpinner = Spinner(this).apply {
+            adapter = notificationPresentationAdapter
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    val mode = if (position == 1) {
+                        NotificationPrefs.MODE_SINGLE_ROW_PAGED
+                    } else {
+                        NotificationPrefs.MODE_MULTI_ROW_PAGED
+                    }
+                    if (notificationPrefs.getPresentationMode() == mode) return
+                    notificationPrefs.setPresentationMode(mode)
+                    notificationPrefs.setPage(0)
+                    PlaybackControllerService.requestNotificationRefresh(this@MainActivity)
+                    updateNotificationPresentationUi()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+        }
+
+        notificationPresentationHint = TextView(this).apply {
+            textSize = 12f
+            setTextColor(Color.parseColor("#616161"))
+            setPadding(dpToPx(8), 0, 0, dpToPx(6))
         }
 
         overlayStatusView = TextView(this).apply {
@@ -579,6 +629,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(bluetoothPermissionButton)
         root.addView(helpButton)
         root.addView(checkButton)
+        root.addView(notificationTitle)
+        root.addView(notificationPresentationSpinner)
+        root.addView(notificationPresentationHint)
         root.addView(overlayTitle)
         root.addView(overlayStatusView)
         root.addView(overlayPermissionButton)
@@ -1357,10 +1410,24 @@ class MainActivity : AppCompatActivity() {
         overlayOnlyWhenPlayingToggle.isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
         overlayRootFallbackToggle.isChecked = overlayPrefs.isRootAudioFallbackEnabled()
         overlayDismissOutsideToggle.isChecked = overlayPrefs.isDismissOnOutsideTapEnabled()
+        updateNotificationPresentationUi()
         updateRootFallbackUi()
         updateOverlayFocusBlockButton()
         updateOverlayIgnoreButton()
         updateOverlaySnoozeStatus()
+    }
+
+    private fun updateNotificationPresentationUi() {
+        val mode = notificationPrefs.getPresentationMode()
+        val desiredIndex = if (mode == NotificationPrefs.MODE_SINGLE_ROW_PAGED) 1 else 0
+        if (notificationPresentationSpinner.selectedItemPosition != desiredIndex) {
+            notificationPresentationSpinner.setSelection(desiredIndex)
+        }
+        notificationPresentationHint.text = if (mode == NotificationPrefs.MODE_SINGLE_ROW_PAGED) {
+            "Shows one app per page with Next/Prev as the compatibility fallback."
+        } else {
+            "Shows up to three apps per notification page, with Next/Prev when more are active."
+        }
     }
 
     private fun updateRootFallbackUi() {
