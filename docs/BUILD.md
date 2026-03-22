@@ -4,6 +4,7 @@
 - Android SDK with API 35 installed.
 - JDK 17.
 - Gradle wrapper jar (not generated in this environment).
+- The project pins the Gradle daemon heap to `-Xmx4g` in `gradle.properties`; AGP 8.13.2 lint analysis and modern release dexing were both able to OOM under Gradle's default 512 MiB heap.
 
 ## App build (debug)
 - Ensure `gradle/wrapper/gradle-wrapper.jar` exists (generate via `gradle wrapper` on a machine with Gradle installed).
@@ -12,6 +13,7 @@
 - Legacy flavor (API 16-25): `./gradlew :app:assembleLegacyDebug`
 - Fast Kotlin-only validation for modern-source changes: `./gradlew :app:compileModernDebugKotlin`
 - `./gradlew :app:build` prints expected APK output paths at the end (with a presence check).
+- Plain `gradle build` also reads the project `gradle.properties`, so the same heap sizing applies if you use a system Gradle install instead of the wrapper.
 - APK outputs:
 - `app/build/outputs/apk/modern/debug/app-modern-debug.apk`
 - `app/build/outputs/apk/legacy/debug/app-legacy-debug.apk`
