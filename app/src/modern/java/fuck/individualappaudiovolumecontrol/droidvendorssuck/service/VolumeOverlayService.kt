@@ -232,7 +232,7 @@ class VolumeOverlayService : Service() {
         }
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
             overlayPrefs.ensureDefaultIgnoreList(packageManager)
-            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
             if (!hasNonIgnoredPlayback(configs)) {
                 return true
             }
@@ -474,7 +474,7 @@ class VolumeOverlayService : Service() {
     private fun loadActiveEntries(): List<AppEntry> {
         overlayPrefs.ensureDefaultIgnoreList(packageManager)
         val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
-        val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+        val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
         val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue

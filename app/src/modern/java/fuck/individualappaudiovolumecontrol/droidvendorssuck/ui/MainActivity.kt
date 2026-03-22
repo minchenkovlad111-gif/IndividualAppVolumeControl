@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             if (configs == null) return
-            updateActiveApps(configs)
+            updateActiveApps(getActiveConfigs())
             updateLastUpdated()
         }
     }
@@ -1323,7 +1323,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getActiveConfigs(): List<AudioPlaybackConfiguration> {
-        return PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+        return PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
     }
 
     private fun openAccessibilityServiceSettings() {

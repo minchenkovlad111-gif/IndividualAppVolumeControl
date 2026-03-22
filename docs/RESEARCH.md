@@ -10,6 +10,7 @@
 - The most reliable path on A15 is a privileged app with hidden API access.
 - AudioPlaybackConfiguration callbacks provide the per-player hook for volume control.
 - Android provides hidden API enforcement settings (`hidden_api_policy`, `hidden_api_policy_pre_p_apps`, `hidden_api_policy_p_apps`), but relying on `WRITE_SECURE_SETTINGS` in a shipped priv-app module increases compatibility risk and should stay optional.
+- Cross-profile playback detection requires `INTERACT_ACROSS_USERS` and a matching privapp allowlist entry; keep it optional to avoid boot regressions on enforcing ROMs.
 - On enforcing ROMs, the privapp allowlist is a boot-critical surface. Minimize requested privileged permissions first, then add grants back only with device validation.
 - Captured ANR evidence on-device shows `ActivityThread.handleStopActivity()` can block in `QueuedWork.waitToFinish()` if the app is still draining `SharedPreferences.apply()` writes; high-frequency diagnostics writes should be coalesced and persisted off that path.
 
@@ -21,6 +22,7 @@
 - Capture logs from the diagnostics screen and document known failures.
 - Use "Retry hidden API" in Diagnostics to capture VMRuntime/policy error details per device.
 - Use "Copy bundle" in Diagnostics to capture a single shareable payload during testing.
+- Overlay watcher validation steps live in `docs/VALIDATION.md`.
 
 ## UX ideas to validate
 - Volume-button overlay listing active apps (AudioHQ-style) for quick control.

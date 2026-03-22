@@ -164,8 +164,7 @@ class SetupCheckActivity : AppCompatActivity() {
                 val hiddenApiOk = snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1
                 val hiddenApiTime = formatTime(snapshot.hiddenApiTime)
 
-                val audioManager = getSystemService(AudioManager::class.java)
-                val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+                val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
                 val activePackages = activeConfigs
                     .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
                     .distinct()

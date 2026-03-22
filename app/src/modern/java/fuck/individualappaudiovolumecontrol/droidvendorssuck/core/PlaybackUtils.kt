@@ -1,9 +1,11 @@
 package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioPlaybackConfiguration
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.UserHandle
 import android.util.Log
 
 object PlaybackUtils {
@@ -110,6 +112,75 @@ object PlaybackUtils {
             emptyList()
         }
     }
+
+    fun getActivePlaybackConfigurationsSafe(
+        context: Context,
+        diagnosticsStore: DiagnosticsStore? = null,
+    ): List<AudioPlaybackConfiguration> {
+        val audioManager = context.getSystemService(AudioManager::class.java)
+        val baseConfigs = getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+        if (!hasAcrossUsersPermission(context)) return baseConfigs
+
+        val results = mutableListOf<AudioPlaybackConfiguration>()
+        results.addAll(baseConfigs)
+
+        val currentUserId = ProfileUtils.currentUserId()
+        val userIds = ProfileUtils.collectUserIds(context)
+        for (userId in userIds) {
+            if (currentUserId != null && userId == currentUserId) continue
+            val userHandle = createUserHandle(userId) ?: continue
+            val userContext = createContextAsUser(context, userHandle) ?: continue
+            val userAudioManager = userContext.getSystemService(AudioManager::class.java)
+            try {
+                results.addAll(userAudioManager.activePlaybackConfigurations)
+            } catch (t: Throwable) {
+                diagnosticsStore?.recordLastError(
+                    "activePlaybackConfigurations failed for u$userId: ${t.javaClass.simpleName}: ${t.message ?: "unknown"}"
+                )
+            }
+        }
+        return results
+    }
+
+    private fun hasAcrossUsersPermission(context: Context): Boolean {
+        val granted = context.checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted) return true
+        return context.checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS_FULL) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun createUserHandle(userId: Int): UserHandle? {
+        return try {
+            val method = UserHandle::class.java.getDeclaredMethod(
+                "of",
+                Int::class.javaPrimitiveType
+            )
+            method.isAccessible = true
+            method.invoke(null, userId) as? UserHandle
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun createContextAsUser(context: Context, userHandle: UserHandle): Context? {
+        return try {
+            val method = Context::class.java.getDeclaredMethod(
+                "createContextAsUser",
+                UserHandle::class.java,
+                Int::class.javaPrimitiveType
+            )
+            method.isAccessible = true
+            method.invoke(context, userHandle, 0) as? Context
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private const val PERMISSION_INTERACT_ACROSS_USERS =
+        "android.permission.INTERACT_ACROSS_USERS"
+    private const val PERMISSION_INTERACT_ACROSS_USERS_FULL =
+        "android.permission.INTERACT_ACROSS_USERS_FULL"
 
     fun hasActivePlayback(configs: List<AudioPlaybackConfiguration>): Boolean {
         for (config in configs) {

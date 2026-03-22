@@ -244,12 +244,17 @@ class DiagnosticsActivity : AppCompatActivity() {
         val missingCritical = permissionStatuses
             .filter { it.required && it.requested && !it.granted }
             .map { it.name }
-        val audioManager = getSystemService(AudioManager::class.java)
-        val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+        val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
         val activePackages = activeConfigs
             .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
             .distinct()
             .sorted()
+        val activeUserIds = activeConfigs
+            .mapNotNull { PlaybackUtils.getUserIdFromUid(PlaybackUtils.getClientUid(it)) }
+            .distinct()
+            .sorted()
+        val activeUserSummary = if (activeUserIds.isEmpty()) "-" else activeUserIds.joinToString(", ") { "u$it" }
+        val acrossUsersStatus = if (hasAcrossUsers) "granted" else "denied"
         val presetCount = volumeStore.countPresets()
         val ruleGroups = volumeStore.listRuleGroups()
         val rules = volumeStore.listRules()
@@ -331,6 +336,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Active configs now: ${activeConfigs.size}",
             "Active packages count: ${activePackages.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
+            "Active userIds now: $activeUserSummary",
+            "Cross-profile playback access: $acrossUsersStatus",
             "Stored presets: $presetCount",
             "Rule groups: ${ruleGroups.size}",
             "Rules enabled/total: ${enabledRules.size}/${rules.size}",

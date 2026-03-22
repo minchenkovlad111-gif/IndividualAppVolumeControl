@@ -77,7 +77,7 @@ class PlaybackControllerService : Service() {
         }
         audioManager.registerAudioPlaybackCallback(playbackCallback, null)
         setupCallStateListener()
-        safeApplyVolumes(PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore))
+        safeApplyVolumes(PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore))
     }
 
     override fun onDestroy() {
@@ -90,7 +90,7 @@ class PlaybackControllerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_REAPPLY -> safeApplyVolumes(
-                PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+                PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
             )
             ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
             ACTION_LOCATION_REFRESH -> locationRuleManager.start()
@@ -264,7 +264,7 @@ class PlaybackControllerService : Service() {
 
     private fun dumpActiveConfigs() {
         try {
-            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
             diagnosticsStore.recordLastDump(configs.size)
             val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
                 .distinct()
@@ -695,7 +695,7 @@ class PlaybackControllerService : Service() {
             state == TelephonyManager.CALL_STATE_OFFHOOK
         if (shouldMute != callMuteActive) {
             callMuteActive = shouldMute
-            safeApplyVolumes(PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore))
+            safeApplyVolumes(PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore))
         }
     }
 
