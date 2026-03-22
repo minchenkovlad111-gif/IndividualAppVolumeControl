@@ -289,22 +289,12 @@ class PlaybackControllerService : Service() {
             manager.createNotificationChannel(channel)
         }
         val detail = if (activeCount >= 0) "Active apps: $activeCount" else "Managing per-app volume"
-        val overlayIntent = Intent(this, VolumeOverlayService::class.java).apply {
-            action = VolumeOverlayService.ACTION_SHOW
-        }
-        val overlayPending = PendingIntent.getService(
-            this,
-            0,
-            overlayIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or pendingIntentImmutable()
-        )
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("IndividualAppAudioVolumeControl")
             .setContentText(detail)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(Notification.Action.Builder(null, "Overlay", overlayPending).build())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             notification.setCustomBigContentView(buildBigRemoteViews())
             notification.setStyle(Notification.DecoratedCustomViewStyle())
