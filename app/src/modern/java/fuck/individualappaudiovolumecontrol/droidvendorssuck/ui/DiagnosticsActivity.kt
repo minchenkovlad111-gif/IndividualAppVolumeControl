@@ -6,6 +6,8 @@ import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
 import android.content.Intent
+import android.app.ActivityManager
+import android.app.NotificationManager
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
@@ -217,6 +219,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val overlayPollTime = formatTime(snapshot.overlayPollTime, dateFormat)
         val overlayManualTime = formatTime(snapshot.overlayManualTime, dateFormat)
         val overlayShowTime = formatTime(snapshot.overlayShowTime, dateFormat)
+        val controllerServiceStartTime = formatTime(snapshot.controllerServiceStartTime, dateFormat)
+        val controllerNotificationPostTime = formatTime(snapshot.controllerNotificationPostTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -249,6 +253,23 @@ class DiagnosticsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasAcrossUsers = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val notificationsEnabled = if (android.os.Build.VERSION.SDK_INT >= 24) {
+            notificationManager.areNotificationsEnabled()
+        } else {
+            true
+        }
+        val controllerChannelImportance = if (android.os.Build.VERSION.SDK_INT >= 26) {
+            notificationManager.getNotificationChannel(PLAYBACK_CHANNEL_ID)?.importance
+        } else {
+            null
+        }
+        val controllerChannelName = if (android.os.Build.VERSION.SDK_INT >= 26) {
+            notificationManager.getNotificationChannel(PLAYBACK_CHANNEL_ID)?.name?.toString()
+        } else {
+            null
+        }
+        val controllerServiceRunning = isServiceRunning(PlaybackControllerService::class.java)
         val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             Settings.canDrawOverlays(this)
         } else {
@@ -354,6 +375,17 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Overlay signals (broadcast): ${snapshot.overlayBroadcastCount} @ $overlayBroadcastTime",
             "Overlay signals (poll): ${snapshot.overlayPollCount} @ $overlayPollTime",
             "Overlay signals (manual): ${snapshot.overlayManualCount} @ $overlayManualTime",
+            "Playback controller service running: $controllerServiceRunning",
+            "Playback controller starts: ${snapshot.controllerServiceStarts}",
+            "Playback controller last start: $controllerServiceStartTime",
+            "Playback notifications enabled (manager): $notificationsEnabled",
+            "Playback notification channel: ${controllerChannelName ?: "-"}",
+            "Playback notification channel importance: ${formatImportance(controllerChannelImportance ?: Int.MIN_VALUE)}",
+            "Playback notification posts: ${snapshot.controllerNotificationPosts}",
+            "Playback notification last post: $controllerNotificationPostTime",
+            "Playback notification last active apps: ${snapshot.controllerNotificationActiveCount}",
+            "Playback notifications enabled at last post: ${formatTriState(snapshot.controllerNotificationsEnabled)}",
+            "Playback channel importance at last post: ${formatImportance(snapshot.controllerNotificationChannelImportance)}",
             "Active configs now: ${activeConfigs.size}",
             "Active packages count: ${activePackages.size}",
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
@@ -435,6 +467,25 @@ class DiagnosticsActivity : AppCompatActivity() {
             0 -> "no"
             else -> "-"
         }
+    }
+
+    private fun formatImportance(value: Int): String {
+        return when (value) {
+            Int.MIN_VALUE -> "-"
+            NotificationManager.IMPORTANCE_NONE -> "none"
+            NotificationManager.IMPORTANCE_MIN -> "min"
+            NotificationManager.IMPORTANCE_LOW -> "low"
+            NotificationManager.IMPORTANCE_DEFAULT -> "default"
+            NotificationManager.IMPORTANCE_HIGH -> "high"
+            NotificationManager.IMPORTANCE_MAX -> "max"
+            else -> value.toString()
+        }
+    }
+
+    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(ActivityManager::class.java) ?: return false
+        @Suppress("DEPRECATION")
+        return manager.getRunningServices(Int.MAX_VALUE).any { it.service.className == serviceClass.name }
     }
 
     private fun applyReportFilter() {
@@ -747,6 +798,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSION_MODIFY_AUDIO_ROUTING = "android.permission.MODIFY_AUDIO_ROUTING"
         private const val PERMISSION_INTERACT_ACROSS_USERS = "android.permission.INTERACT_ACROSS_USERS"
+        private const val PLAYBACK_CHANNEL_ID = "app_volume_control"
         private const val REQUEST_BLUETOOTH_PERMISSION = 1001
     }
 }

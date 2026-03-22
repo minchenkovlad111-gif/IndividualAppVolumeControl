@@ -65,6 +65,7 @@ class PlaybackControllerService : Service() {
     override fun onCreate() {
         super.onCreate()
         HiddenApi.tryAllowHiddenApiAccess(this)
+        diagnosticsStore.recordControllerServiceStart()
         RulesEngine.setLocationIdProvider { locationRuleStore.getCurrentLocationId() }
         locationRuleManager.start()
         val notification = buildNotification(-1)
@@ -101,7 +102,7 @@ class PlaybackControllerService : Service() {
             }
             ACTION_NOTIFICATION_REFRESH -> {
                 refreshNotificationPage()
-                updateNotification(lastNotifiedCount)
+                forceForegroundNotification(lastNotifiedCount)
             }
         }
         return START_STICKY
@@ -316,8 +317,42 @@ class PlaybackControllerService : Service() {
         if (activeCount == lastNotifiedCount && signature == lastNotificationSignature) return
         lastNotifiedCount = activeCount
         lastNotificationSignature = signature
+        postNotification(activeCount)
+    }
+
+    private fun postNotification(activeCount: Int) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, buildNotification(activeCount))
+        val notification = buildNotification(activeCount)
+        manager.notify(NOTIFICATION_ID, notification)
+        val notificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            manager.areNotificationsEnabled()
+        } else {
+            true
+        }
+        val channelImportance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.getNotificationChannel(CHANNEL_ID)?.importance ?: Int.MIN_VALUE
+        } else {
+            Int.MIN_VALUE
+        }
+        diagnosticsStore.recordControllerNotificationPost(
+            activeCount = activeCount,
+            notificationsEnabled = notificationsEnabled,
+            channelImportance = channelImportance
+        )
+    }
+
+    private fun forceForegroundNotification(activeCount: Int) {
+        val notification = buildNotification(activeCount)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        postNotification(activeCount)
     }
 
     private fun buildNotificationSignature(): String {

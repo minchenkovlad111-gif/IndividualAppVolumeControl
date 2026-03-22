@@ -180,6 +180,33 @@ class DiagnosticsStore(context: Context) {
         }
     }
 
+    fun recordControllerServiceStart() {
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                controllerServiceStarts = controllerServiceStarts + 1,
+                controllerServiceStartTime = now,
+            )
+        }
+    }
+
+    fun recordControllerNotificationPost(
+        activeCount: Int,
+        notificationsEnabled: Boolean,
+        channelImportance: Int,
+    ) {
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                controllerNotificationPosts = controllerNotificationPosts + 1,
+                controllerNotificationPostTime = now,
+                controllerNotificationActiveCount = activeCount,
+                controllerNotificationsEnabled = if (notificationsEnabled) 1 else 0,
+                controllerNotificationChannelImportance = channelImportance,
+            )
+        }
+    }
+
     fun recordLocationFix(
         provider: String?,
         timeMs: Long,
@@ -308,6 +335,13 @@ class DiagnosticsStore(context: Context) {
             lastExportTime = prefs.getLong(KEY_LAST_EXPORT_TIME, 0L),
             callState = prefs.getString(KEY_CALL_STATE, null),
             callStateTime = prefs.getLong(KEY_CALL_STATE_TIME, 0L),
+            controllerServiceStarts = prefs.getInt(KEY_CONTROLLER_SERVICE_STARTS, 0),
+            controllerServiceStartTime = prefs.getLong(KEY_CONTROLLER_SERVICE_START_TIME, 0L),
+            controllerNotificationPosts = prefs.getInt(KEY_CONTROLLER_NOTIFICATION_POSTS, 0),
+            controllerNotificationPostTime = prefs.getLong(KEY_CONTROLLER_NOTIFICATION_POST_TIME, 0L),
+            controllerNotificationActiveCount = prefs.getInt(KEY_CONTROLLER_NOTIFICATION_ACTIVE_COUNT, -1),
+            controllerNotificationsEnabled = prefs.getInt(KEY_CONTROLLER_NOTIFICATIONS_ENABLED, -1),
+            controllerNotificationChannelImportance = prefs.getInt(KEY_CONTROLLER_NOTIFICATION_CHANNEL_IMPORTANCE, Int.MIN_VALUE),
             locationProvider = prefs.getString(KEY_LOCATION_PROVIDER, null),
             locationTime = prefs.getLong(KEY_LOCATION_TIME, 0L),
             locationAccuracy = prefs.getFloat(KEY_LOCATION_ACCURACY, -1f),
@@ -356,6 +390,13 @@ class DiagnosticsStore(context: Context) {
             .putLong(KEY_LAST_EXPORT_TIME, snapshot.lastExportTime)
             .putString(KEY_CALL_STATE, snapshot.callState)
             .putLong(KEY_CALL_STATE_TIME, snapshot.callStateTime)
+            .putInt(KEY_CONTROLLER_SERVICE_STARTS, snapshot.controllerServiceStarts)
+            .putLong(KEY_CONTROLLER_SERVICE_START_TIME, snapshot.controllerServiceStartTime)
+            .putInt(KEY_CONTROLLER_NOTIFICATION_POSTS, snapshot.controllerNotificationPosts)
+            .putLong(KEY_CONTROLLER_NOTIFICATION_POST_TIME, snapshot.controllerNotificationPostTime)
+            .putInt(KEY_CONTROLLER_NOTIFICATION_ACTIVE_COUNT, snapshot.controllerNotificationActiveCount)
+            .putInt(KEY_CONTROLLER_NOTIFICATIONS_ENABLED, snapshot.controllerNotificationsEnabled)
+            .putInt(KEY_CONTROLLER_NOTIFICATION_CHANNEL_IMPORTANCE, snapshot.controllerNotificationChannelImportance)
             .putString(KEY_LOCATION_PROVIDER, snapshot.locationProvider)
             .putLong(KEY_LOCATION_TIME, snapshot.locationTime)
             .putFloat(KEY_LOCATION_ACCURACY, snapshot.locationAccuracy)
@@ -403,6 +444,13 @@ class DiagnosticsStore(context: Context) {
         val lastExportTime: Long,
         val callState: String?,
         val callStateTime: Long,
+        val controllerServiceStarts: Int,
+        val controllerServiceStartTime: Long,
+        val controllerNotificationPosts: Int,
+        val controllerNotificationPostTime: Long,
+        val controllerNotificationActiveCount: Int,
+        val controllerNotificationsEnabled: Int,
+        val controllerNotificationChannelImportance: Int,
         val locationProvider: String?,
         val locationTime: Long,
         val locationAccuracy: Float,
@@ -462,6 +510,13 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LAST_EXPORT_TIME = "last_export_time"
         private const val KEY_CALL_STATE = "call_state"
         private const val KEY_CALL_STATE_TIME = "call_state_time"
+        private const val KEY_CONTROLLER_SERVICE_STARTS = "controller_service_starts"
+        private const val KEY_CONTROLLER_SERVICE_START_TIME = "controller_service_start_time"
+        private const val KEY_CONTROLLER_NOTIFICATION_POSTS = "controller_notification_posts"
+        private const val KEY_CONTROLLER_NOTIFICATION_POST_TIME = "controller_notification_post_time"
+        private const val KEY_CONTROLLER_NOTIFICATION_ACTIVE_COUNT = "controller_notification_active_count"
+        private const val KEY_CONTROLLER_NOTIFICATIONS_ENABLED = "controller_notifications_enabled"
+        private const val KEY_CONTROLLER_NOTIFICATION_CHANNEL_IMPORTANCE = "controller_notification_channel_importance"
         private const val KEY_LOCATION_PROVIDER = "location_provider"
         private const val KEY_LOCATION_TIME = "location_time"
         private const val KEY_LOCATION_ACCURACY = "location_accuracy"

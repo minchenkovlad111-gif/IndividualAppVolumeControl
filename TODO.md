@@ -1,5 +1,10 @@
 # TODO
 
+## High priority
+1. Investigate and harden playback-controller notification persistence, including diagnostics for foreground service state, notification enablement, and channel state.
+2. Fix slider tick/percentage guide rendering so visible guides match expected 10% steps where that UI promises fixed steps.
+3. Implement per-active-app notifications when the platform/device allows it, with graceful fallback to the existing shared pager modes.
+
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks). See `docs/VALIDATION.md`.
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
 3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
