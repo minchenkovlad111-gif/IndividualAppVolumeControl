@@ -2,6 +2,7 @@ package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import android.content.Context
 import android.content.pm.PackageManager
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore.VolumeKey
 
 class OverlayPrefs(context: Context) {
     private val prefs = context.getSharedPreferences("overlay_prefs", Context.MODE_PRIVATE)
@@ -78,6 +79,26 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putStringSet(KEY_OVERLAY_IGNORE_PACKAGES, packages).apply()
     }
 
+    fun isOverlayIgnored(key: VolumeKey): Boolean {
+        return isOverlayIgnored(key.packageName, key.userId)
+    }
+
+    fun isOverlayIgnored(packageName: String, userId: Int? = null): Boolean {
+        val ignored = getOverlayIgnorePackageList()
+        if (ignored.contains(packageName)) return true
+        if (userId != null && ignored.contains(VolumeStore.buildKey(packageName, userId))) return true
+        return false
+    }
+
+    fun addOverlayIgnorePackage(packageName: String, userId: Int? = null): Boolean {
+        val updated = getOverlayIgnorePackageList().toMutableSet()
+        val changed = updated.add(ignoreEntry(packageName, userId))
+        if (changed) {
+            setOverlayIgnorePackageList(updated)
+        }
+        return changed
+    }
+
     fun ensureDefaultIgnoreList(packageManager: PackageManager) {
         if (prefs.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
         val defaults = mutableSetOf(
@@ -127,6 +148,10 @@ class OverlayPrefs(context: Context) {
     }
 
     companion object {
+        private fun ignoreEntry(packageName: String, userId: Int?): String {
+            return if (userId == null) packageName else VolumeStore.buildKey(packageName, userId)
+        }
+
         private const val KEY_ENABLED = "overlay_enabled"
         private const val KEY_AUTO_REFRESH = "overlay_auto_refresh"
         private const val KEY_AUTO_HIDE = "overlay_auto_hide"

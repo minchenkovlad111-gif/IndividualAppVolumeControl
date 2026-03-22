@@ -577,9 +577,8 @@ class PlaybackControllerService : Service() {
     private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): NotificationPage {
         if (keys.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
         overlayPrefs.ensureDefaultIgnoreList(packageManager)
-        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
         val entries = keys.map { key ->
-            if (ignorePackages.contains(key.packageName)) return@map null
+            if (overlayPrefs.isOverlayIgnored(key)) return@map null
             val label = resolveLabel(key.packageName)
             val volume = volumeStore.getVolume(key) ?: 1f
             NotificationEntry(

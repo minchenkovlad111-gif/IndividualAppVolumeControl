@@ -13,6 +13,7 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- App-name taps in the overlay now open a package overview dialog with confirmation-backed "Ignore" action scoped to the tapped profile when available.
 - Added `com.android.location.fused` to the overlay ignore defaults so fused location playback/noise does not appear in per-app volume controls by default.
 - Added `INTERACT_ACROSS_USERS` to the privapp allowlist and manifest to enable cross-profile playback detection when supported by the ROM.
 - Added cross-profile playback aggregation when `INTERACT_ACROSS_USERS` is granted, with Diagnostics reporting for active userIds.

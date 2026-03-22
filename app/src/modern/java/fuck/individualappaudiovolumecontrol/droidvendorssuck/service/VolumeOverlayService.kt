@@ -36,6 +36,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
 import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
@@ -473,14 +474,13 @@ class VolumeOverlayService : Service() {
 
     private fun loadActiveEntries(): List<AppEntry> {
         overlayPrefs.ensureDefaultIgnoreList(packageManager)
-        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
         val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
         val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            if (ignorePackages.contains(packageName)) continue
             val uid = PlaybackUtils.getClientUid(config)
             val userId = PlaybackUtils.getUserIdFromUid(uid)
+            if (overlayPrefs.isOverlayIgnored(packageName, userId)) continue
             val key = VolumeStore.VolumeKey(packageName, userId)
             counts[key] = (counts[key] ?: 0) + 1
         }
@@ -491,10 +491,11 @@ class VolumeOverlayService : Service() {
 
     private fun hasNonIgnoredPlayback(configs: List<android.media.AudioPlaybackConfiguration>): Boolean {
         if (configs.isEmpty()) return false
-        val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
         for (config in configs) {
             val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            if (!ignorePackages.contains(packageName)) return true
+            val uid = PlaybackUtils.getClientUid(config)
+            val userId = PlaybackUtils.getUserIdFromUid(uid)
+            if (!overlayPrefs.isOverlayIgnored(packageName, userId)) return true
         }
         return false
     }
@@ -534,7 +535,7 @@ class VolumeOverlayService : Service() {
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener {
-                openAppInfo(entry.key.packageName)
+                showPackageOverviewDialog(entry)
             }
             setOnLongClickListener {
                 copyToClipboard(entry.key.packageName)
@@ -843,6 +844,64 @@ class VolumeOverlayService : Service() {
         Toast.makeText(this, "Package copied", Toast.LENGTH_SHORT).show()
     }
 
+    private fun showPackageOverviewDialog(entry: AppEntry) {
+        val profileLabel = ProfileUtils.buildProfileLabel(this, entry.key.userId)
+        val outputLabel = volumeStore.getOutputDevice(entry.key)?.let {
+            "${OutputLabelUtils.shortType(it.type)} ${it.name ?: "Output"}"
+        } ?: "None"
+        val message = buildString {
+            append("Package: ${entry.key.packageName}")
+            if (entry.key.userId != null) {
+                append("\nProfile: ")
+                append(profileLabel)
+            }
+            append("\nActive sessions: ${entry.activeCount}")
+            append("\nOutput: $outputLabel")
+        }
+        showOverlayDialog(
+            AlertDialog.Builder(this)
+                .setTitle(entry.label)
+                .setMessage(message)
+                .setPositiveButton("App info") { _, _ ->
+                    openAppInfo(entry.key.packageName)
+                }
+                .setNeutralButton("Ignore") { _, _ ->
+                    confirmIgnoreForOverlay(entry)
+                }
+                .setNegativeButton("Close", null)
+        )
+    }
+
+    private fun confirmIgnoreForOverlay(entry: AppEntry) {
+        val scope = if (entry.key.userId == null) {
+            "all profiles"
+        } else {
+            ProfileUtils.buildProfileLabel(this, entry.key.userId)
+        }
+        showOverlayDialog(
+            AlertDialog.Builder(this)
+                .setTitle("Ignore for overlay")
+                .setMessage(
+                    "Hide ${entry.label} from the overlay for $scope?\n\n" +
+                        "The app will stop triggering and appearing in overlay controls."
+                )
+                .setPositiveButton("Ignore") { _, _ ->
+                    val changed = overlayPrefs.addOverlayIgnorePackage(
+                        entry.key.packageName,
+                        entry.key.userId
+                    )
+                    if (changed) {
+                        activeSignature = buildActiveSignature()
+                        populateList()
+                        Toast.makeText(this, "Ignored ${entry.label}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "${entry.label} is already ignored", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+        )
+    }
+
     private fun openAppInfo(packageName: String) {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", packageName, null)
@@ -852,6 +911,19 @@ class VolumeOverlayService : Service() {
             .onFailure {
                 Toast.makeText(this, "Unable to open app info", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun showOverlayDialog(builder: AlertDialog.Builder): AlertDialog {
+        val dialog = builder.create()
+        val windowType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        dialog.window?.setType(windowType)
+        dialog.show()
+        return dialog
     }
 
     private fun updateFocusedBlockList(block: Boolean) {

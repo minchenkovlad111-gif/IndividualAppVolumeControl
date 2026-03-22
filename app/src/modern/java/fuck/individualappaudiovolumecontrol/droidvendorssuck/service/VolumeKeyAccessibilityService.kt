@@ -43,10 +43,11 @@ class VolumeKeyAccessibilityService : AccessibilityService() {
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
             overlayPrefs.ensureDefaultIgnoreList(packageManager)
             val active = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
-            val ignorePackages = overlayPrefs.getOverlayIgnorePackageList()
             val hasNonIgnored = active.any { config ->
                 val packageName = PlaybackUtils.getClientPackageName(config, packageManager)
-                packageName != null && !ignorePackages.contains(packageName)
+                val uid = PlaybackUtils.getClientUid(config)
+                val userId = PlaybackUtils.getUserIdFromUid(uid)
+                packageName != null && !overlayPrefs.isOverlayIgnored(packageName, userId)
             }
             if (!hasNonIgnored) return false
         }
