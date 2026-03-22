@@ -1,7 +1,8 @@
 # Status
-Last update: 2026-03-20
+Last update: 2026-03-22
 
 ## Current focus
+- Build stability for full multi-variant `gradle build` runs (lint + release dex heap sizing).
 - Setup Check / diagnostics ANR triage on device (activity stop/resume stability).
 - Package rename to `fuck.individualappaudiovolumecontrol.droidvendorssuck` with Magisk/module safety validation.
 - Privapp allowlist minimization after KernelSU bootloop reports on Android 15.
@@ -12,6 +13,13 @@ Last update: 2026-03-20
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added `INTERACT_ACROSS_USERS` to the privapp allowlist and manifest to enable cross-profile playback detection when supported by the ROM.
+- Added cross-profile playback aggregation when `INTERACT_ACROSS_USERS` is granted, with Diagnostics reporting for active userIds.
+- Captured Diagnostics bundle for overlay watcher on POCO F1 (crDroid, Android 15 / API 35) and logged results in `docs/VALIDATION.md`.
+- Logged overlay watcher validation on POCO F1 (crDroid, Android 15) in `docs/VALIDATION.md`.
+- Added `org.lineageos.lineagesettings` to the overlay ignore defaults so it no longer appears in volume controls by default.
+- Added `docs/VALIDATION.md` and a helper script (`scripts/validate-overlay-watcher.sh`) to capture overlay watcher reliability evidence on Android 12-15 devices.
+- Set a project-wide Gradle heap default (`-Xmx4g`) so full `gradle build` runs no longer fail in `lintAnalyzeLegacyDebug` and `dexBuilderModernRelease` with Java heap space on AGP 8.13.2.
 - Renamed the on-disk source tree for the app code to match the package namespace across `main`, `modern`, and `legacy` source sets.
 - Pinned selected apps to the top of searchable multi-select app dialogs so overlay ignore/block lists and the rules app picker keep chosen entries visible above the remaining results.
 - Debounced diagnostics persistence and throttled `ActiveAppStore` writes so UI refresh loops do not keep scheduling `SharedPreferences` flushes every couple of seconds.
