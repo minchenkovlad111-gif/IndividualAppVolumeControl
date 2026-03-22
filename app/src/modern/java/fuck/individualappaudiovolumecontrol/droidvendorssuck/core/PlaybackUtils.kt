@@ -7,6 +7,8 @@ import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.UserHandle
 import android.util.Log
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore.VolumeKey
+import kotlin.math.max
 
 object PlaybackUtils {
     private const val TAG = "PlaybackUtils"
@@ -142,7 +144,7 @@ object PlaybackUtils {
         return results
     }
 
-    private fun hasAcrossUsersPermission(context: Context): Boolean {
+    fun hasAcrossUsersPermission(context: Context): Boolean {
         val granted = context.checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
         if (granted) return true
@@ -237,6 +239,87 @@ object PlaybackUtils {
             Log.w(TAG, "Failed to set player volume", t)
             false
         }
+    }
+
+    data class ActivePackageInfo(
+        val key: VolumeKey,
+        val sessionCount: Int,
+        val isRootDetected: Boolean,
+    )
+
+    fun shouldUseRootAudioFallback(
+        context: Context,
+        overlayPrefs: OverlayPrefs? = null,
+        includeRootFallback: Boolean = overlayPrefs?.isRootAudioFallbackEnabled() == true,
+    ): Boolean {
+        return includeRootFallback && !hasAcrossUsersPermission(context)
+    }
+
+    fun buildActivePackageInfo(
+        context: Context,
+        packageManager: PackageManager,
+        diagnosticsStore: DiagnosticsStore? = null,
+        overlayPrefs: OverlayPrefs? = null,
+        filterOverlayIgnore: Boolean = false,
+        includeRootFallback: Boolean = overlayPrefs?.isRootAudioFallbackEnabled() == true,
+        forceRootRefresh: Boolean = false,
+    ): List<ActivePackageInfo> {
+        val counts = mutableMapOf<VolumeKey, Pair<Int, Boolean>>()
+        val configs = getActivePlaybackConfigurationsSafe(context, diagnosticsStore)
+        for (config in configs) {
+            val packageName = getClientPackageName(config, packageManager) ?: continue
+            val uid = getClientUid(config)
+            val userId = getUserIdFromUid(uid)
+            if (filterOverlayIgnore && overlayPrefs?.isOverlayIgnored(packageName, userId) == true) {
+                continue
+            }
+            val key = VolumeKey(packageName, userId)
+            val current = counts[key]
+            val nextCount = (current?.first ?: 0) + 1
+            counts[key] = nextCount to false
+        }
+        val useRootFallback = shouldUseRootAudioFallback(context, overlayPrefs, includeRootFallback)
+        if (useRootFallback) {
+            val rootEntries = RootAudioDumpsys.getActiveEntries(
+                diagnosticsStore = diagnosticsStore,
+                force = forceRootRefresh
+            )
+            for (entry in rootEntries) {
+                val userId = getUserIdFromUid(entry.uid)
+                if (filterOverlayIgnore && overlayPrefs?.isOverlayIgnored(entry.packageName, userId) == true) {
+                    continue
+                }
+                val key = VolumeKey(entry.packageName, userId)
+                if (counts.containsKey(key)) continue
+                val count = max(1, entry.sessionIds.size)
+                counts[key] = count to true
+            }
+        }
+        return counts.map { (key, data) ->
+            ActivePackageInfo(
+                key = key,
+                sessionCount = data.first,
+                isRootDetected = data.second,
+            )
+        }
+    }
+
+    fun hasNonIgnoredPlayback(
+        context: Context,
+        packageManager: PackageManager,
+        overlayPrefs: OverlayPrefs,
+        diagnosticsStore: DiagnosticsStore? = null,
+    ): Boolean {
+        val entries = buildActivePackageInfo(
+            context = context,
+            packageManager = packageManager,
+            diagnosticsStore = diagnosticsStore,
+            overlayPrefs = overlayPrefs,
+            filterOverlayIgnore = true,
+            includeRootFallback = overlayPrefs.isRootAudioFallbackEnabled(),
+            forceRootRefresh = false
+        )
+        return entries.isNotEmpty()
     }
 
     fun applyPreferredDeviceToPlayer(

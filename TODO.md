@@ -22,6 +22,8 @@
 20. Validate cross-profile (work profile) playback detection and controls on Android 12-15.
 
 ## Done (recent)
+1. Limited root fallback to the no-`INTERACT_ACROSS_USERS` case and added a manual cross-profile scan button in the main UI.
+1. Reduced root fallback churn by caching `su` checks longer and reusing root `dumpsys` results across short UI/overlay refresh windows.
 1. Made manual `Show overlay now` display a test preview card when no app is playing audio, without affecting normal volume-button overlay behavior.
 1. Added search fields to Setup Check and Diagnostics to filter long report/checklist rows in place.
 1. Added an overlay package overview dialog on app-name tap, with a confirmation-backed ignore action scoped to the tapped profile when available.

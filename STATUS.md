@@ -13,6 +13,8 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Root fallback now only activates when `INTERACT_ACROSS_USERS(_FULL)` is unavailable, and the main UI has a manual cross-profile scan button for forcing a fresh root-based audio probe.
+- Reduced root fallback churn by extending `su` availability caching and root `dumpsys` result caching so cross-profile detection does fewer expensive refreshes while the UI or overlay is open.
 - Made manual `Show overlay now` display a test preview card when no app is currently playing audio, without changing volume-button-triggered empty-overlay behavior, and kept the Setup Check disabled message when controls are unavailable.
 - Added search fields to Setup Check and Diagnostics so long reports can be filtered in-place without affecting copy/share of the full report.
 - App-name taps in the overlay now open a package overview dialog with confirmation-backed "Ignore" action scoped to the tapped profile when available.

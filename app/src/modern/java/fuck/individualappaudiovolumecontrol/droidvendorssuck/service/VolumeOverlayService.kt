@@ -233,8 +233,7 @@ class VolumeOverlayService : Service() {
         }
         if (overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()) {
             overlayPrefs.ensureDefaultIgnoreList(packageManager)
-            val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
-            if (!hasNonIgnoredPlayback(configs)) {
+            if (!hasNonIgnoredPlayback()) {
                 return true
             }
         }
@@ -488,30 +487,32 @@ class VolumeOverlayService : Service() {
 
     private fun loadActiveEntries(): List<AppEntry> {
         overlayPrefs.ensureDefaultIgnoreList(packageManager)
-        val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
-        val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
-        for (config in configs) {
-            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            val uid = PlaybackUtils.getClientUid(config)
-            val userId = PlaybackUtils.getUserIdFromUid(uid)
-            if (overlayPrefs.isOverlayIgnored(packageName, userId)) continue
-            val key = VolumeStore.VolumeKey(packageName, userId)
-            counts[key] = (counts[key] ?: 0) + 1
-        }
-        return counts.map { (key, count) ->
-            AppEntry(key, resolveLabel(key.packageName), count)
+        val entries = PlaybackUtils.buildActivePackageInfo(
+            context = this,
+            packageManager = packageManager,
+            diagnosticsStore = diagnosticsStore,
+            overlayPrefs = overlayPrefs,
+            filterOverlayIgnore = true,
+            includeRootFallback = overlayPrefs.isRootAudioFallbackEnabled()
+        )
+        return entries.map { entry ->
+            AppEntry(
+                key = entry.key,
+                label = resolveLabel(entry.key.packageName),
+                activeCount = entry.sessionCount,
+                isRootDetected = entry.isRootDetected
+            )
         }.sortedBy { it.label.lowercase() }
     }
 
-    private fun hasNonIgnoredPlayback(configs: List<android.media.AudioPlaybackConfiguration>): Boolean {
-        if (configs.isEmpty()) return false
-        for (config in configs) {
-            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            val uid = PlaybackUtils.getClientUid(config)
-            val userId = PlaybackUtils.getUserIdFromUid(uid)
-            if (!overlayPrefs.isOverlayIgnored(packageName, userId)) return true
-        }
-        return false
+    private fun hasNonIgnoredPlayback(): Boolean {
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
+        return PlaybackUtils.hasNonIgnoredPlayback(
+            context = this,
+            packageManager = packageManager,
+            overlayPrefs = overlayPrefs,
+            diagnosticsStore = diagnosticsStore
+        )
     }
 
     private fun buildVolumeRow(entry: AppEntry): View {
@@ -583,12 +584,22 @@ class VolumeOverlayService : Service() {
         }
         applyOverlayTextStyle(outputBadge)
 
+        val rootBadge = TextView(this).apply {
+            text = "Root"
+            textSize = 10f
+            setPadding(dpToPx(6), 0, 0, 0)
+            visibility = if (entry.isRootDetected) View.VISIBLE else View.GONE
+        }
+        applyOverlayTextStyle(rootBadge)
+
         headerRow.addView(iconView)
         headerRow.addView(nameView)
         headerRow.addView(profileView)
         headerRow.addView(countView)
         headerRow.addView(outputBadge)
+        headerRow.addView(rootBadge)
 
+        val rowControlsEnabled = controlsEnabled && !entry.isRootDetected
         val stored = volumeStore.getVolume(entry.key) ?: 1f
         val valueView = TextView(this).apply {
             text = "${(stored * 100).toInt()}%"
@@ -609,6 +620,7 @@ class VolumeOverlayService : Service() {
 
         updateMuteIcon(muteButton, stored)
         muteButton.setOnClickListener {
+            if (!rowControlsEnabled) return@setOnClickListener
             val currentVolume = volumeStore.getVolume(entry.key) ?: 1f
             if (currentVolume > 0f) {
                 lastNonZeroVolumes[entry.key.storageKey()] = currentVolume
@@ -659,6 +671,7 @@ class VolumeOverlayService : Service() {
         slider = SeekBar(this).apply {
             max = 100
             progress = (stored * 100).toInt()
+            isEnabled = rowControlsEnabled
             progressTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
             thumbTintList = ColorStateList.valueOf(OVERLAY_ORANGE)
             progressBackgroundTintList = ColorStateList.valueOf(OVERLAY_TRACK)
@@ -672,6 +685,7 @@ class VolumeOverlayService : Service() {
             var ignoreNextProgrammatic = false
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (!rowControlsEnabled) return
                     if (!fromUser) {
                         if (ignoreNextProgrammatic) {
                             ignoreNextProgrammatic = false
@@ -701,13 +715,22 @@ class VolumeOverlayService : Service() {
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    if (!rowControlsEnabled) return
                     scheduleHideIfEnabled()
                 }
 
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    if (!rowControlsEnabled) return
                     scheduleHideIfEnabled()
                 }
             })
+        }
+
+        if (!rowControlsEnabled) {
+            muteButton.isEnabled = false
+            muteButton.alpha = 0.5f
+            slider.alpha = 0.6f
+            ticksView.alpha = 0.4f
         }
 
         sliderFrame.addView(ticksView)
@@ -1152,6 +1175,7 @@ class VolumeOverlayService : Service() {
         val key: VolumeStore.VolumeKey,
         val label: String,
         val activeCount: Int = 0,
+        val isRootDetected: Boolean = false,
     )
 
     companion object {

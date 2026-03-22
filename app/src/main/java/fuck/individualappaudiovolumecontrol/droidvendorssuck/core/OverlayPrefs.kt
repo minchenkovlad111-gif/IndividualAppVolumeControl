@@ -63,6 +63,14 @@ class OverlayPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_VOLUME_KEY_ONLY_WHEN_PLAYING, enabled).apply()
     }
 
+    fun isRootAudioFallbackEnabled(): Boolean {
+        return prefs.getBoolean(KEY_ROOT_AUDIO_FALLBACK, false)
+    }
+
+    fun setRootAudioFallbackEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ROOT_AUDIO_FALLBACK, enabled).apply()
+    }
+
     fun getOverlayFocusBlockList(): Set<String> {
         return prefs.getStringSet(KEY_OVERLAY_FOCUS_BLOCKLIST, emptySet())?.toSet() ?: emptySet()
     }
@@ -163,5 +171,6 @@ class OverlayPrefs(context: Context) {
         private const val KEY_OVERLAY_SNOOZE_UNTIL = "overlay_snooze_until_elapsed"
         private const val KEY_OVERLAY_PAUSED = "overlay_paused"
         private const val KEY_OVERLAY_DISMISS_OUTSIDE = "overlay_dismiss_outside"
+        private const val KEY_ROOT_AUDIO_FALLBACK = "overlay_root_audio_fallback"
     }
 }

@@ -85,6 +85,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
     private lateinit var overlayOnlyWhenPlayingToggle: CheckBox
+    private lateinit var overlayRootFallbackToggle: CheckBox
+    private lateinit var overlayRootFallbackHint: TextView
+    private lateinit var overlayRootFallbackRefreshButton: Button
     private lateinit var overlayFocusBlockButton: Button
     private lateinit var overlayIgnoreButton: Button
     private lateinit var overlaySnoozeButton: Button
@@ -112,7 +115,7 @@ class MainActivity : AppCompatActivity() {
     private val diagnosticsStore by lazy { DiagnosticsStore(this) }
     private val refreshRunnable = object : Runnable {
         override fun run() {
-            updateActiveApps(getActiveConfigs())
+            updateActiveApps()
             updateLastUpdated()
             handler.postDelayed(this, REFRESH_INTERVAL_MS)
         }
@@ -121,7 +124,7 @@ class MainActivity : AppCompatActivity() {
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             if (configs == null) return
-            updateActiveApps(getActiveConfigs())
+            updateActiveApps()
             updateLastUpdated()
         }
     }
@@ -181,7 +184,7 @@ class MainActivity : AppCompatActivity() {
                     if (profileUpdating) return
                     val option = profileOptions.getOrNull(position) ?: ProfileOption(null, "All profiles")
                     selectedProfileUserId = option.userId
-                    updateActiveApps(getActiveConfigs())
+                    updateActiveApps()
                     updatePresetApps()
                 }
 
@@ -200,7 +203,7 @@ class MainActivity : AppCompatActivity() {
         val refreshButton = Button(this).apply {
             text = "Refresh list"
             setOnClickListener {
-                updateActiveApps(getActiveConfigs())
+                updateActiveApps()
                 updateLastUpdated()
             }
         }
@@ -213,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                     .setMessage("This clears all saved per-app sliders.")
                     .setPositiveButton("Clear") { _, _ ->
                         volumeStore.clearAll()
-                        updateActiveApps(getActiveConfigs())
+                        updateActiveApps()
                         PlaybackControllerService.requestReapply(this@MainActivity)
                     }
                     .setNegativeButton("Cancel", null)
@@ -354,6 +357,40 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        overlayRootFallbackToggle = CheckBox(this).apply {
+            text = "Root fallback for cross-profile detection (read-only)"
+            isChecked = overlayPrefs.isRootAudioFallbackEnabled()
+            setOnCheckedChangeListener { _, isChecked ->
+                overlayPrefs.setRootAudioFallbackEnabled(isChecked)
+                updateRootFallbackUi()
+                updateActiveApps()
+            }
+        }
+
+        overlayRootFallbackHint = TextView(this).apply {
+            text = "Uses dumpsys via root to list active audio when cross-profile access is denied."
+            textSize = 12f
+            setTextColor(Color.parseColor("#616161"))
+            setPadding(dpToPx(8), 0, 0, dpToPx(6))
+        }
+
+        overlayRootFallbackRefreshButton = Button(this).apply {
+            text = "Scan cross-profile audio now"
+            setOnClickListener {
+                updateActiveApps(forceRootRefresh = true)
+                val rootCount = activeEntries.count { it.isRootDetected }
+                Toast.makeText(
+                    this@MainActivity,
+                    if (rootCount > 0) {
+                        "Found $rootCount root-detected app(s)"
+                    } else {
+                        "No cross-profile audio found"
+                    },
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
         overlayFocusBlockButton = Button(this).apply {
             text = "Suppress overlay for focused apps"
             setOnClickListener { showOverlayFocusBlockListDialog() }
@@ -443,7 +480,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 0f)
                 }
-                updateActiveApps(getActiveConfigs())
+                updateActiveApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -456,7 +493,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 0.5f)
                 }
-                updateActiveApps(getActiveConfigs())
+                updateActiveApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -469,7 +506,7 @@ class MainActivity : AppCompatActivity() {
                 for (entry in activeEntries) {
                     volumeStore.setVolume(entry.key, 1f)
                 }
-                updateActiveApps(getActiveConfigs())
+                updateActiveApps()
                 PlaybackControllerService.requestReapply(this@MainActivity)
             }
         }
@@ -554,6 +591,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(overlayAutoHideToggle)
         root.addView(overlayDismissOutsideToggle)
         root.addView(overlayOnlyWhenPlayingToggle)
+        root.addView(overlayRootFallbackToggle)
+        root.addView(overlayRootFallbackHint)
+        root.addView(overlayRootFallbackRefreshButton)
         root.addView(overlayFocusBlockButton)
         root.addView(overlayIgnoreButton)
         root.addView(overlaySnoozeStatusView)
@@ -583,7 +623,7 @@ class MainActivity : AppCompatActivity() {
         updateControlStatus()
         updateOverlayStatus()
         updateBluetoothPermissionButton()
-        updateActiveApps(getActiveConfigs())
+        updateActiveApps()
         loadPresetApps()
         updatePresetApps()
     }
@@ -607,26 +647,32 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    private fun updateActiveApps(configs: List<AudioPlaybackConfiguration>) {
+    private fun updateActiveApps(forceRootRefresh: Boolean = false) {
         activeContainer.removeAllViews()
         val now = System.currentTimeMillis()
-        val counts = mutableMapOf<VolumeStore.VolumeKey, Int>()
-        for (config in configs) {
-            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
-            val uid = PlaybackUtils.getClientUid(config)
-            val userId = PlaybackUtils.getUserIdFromUid(uid)
-            val key = VolumeStore.VolumeKey(packageName, userId)
-            counts[key] = (counts[key] ?: 0) + 1
-        }
-
-        activeEntries = counts.map { (key, count) ->
-            AppEntry(key, resolveLabel(key.packageName), count)
+        val activeInfo = PlaybackUtils.buildActivePackageInfo(
+            context = this,
+            packageManager = packageManager,
+            diagnosticsStore = diagnosticsStore,
+            overlayPrefs = overlayPrefs,
+            filterOverlayIgnore = false,
+            includeRootFallback = overlayPrefs.isRootAudioFallbackEnabled(),
+            forceRootRefresh = forceRootRefresh
+        )
+        val keys = activeInfo.map { it.key }
+        activeEntries = activeInfo.map { info ->
+            AppEntry(
+                key = info.key,
+                label = resolveLabel(info.key.packageName),
+                activeCount = info.sessionCount,
+                isRootDetected = info.isRootDetected
+            )
         }.sortedBy { it.label.lowercase() }
         activeKeys = activeEntries.map { it.key.storageKey() }.toSet()
-        activePackagesByUser = counts.keys.groupBy { it.packageName }
+        activePackagesByUser = keys.groupBy { it.packageName }
             .mapValues { entry -> entry.value.map { it.userId }.toSet() }
 
-        updateActiveSince(counts.keys, now)
+        updateActiveSince(keys.toSet(), now)
         updateProfileOptions()
 
         val filtered = filterActiveEntries(activeEntries)
@@ -1309,10 +1355,27 @@ class MainActivity : AppCompatActivity() {
         overlayToggle.isEnabled = canDraw
         overlayUpdating = false
         overlayOnlyWhenPlayingToggle.isChecked = overlayPrefs.isVolumeKeyOnlyWhenPlayingEnabled()
+        overlayRootFallbackToggle.isChecked = overlayPrefs.isRootAudioFallbackEnabled()
         overlayDismissOutsideToggle.isChecked = overlayPrefs.isDismissOnOutsideTapEnabled()
+        updateRootFallbackUi()
         updateOverlayFocusBlockButton()
         updateOverlayIgnoreButton()
         updateOverlaySnoozeStatus()
+    }
+
+    private fun updateRootFallbackUi() {
+        val hasAcrossUsers = PlaybackUtils.hasAcrossUsersPermission(this)
+        val fallbackEnabled = overlayPrefs.isRootAudioFallbackEnabled()
+        overlayRootFallbackToggle.isEnabled = !hasAcrossUsers
+        overlayRootFallbackRefreshButton.isEnabled = !hasAcrossUsers && fallbackEnabled
+        overlayRootFallbackHint.text = when {
+            hasAcrossUsers ->
+                "Cross-profile playback access is granted, so root fallback is not needed."
+            fallbackEnabled ->
+                "Uses root dumpsys only because cross-profile permission is unavailable."
+            else ->
+                "Enable this to use root dumpsys only when cross-profile permission is unavailable."
+        }
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -1320,10 +1383,6 @@ class MainActivity : AppCompatActivity() {
             this,
             fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeKeyAccessibilityService::class.java
         )
-    }
-
-    private fun getActiveConfigs(): List<AudioPlaybackConfiguration> {
-        return PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
     }
 
     private fun openAccessibilityServiceSettings() {
@@ -1694,6 +1753,7 @@ class MainActivity : AppCompatActivity() {
         val key: VolumeStore.VolumeKey,
         val label: String,
         val activeCount: Int = 0,
+        val isRootDetected: Boolean = false,
     )
 
     private data class ProfileOption(
