@@ -22,6 +22,7 @@
 20. Validate cross-profile (work profile) playback detection and controls on Android 12-15.
 
 ## Done (recent)
+1. Added `com.android.location.fused` to the overlay ignore defaults.
 1. Validated overlay watcher reliability on POCO F1 (crDroid, Android 15 / API 35). Diagnostics bundle recorded in `docs/VALIDATION.md`.
 1. Renamed the source tree under `app/src/main`, `app/src/modern`, and `app/src/legacy` to match the package namespace `fuck.individualappaudiovolumecontrol.droidvendorssuck`.
 1. Pinned selected apps to the top of searchable multi-select app dialogs (overlay ignore/block lists and rules app picker).

@@ -82,6 +82,7 @@ class OverlayPrefs(context: Context) {
         if (prefs.contains(KEY_OVERLAY_IGNORE_PACKAGES)) return
         val defaults = mutableSetOf(
             "com.android.systemui",
+            "com.android.location.fused",
             "co.aospa.sense",
             "org.lineageos.lineagesettings",
         )
