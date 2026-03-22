@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.service.quicksettings.TileService
-import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.ui.OverlayPermissionActivity
 
 class OverlayTileService : TileService() {
     override fun onClick() {

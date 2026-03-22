@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.os.Bundle
 import android.view.Gravity
@@ -17,13 +17,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.core.Rule
-import com.duda.appvolumecontrol.core.RuleAction
-import com.duda.appvolumecontrol.core.RuleCondition
-import com.duda.appvolumecontrol.core.RuleGroup
-import com.duda.appvolumecontrol.core.RuleTarget
-import com.duda.appvolumecontrol.core.RuleTargetRef
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.Rule
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RuleAction
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RuleCondition
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RuleGroup
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RuleTarget
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RuleTargetRef
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 import kotlin.math.max
 import kotlin.math.min
 
@@ -32,16 +32,15 @@ class RulesActivity : AppCompatActivity() {
     private lateinit var groupContainer: LinearLayout
     private lateinit var ruleContainer: LinearLayout
     private var installedAppsCache: List<AppEntry>? = null
-    private lateinit var locationStore: com.duda.appvolumecontrol.core.LocationRuleStore
+    private lateinit var locationStore: fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore
     private lateinit var locationContainer: LinearLayout
     private lateinit var locationInput: EditText
     private lateinit var locationBackgroundToggle: CheckBox
-    private lateinit var locationGeofenceToggle: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         volumeStore = VolumeStore(this)
-        locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
+        locationStore = fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -107,32 +106,7 @@ class RulesActivity : AppCompatActivity() {
                 if (checked) {
                     requestBackgroundLocationPermission()
                 } else {
-                    com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
-                }
-            }
-        }
-        locationGeofenceToggle = CheckBox(this).apply {
-            text = "Enable geofencing (Play services)"
-            isChecked = locationStore.isGeofencingEnabled()
-            setOnCheckedChangeListener { _, checked ->
-                if (checked) {
-                    val geofenceManager = com.duda.appvolumecontrol.core.GeofenceRuleManager(this@RulesActivity)
-                    if (!geofenceManager.isAvailable()) {
-                        Toast.makeText(
-                            this@RulesActivity,
-                            "Play services not available for geofencing",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        locationStore.setGeofencingEnabled(false)
-                        locationGeofenceToggle.isChecked = false
-                        return@setOnCheckedChangeListener
-                    }
-                }
-                locationStore.setGeofencingEnabled(checked)
-                if (checked) {
-                    requestBackgroundLocationPermission()
-                } else {
-                    com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
+                    fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
                 }
             }
         }
@@ -143,7 +117,6 @@ class RulesActivity : AppCompatActivity() {
         locationRow.addView(locationInput)
         locationRow.addView(locationHint)
         locationRow.addView(locationBackgroundToggle)
-        locationRow.addView(locationGeofenceToggle)
         locationRow.addView(locationButtons)
 
         val locationTitle = TextView(this).apply {
@@ -344,7 +317,7 @@ class RulesActivity : AppCompatActivity() {
         return row
     }
 
-    private fun buildLocationRow(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule): View {
+    private fun buildLocationRow(location: fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore.LocationRule): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 8, 0, 8)
@@ -988,14 +961,14 @@ class RulesActivity : AppCompatActivity() {
         return ids
     }
 
-    private fun confirmDeleteLocation(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule) {
+    private fun confirmDeleteLocation(location: fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore.LocationRule) {
         AlertDialog.Builder(this)
             .setTitle("Delete location")
             .setMessage("Delete ${location.id}?")
             .setPositiveButton("Delete") { _, _ ->
                 val updated = locationStore.listLocations().filterNot { it.id == location.id }
                 locationStore.setLocations(updated)
-                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
+                fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
                 refresh()
             }
             .setNegativeButton("Cancel", null)
@@ -1006,11 +979,11 @@ class RulesActivity : AppCompatActivity() {
         showLocationDialog(existing = null)
     }
 
-    private fun showEditLocationDialog(location: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule) {
+    private fun showEditLocationDialog(location: fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore.LocationRule) {
         showLocationDialog(existing = location)
     }
 
-    private fun showLocationDialog(existing: com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule?) {
+    private fun showLocationDialog(existing: fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore.LocationRule?) {
         val idInput = EditText(this).apply {
             hint = "Location id"
             setText(existing?.id.orEmpty())
@@ -1055,7 +1028,7 @@ class RulesActivity : AppCompatActivity() {
                     toast("Radius must be > 0")
                     return@setPositiveButton
                 }
-                val entry = com.duda.appvolumecontrol.core.LocationRuleStore.LocationRule(
+                val entry = fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore.LocationRule(
                     id = id,
                     latitude = lat,
                     longitude = lon,
@@ -1069,7 +1042,7 @@ class RulesActivity : AppCompatActivity() {
                     }
                 }
                 locationStore.setLocations(updated)
-                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
+                fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this@RulesActivity)
                 refresh()
             }
             .setNegativeButton("Cancel", null)
@@ -1097,14 +1070,14 @@ class RulesActivity : AppCompatActivity() {
 
     private fun requestBackgroundLocationPermission() {
         if (android.os.Build.VERSION.SDK_INT < 29) {
-            com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+            fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this)
             return
         }
         val granted = checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         if (granted) {
             Toast.makeText(this, "Background location permission already granted", Toast.LENGTH_SHORT).show()
-            com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+            fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this)
             return
         }
         ActivityCompat.requestPermissions(
@@ -1128,7 +1101,7 @@ class RulesActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
             if (granted) {
-                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationRefresh(this)
+                fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationRefresh(this)
             }
         } else if (requestCode == REQUEST_BACKGROUND_LOCATION_PERMISSION) {
             val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
@@ -1138,12 +1111,10 @@ class RulesActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
             if (granted) {
-                com.duda.appvolumecontrol.service.PlaybackControllerService.requestLocationSync(this)
+                fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService.requestLocationSync(this)
             } else {
                 locationStore.setBackgroundUpdatesEnabled(false)
                 locationBackgroundToggle.isChecked = false
-                locationStore.setGeofencingEnabled(false)
-                locationGeofenceToggle.isChecked = false
             }
         }
     }

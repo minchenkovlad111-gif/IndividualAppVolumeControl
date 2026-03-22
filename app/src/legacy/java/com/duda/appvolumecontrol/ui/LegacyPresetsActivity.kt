@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.os.Bundle
 import android.text.InputType
@@ -11,7 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 import kotlin.math.roundToInt
 
 class LegacyPresetsActivity : AppCompatActivity() {

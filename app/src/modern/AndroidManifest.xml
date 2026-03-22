@@ -1,5 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            tools:node="remove" />
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:node="remove" />
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
@@ -63,9 +70,6 @@
             android:name=".service.LocationUpdateReceiver"
             android:exported="false" />
         <receiver
-            android:name=".service.GeofenceReceiver"
-            android:exported="false" />
-        <receiver
             android:name=".service.BootReceiver"
             android:exported="false">
             <intent-filter>
@@ -77,7 +81,7 @@
             android:name=".service.BootStartReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.duda.appvolumecontrol.action.START_SERVICES" />
+                <action android:name="fuck.individualappaudiovolumecontrol.droidvendorssuck.action.START_SERVICES" />
             </intent-filter>
         </receiver>
     </application>

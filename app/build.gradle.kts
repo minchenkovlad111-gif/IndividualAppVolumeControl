@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.duda.appvolumecontrol"
+    namespace = "fuck.individualappaudiovolumecontrol.droidvendorssuck"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.duda.appvolumecontrol"
+        applicationId = "fuck.individualappaudiovolumecontrol.droidvendorssuck"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -41,6 +41,13 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Keep the module APK signed for privileged installs without shipping a debuggable build.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        create("probe") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
         }
         debug {
             isMinifyEnabled = false
@@ -62,7 +69,6 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")
     add("modernImplementation", "androidx.core:core-ktx:1.13.1")
     add("modernImplementation", "androidx.appcompat:appcompat:1.7.0")
-    add("modernImplementation", "com.google.android.gms:play-services-location:21.1.0")
     add("legacyImplementation", "androidx.core:core-ktx:1.6.0")
     add("legacyImplementation", "androidx.appcompat:appcompat:1.4.2")
     add("legacyImplementation", "androidx.multidex:multidex:2.0.1")
@@ -77,7 +83,9 @@ tasks.register("printApkPaths") {
         val paths = listOf(
             "modern/debug/app-modern-debug.apk",
             "legacy/debug/app-legacy-debug.apk",
+            "modern/release/app-modern-release.apk",
             "modern/release/app-modern-release-unsigned.apk",
+            "legacy/release/app-legacy-release.apk",
             "legacy/release/app-legacy-release-unsigned.apk",
         )
         println("APK outputs:")
@@ -95,11 +103,11 @@ tasks.register("printApkPaths") {
 
 tasks.register<Exec>("packageMagiskModule") {
     group = "build"
-    description = "Packages the Magisk module using the modern debug APK."
-    val apkPath = layout.buildDirectory.file("outputs/apk/modern/debug/app-modern-debug.apk")
+    description = "Packages the Magisk module using the signed modern release APK."
+    val apkPath = layout.buildDirectory.file("outputs/apk/modern/release/app-modern-release.apk")
     val outZip = rootProject.layout.projectDirectory.file("IndividualAppAudioVolumeControl-magisk.zip")
     val moduleScript = rootProject.layout.projectDirectory.file("module/package.sh")
-    dependsOn("assembleModernDebug")
+    dependsOn("assembleModernRelease")
     executable = "sh"
     commandLine(
         "sh",

@@ -1,13 +1,40 @@
 # Status
-Last update: 2026-03-17
+Last update: 2026-03-20
 
 ## Current focus
+- Setup Check / diagnostics ANR triage on device (activity stop/resume stability).
+- Package rename to `fuck.individualappaudiovolumecontrol.droidvendorssuck` with Magisk/module safety validation.
+- Privapp allowlist minimization after KernelSU bootloop reports on Android 15.
+- Build hardening for module packaging (signed release APK + allowlist validation).
 - Overlay UX refinements and feature gating groundwork.
 - Volume-button overlay reliability (accessibility-service key events).
 - Continuing validation on Android 12-15 devices.
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Moved `SetupCheckActivity` refresh work off the UI thread so the setup screen no longer does audio-session/privilege checks synchronously on launch or manual refresh.
+- Reworked `DiagnosticsStore` to keep an in-process snapshot and flush via a dedicated background `commit()` thread instead of frequent `SharedPreferences.apply()` calls, to avoid `QueuedWork.waitToFinish()` ANRs when `SetupCheckActivity` stops.
+- Captured and reviewed the current device ANR dump: main thread blocked in `ActivityThread.handleStopActivity -> QueuedWork.waitToFinish()` while the queued-work looper was stuck in `SharedPreferencesImpl.writeToFile()` / `fsync`.
+- Renamed boot log files to `individualappaudiovolumecontrol-boot.log` to match the module id.
+- Added a `priv-app` no-protected-permissions probe build path to isolate whether `MODIFY_AUDIO_ROUTING` is the exact Android 15 bootloop trigger.
+- Added a `system/app` probe packager to isolate KernelSU bootloops between privileged install issues and generic APK/module mount issues.
+- Trimmed the shipped privapp manifest/XML down to `android.permission.MODIFY_AUDIO_ROUTING` only, removing non-core privileged requests that could trip package-manager enforcement at boot.
+- Updated build/module docs to treat the privapp allowlist as a boot-critical surface and keep `WRITE_SECURE_SETTINGS` / `PACKAGE_USAGE_STATS` optional instead of shipped by default.
+- Renamed the Android app package/namespace to `fuck.individualappaudiovolumecontrol.droidvendorssuck` without changing source folders.
+- Updated privileged permission grant metadata to target the renamed package.
+- Added `android.permission.PACKAGE_USAGE_STATS` to the module privapp allowlist so enforcing ROMs do not kill package scan at boot for the renamed priv-app.
+- Switched Magisk module packaging to a signed non-debuggable release APK and added a packaging-time validator for APK package name and reviewed privapp permission coverage.
+- Removed unnecessary `FOREGROUND_SERVICE` from the privapp allowlist, tolerated unsigned release APK outputs in packaging fallback, and removed AndroidX startup/profileinstaller merged components from the base manifest.
+- Synced the bundled module asset directly from the main packaged ZIP so app-installer and manual-flash paths use the same archive.
+- Tightened the privapp validator to fail on stale allowlist entries in addition to missing reviewed grants.
+- Switched privapp validation to derive expected allowlisted permissions from the source manifest’s `ProtectedPermissions` markers, and trimmed non-derived entries from the XML.
+- Validator now scans all manifests under `app/src` with more robust parsing, and rejects allowlist entries not requested by the APK.
+- Removed Play Services geofencing dependency, stubbed geofence handling, and dropped the geofence receiver from the modern manifest.
+- Removed the now-dead geofencing toggle from the Rules UI.
+- Removed geofencing preference storage and diagnostics output since Play Services geofencing is gone.
+- Removed all remaining geofencing code paths and the GeofenceRuleManager class.
+- Keeping Magisk module ID and priv-app mount path stable to avoid unnecessary install-path regressions.
+- Fixed Magisk ZIP packaging to recreate the archive instead of updating in place, preventing stale APK paths from surviving rebuilds.
 - Exposed dismiss-on-outside-tap toggle in main Overlay settings.
 - Added an overlay menu toggle for dismiss-on-outside-tap behavior (defaults on).
 - Switched overlay to watch outside taps (no full-screen capture), allowing tap-through while dismissing.

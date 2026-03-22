@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.content.Context
 import android.graphics.Canvas

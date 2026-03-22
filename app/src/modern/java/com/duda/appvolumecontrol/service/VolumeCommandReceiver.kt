@@ -1,9 +1,9 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 
 class VolumeCommandReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -15,7 +15,7 @@ class VolumeCommandReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_SET_VOLUME = "com.duda.appvolumecontrol.action.SET_VOLUME"
+        const val ACTION_SET_VOLUME = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.SET_VOLUME"
         const val EXTRA_PACKAGE = "package"
         const val EXTRA_VOLUME = "volume"
     }

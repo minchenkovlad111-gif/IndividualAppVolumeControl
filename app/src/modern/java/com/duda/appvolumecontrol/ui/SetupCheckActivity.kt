@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.Manifest
 import android.content.Intent
@@ -14,15 +14,17 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.core.AccessibilityUtils
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.ForegroundAppResolver
-import com.duda.appvolumecontrol.core.PlaybackUtils
-import com.duda.appvolumecontrol.core.SetupStatus
-import com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AccessibilityUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ForegroundAppResolver
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeKeyAccessibilityService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 
 class SetupCheckActivity : AppCompatActivity() {
     private lateinit var diagnosticsStore: DiagnosticsStore
@@ -32,6 +34,19 @@ class SetupCheckActivity : AppCompatActivity() {
     private lateinit var overlayPermissionButton: Button
     private lateinit var accessibilityButton: Button
     private lateinit var usageAccessButton: Button
+    private val refreshInProgress = AtomicBoolean(false)
+
+    private data class RefreshResult(
+        val privilegeInfo: SetupStatus.PrivilegeInfo,
+        val hasModifyAudio: Boolean,
+        val hasWriteSecureSettings: Boolean,
+        val canDrawOverlays: Boolean,
+        val accessibilityEnabled: Boolean,
+        val usageAccessGranted: Boolean,
+        val hiddenApiOk: Boolean,
+        val hiddenApiTime: String,
+        val activePackages: List<String>,
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,107 +135,147 @@ class SetupCheckActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
-        val appInfo = applicationInfo
-        val privilegeInfo = SetupStatus.privilegeInfo(appInfo)
-        val isSystemApp = privilegeInfo.isSystemApp
-        val isPrivApp = privilegeInfo.isPrivilegedApp
-        val isUpdatedSystemApp = privilegeInfo.isUpdatedSystemApp
-        val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
-            PackageManager.PERMISSION_GRANTED
-        val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(this)
-        } else {
-            true
+        if (!refreshInProgress.compareAndSet(false, true)) {
+            return
         }
-        val accessibilityEnabled = AccessibilityUtils.isServiceEnabled(
-            this,
-            VolumeKeyAccessibilityService::class.java
-        )
-        val usageAccessGranted = ForegroundAppResolver(this).hasUsageAccess()
-        overlayPermissionButton.isEnabled = !canDrawOverlays
-        overlayPermissionButton.text = if (canDrawOverlays) {
-            "Overlay permission granted"
-        } else {
-            "Grant overlay permission"
-        }
-        accessibilityButton.isEnabled = !accessibilityEnabled
-        accessibilityButton.text = if (accessibilityEnabled) {
-            "Volume key listener enabled"
-        } else {
-            "Enable volume key listener"
-        }
-        usageAccessButton.isEnabled = !usageAccessGranted
-        usageAccessButton.text = if (usageAccessGranted) {
-            "Usage access granted"
-        } else {
-            "Grant usage access"
-        }
+        statusView.text = "Ready: checking..."
+        statusView.setTextColor(0xFF616161.toInt())
 
-        val snapshot = diagnosticsStore.snapshot()
-        val hiddenApiOk = snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1
-        val hiddenApiTime = formatTime(snapshot.hiddenApiTime)
+        thread(name = "SetupCheckRefresh") {
+            val result = runCatching {
+                val appInfo = applicationInfo
+                val privilegeInfo = SetupStatus.privilegeInfo(appInfo)
+                val hasModifyAudio = checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS) ==
+                    PackageManager.PERMISSION_GRANTED
+                val hasWriteSecureSettings = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) ==
+                    PackageManager.PERMISSION_GRANTED
+                val canDrawOverlays = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    Settings.canDrawOverlays(this)
+                } else {
+                    true
+                }
+                val accessibilityEnabled = AccessibilityUtils.isServiceEnabled(
+                    this,
+                    VolumeKeyAccessibilityService::class.java
+                )
+                val usageAccessGranted = ForegroundAppResolver(this).hasUsageAccess()
 
-        val audioManager = getSystemService(AudioManager::class.java)
-        val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
-        val activePackages = activeConfigs
-            .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
-            .distinct()
-            .sorted()
+                val snapshot = diagnosticsStore.snapshot()
+                val hiddenApiOk = snapshot.hiddenApiVmRuntimeOk == 1 || snapshot.hiddenApiPolicyOk == 1
+                val hiddenApiTime = formatTime(snapshot.hiddenApiTime)
 
-        val ready = isPrivApp && hasModifyAudio && hiddenApiOk
-        val readyLine = if (ready) {
-            "Ready: YES"
-        } else {
-            "Ready: NO (see checklist below)"
+                val audioManager = getSystemService(AudioManager::class.java)
+                val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
+                val activePackages = activeConfigs
+                    .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
+                    .distinct()
+                    .sorted()
+
+                RefreshResult(
+                    privilegeInfo = privilegeInfo,
+                    hasModifyAudio = hasModifyAudio,
+                    hasWriteSecureSettings = hasWriteSecureSettings,
+                    canDrawOverlays = canDrawOverlays,
+                    accessibilityEnabled = accessibilityEnabled,
+                    usageAccessGranted = usageAccessGranted,
+                    hiddenApiOk = hiddenApiOk,
+                    hiddenApiTime = hiddenApiTime,
+                    activePackages = activePackages,
+                )
+            }
+
+            runOnUiThread {
+                if (isFinishing || isDestroyed) {
+                    refreshInProgress.set(false)
+                    return@runOnUiThread
+                }
+                if (result.isFailure) {
+                    statusView.text = "Ready: check failed"
+                    statusView.setTextColor(0xFFB71C1C.toInt())
+                    fixView.text = result.exceptionOrNull()?.message ?: "Unknown error"
+                    refreshInProgress.set(false)
+                    return@runOnUiThread
+                }
+
+                val data = result.getOrThrow()
+                val isSystemApp = data.privilegeInfo.isSystemApp
+                val isPrivApp = data.privilegeInfo.isPrivilegedApp
+                val isUpdatedSystemApp = data.privilegeInfo.isUpdatedSystemApp
+
+                overlayPermissionButton.isEnabled = !data.canDrawOverlays
+                overlayPermissionButton.text = if (data.canDrawOverlays) {
+                    "Overlay permission granted"
+                } else {
+                    "Grant overlay permission"
+                }
+                accessibilityButton.isEnabled = !data.accessibilityEnabled
+                accessibilityButton.text = if (data.accessibilityEnabled) {
+                    "Volume key listener enabled"
+                } else {
+                    "Enable volume key listener"
+                }
+                usageAccessButton.isEnabled = !data.usageAccessGranted
+                usageAccessButton.text = if (data.usageAccessGranted) {
+                    "Usage access granted"
+                } else {
+                    "Grant usage access"
+                }
+
+                val ready = isPrivApp && data.hasModifyAudio && data.hiddenApiOk
+                val readyLine = if (ready) {
+                    "Ready: YES"
+                } else {
+                    "Ready: NO (see checklist below)"
+                }
+                statusView.text = readyLine
+                statusView.setTextColor(if (ready) 0xFF1B5E20.toInt() else 0xFFB71C1C.toInt())
+                fixView.text = if (ready) {
+                    "Great! You can control per-app volume now."
+                } else {
+                    buildFixText(
+                        isSystemApp,
+                        isPrivApp,
+                        data.hasModifyAudio,
+                        data.hiddenApiOk,
+                        data.canDrawOverlays,
+                        data.accessibilityEnabled,
+                        data.usageAccessGranted
+                    )
+                }
+
+                val lines = listOf(
+                    readyLine,
+                    "",
+                    "Checklist:",
+                    "System app: ${boolLine(isSystemApp)}",
+                    "Updated system app: ${boolLine(isUpdatedSystemApp)}",
+                    "Privileged app: ${boolLine(isPrivApp)}",
+                    "Privileged flag (flags): ${boolLine(data.privilegeInfo.flagPrivileged)}",
+                    "Privileged flag (private): ${boolLine(data.privilegeInfo.privateFlagPrivileged)}",
+                    "MODIFY_AUDIO_SETTINGS: ${boolLine(data.hasModifyAudio)}",
+                    "WRITE_SECURE_SETTINGS: ${boolLine(data.hasWriteSecureSettings)}",
+                    "Hidden API ok: ${boolLine(data.hiddenApiOk)}",
+                    "Hidden API last attempt: ${data.hiddenApiTime}",
+                    "Overlay permission: ${boolLine(data.canDrawOverlays)}",
+                    "Volume key listener: ${boolLine(data.accessibilityEnabled)}",
+                    "Usage access (focused app detection): ${boolLine(data.usageAccessGranted)}",
+                    "Active audio apps: ${if (data.activePackages.isEmpty()) "-" else data.activePackages.joinToString(", ")}",
+                    "APK source dir: ${data.privilegeInfo.sourceDir ?: "-"}",
+                    "APK public dir: ${data.privilegeInfo.publicSourceDir ?: "-"}",
+                    "APK data dir: ${data.privilegeInfo.dataDir ?: "-"}",
+                    "",
+                    "Tips:",
+                    "1) Install the module and reboot.",
+                    "2) Play audio in any app.",
+                    "3) Move that app's slider.",
+                    "4) If Ready is no, open Diagnostics and copy the report.",
+                    "5) If overlay is missing, grant overlay + enable volume key listener."
+                )
+
+                contentView.text = lines.joinToString("\n")
+                refreshInProgress.set(false)
+            }
         }
-        statusView.text = readyLine
-        statusView.setTextColor(if (ready) 0xFF1B5E20.toInt() else 0xFFB71C1C.toInt())
-        fixView.text = if (ready) {
-            "Great! You can control per-app volume now."
-        } else {
-            buildFixText(
-                isSystemApp,
-                isPrivApp,
-                hasModifyAudio,
-                hiddenApiOk,
-                canDrawOverlays,
-                accessibilityEnabled,
-                usageAccessGranted
-            )
-        }
-
-        val lines = listOf(
-            readyLine,
-            "",
-            "Checklist:",
-            "System app: ${boolLine(isSystemApp)}",
-            "Updated system app: ${boolLine(isUpdatedSystemApp)}",
-            "Privileged app: ${boolLine(isPrivApp)}",
-            "Privileged flag (flags): ${boolLine(privilegeInfo.flagPrivileged)}",
-            "Privileged flag (private): ${boolLine(privilegeInfo.privateFlagPrivileged)}",
-            "MODIFY_AUDIO_SETTINGS: ${boolLine(hasModifyAudio)}",
-            "WRITE_SECURE_SETTINGS: ${boolLine(hasWriteSecureSettings)}",
-            "Hidden API ok: ${boolLine(hiddenApiOk)}",
-            "Hidden API last attempt: $hiddenApiTime",
-            "Overlay permission: ${boolLine(canDrawOverlays)}",
-            "Volume key listener: ${boolLine(accessibilityEnabled)}",
-            "Usage access (focused app detection): ${boolLine(usageAccessGranted)}",
-            "Active audio apps: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
-            "APK source dir: ${privilegeInfo.sourceDir ?: "-"}",
-            "APK public dir: ${privilegeInfo.publicSourceDir ?: "-"}",
-            "APK data dir: ${privilegeInfo.dataDir ?: "-"}",
-            "",
-            "Tips:",
-            "1) Install the module and reboot.",
-            "2) Play audio in any app.",
-            "3) Move that app's slider.",
-            "4) If Ready is no, open Diagnostics and copy the report.",
-            "5) If overlay is missing, grant overlay + enable volume key listener."
-        )
-
-        contentView.text = lines.joinToString("\n")
     }
 
     private fun boolLine(value: Boolean): String {

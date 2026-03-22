@@ -9,7 +9,9 @@
 ## Implications
 - The most reliable path on A15 is a privileged app with hidden API access.
 - AudioPlaybackConfiguration callbacks provide the per-player hook for volume control.
-- Android provides hidden API enforcement settings (`hidden_api_policy`, `hidden_api_policy_pre_p_apps`, `hidden_api_policy_p_apps`) that can be toggled on development devices and via `Settings.Global` with `WRITE_SECURE_SETTINGS`.
+- Android provides hidden API enforcement settings (`hidden_api_policy`, `hidden_api_policy_pre_p_apps`, `hidden_api_policy_p_apps`), but relying on `WRITE_SECURE_SETTINGS` in a shipped priv-app module increases compatibility risk and should stay optional.
+- On enforcing ROMs, the privapp allowlist is a boot-critical surface. Minimize requested privileged permissions first, then add grants back only with device validation.
+- Captured ANR evidence on-device shows `ActivityThread.handleStopActivity()` can block in `QueuedWork.waitToFinish()` if the app is still draining `SharedPreferences.apply()` writes; high-frequency diagnostics writes should be coalesced and persisted off that path.
 
 ## Validation checklist
 - Verify hidden API access works on Android 12, 13, 14, 15 (VMRuntime and Settings.Global paths).
@@ -59,8 +61,8 @@
 
 ## Location rules plan
 - Phase 1: store locations (lat/lon/radius) and request live updates with runtime permissions.
-- Phase 2: add geofencing as needed.
-- Note: current implementation supports optional geofencing via Play services and LocationManager GPS/Network updates with a background toggle.
+- Phase 2: consider geofencing again if we can do it without Play services.
+- Note: current implementation relies on LocationManager GPS/Network updates with a background toggle; Play services geofencing was removed.
 
 ## Links
 - See sources referenced in the project issue description.

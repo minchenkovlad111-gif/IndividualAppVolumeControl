@@ -1,4 +1,4 @@
-id=appvolumecontrol
+id=individualappaudiovolumecontrol
 name=IndividualAppAudioVolumeControl (Privileged)
 version=0.1.0
 versionCode=1

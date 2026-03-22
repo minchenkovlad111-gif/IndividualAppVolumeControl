@@ -2,20 +2,34 @@
 
 1. Validate overlay watcher reliability on Android 12-15 (multi-stream volume detection, auto-hide behavior, MIUI/Poco quirks).
 2. Validate accessibility-service volume key path on Android 12-15 (ensure overlay shows without consuming volume changes).
-3. Investigate intermittent white screen on resume/reopen (collect repro steps + logcat).
-4. Validate required privileged permissions on Android 12-15 devices.
-5. Validate hidden API policy keys and behavior on Android 12-15.
-6. Verify behavior on Android 12-15 and document compatibility.
-7. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
-8. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
-9. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
-10. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
-11. Audio routing between apps (virtual output sources and sinks).
-12. Network audio routing (send/receive per-app audio streams over LAN).
-13. Virtual microphone + effects (voice changer pipeline).
-14. Audio sharing to other devices (LAN streaming + Linux client).
+3. Re-validate renamed package `fuck.individualappaudiovolumecontrol.droidvendorssuck` installs cleanly as a priv-app via the Magisk/KernelSU module on Android 12-15 with the trimmed `MODIFY_AUDIO_ROUTING`-only privapp allowlist.
+4. Validate the `SetupCheckActivity` ANR fix on-device, especially open/close transitions to Settings while audio is playing.
+5. Validate required privileged permissions on Android 12-15 devices.
+6. Validate hidden API policy keys and behavior on Android 12-15.
+7. Verify behavior on Android 12-15 and document compatibility.
+8. Validate per-app output device routing on Android 12-15 (Bluetooth/wired/USB/HDMI).
+9. Audio focus rules per app (pause/duck/mute) validation on Android 12-15.
+10. Validate per-app mute behavior (mute vs mute+pause) on Android 12-15.
+11. Audit remaining high-frequency `SharedPreferences.apply()` paths if activity-stop/resume ANRs persist.
+12. Optional capture/record fallback when pausing is impossible (investigate legality + storage impact).
+13. Audio routing between apps (virtual output sources and sinks).
+14. Network audio routing (send/receive per-app audio streams over LAN).
+15. Virtual microphone + effects (voice changer pipeline).
+16. Audio sharing to other devices (LAN streaming + Linux client).
 
 ## Done (recent)
+1. Renamed the Android app package/namespace to `fuck.individualappaudiovolumecontrol.droidvendorssuck` while keeping folder structure and Magisk mount paths unchanged.
+2. Trimmed the module privapp allowlist back to `android.permission.MODIFY_AUDIO_ROUTING` only to reduce boot-loop risk on enforcing Android 15 ROMs and KernelSU installs.
+3. Switched Magisk packaging to a signed release APK and added a privapp allowlist validator to catch package/permission drift before flashing.
+4. Removed unnecessary `FOREGROUND_SERVICE` privapp grant and stripped AndroidX startup/profileinstaller components from the app manifest merge.
+5. Synced the bundled in-app module asset from the main packaged ZIP to avoid divergence between install paths.
+6. Tightened the privapp validator to reject stale XML entries as well as missing reviewed grants.
+7. Switched privapp validation to derive expected allowlisted permissions from the source manifest’s protected-permission markers.
+8. Made privapp validation scan all manifests under `app/src` and reject allowlisted permissions not requested by the APK.
+9. Removed Play Services geofencing dependency and stubbed geofence handling for the modern build.
+10. Removed the geofencing toggle from the Rules UI since Play Services geofencing is gone.
+11. Removed geofencing preference storage and diagnostics output.
+12. Removed remaining geofencing code paths and GeofenceRuleManager class.
 1. Hardcoded Face Unlock Service package `co.aospa.sense` into the overlay ignore defaults.
 1. Added next/prev paging for notification controls when more apps are active.
 1. Reworked overlay header controls into a single dropdown menu.

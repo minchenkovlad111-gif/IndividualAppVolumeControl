@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
-import com.duda.appvolumecontrol.core.LocationRuleManager
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleManager
 
 class LocationUpdateReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

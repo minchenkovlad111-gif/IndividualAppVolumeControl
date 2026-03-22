@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.Manifest
 import android.content.ClipData
@@ -18,18 +18,18 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.core.AccessibilityUtils
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.ForegroundAppResolver
-import com.duda.appvolumecontrol.core.HiddenApi
-import com.duda.appvolumecontrol.core.PlaybackUtils
-import com.duda.appvolumecontrol.core.OverlayPrefs
-import com.duda.appvolumecontrol.core.VolumeStore
-import com.duda.appvolumecontrol.core.SetupStatus
-import com.duda.appvolumecontrol.core.AudioSettingsPrefs
-import com.duda.appvolumecontrol.service.PlaybackControllerService
-import com.duda.appvolumecontrol.core.ModuleInstaller
-import com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AccessibilityUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ForegroundAppResolver
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.HiddenApi
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AudioSettingsPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ModuleInstaller
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeKeyAccessibilityService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -260,7 +260,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         val audioSettings = AudioSettingsPrefs(this)
         val resumeOverrideCount = volumeStore.countAutoResumeOverrides()
         val attrOverrideCount = volumeStore.countAudioAttributesOverrides()
-        val locationStore = com.duda.appvolumecontrol.core.LocationRuleStore(this)
+        val locationStore = fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore(this)
         val locationId = locationStore.getCurrentLocationId() ?: "-"
         val locationCount = locationStore.listLocations().size
         val lastFixTime = formatTime(locationStore.getLastFixTime(), dateFormat)
@@ -277,9 +277,6 @@ class DiagnosticsActivity : AppCompatActivity() {
             else -> "-"
         }
         val backgroundLocationEnabled = if (locationStore.isBackgroundUpdatesEnabled()) "enabled" else "disabled"
-        val geofencingEnabled = if (locationStore.isGeofencingEnabled()) "enabled" else "disabled"
-        val geofencingAvailable = com.duda.appvolumecontrol.core.GeofenceRuleManager(this).isAvailable()
-        val geofencingStatus = if (geofencingAvailable) geofencingEnabled else "unavailable"
         val appInfo = applicationInfo
         val privilegeInfo = SetupStatus.privilegeInfo(appInfo)
         val isPrivApp = privilegeInfo.isPrivilegedApp
@@ -351,7 +348,6 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Location accuracy (listener): $locationAccuracy",
             "Location mock (listener): $locationMock",
             "Background location updates: $backgroundLocationEnabled",
-            "Geofencing: $geofencingStatus",
             "Last import count: ${snapshot.lastImportCount}",
             "Last import time: $lastImportTime",
             "Last export count: ${snapshot.lastExportCount}",
@@ -412,7 +408,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildRuleSummary(rules: List<com.duda.appvolumecontrol.core.Rule>): String {
+    private fun buildRuleSummary(rules: List<fuck.individualappaudiovolumecontrol.droidvendorssuck.core.Rule>): String {
         if (rules.isEmpty()) return "-"
         val names = rules.map { it.name }
         if (names.size <= 4) return names.joinToString(", ")

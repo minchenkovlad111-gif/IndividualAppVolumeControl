@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -13,9 +13,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.LocationRuleStore
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 import java.util.Date
 
 class LegacyDiagnosticsActivity : AppCompatActivity() {

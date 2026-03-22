@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.core
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager

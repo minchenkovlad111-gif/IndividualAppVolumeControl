@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -10,8 +10,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.provider.Settings
 import android.util.Log
-import com.duda.appvolumecontrol.core.OverlayPrefs
-import com.duda.appvolumecontrol.R
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.R
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

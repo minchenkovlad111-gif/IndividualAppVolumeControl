@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.core
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import android.graphics.Color
 import kotlin.math.abs

@@ -4,6 +4,7 @@
 - System-privileged app: monitors active audio playback and applies per-app volume via hidden APIs.
 - Magisk module: installs the app into `/system/priv-app/` and supplies `privapp-permissions`.
 - Diagnostics UI: shows last apply stats, errors, hidden API policy values, and overlay/accessibility status.
+- Diagnostics persistence: keeps the latest diagnostics snapshot in-process and flushes it to `SharedPreferences` on a dedicated background thread, avoiding `QueuedWork.waitToFinish()` stalls when activities stop.
 - Preset UI: per-app sliders with import/export via clipboard, managed via a separate app selection screen.
 - Manage Apps UI: add apps by package name or search installed apps, then show only saved apps on main screen.
 - Overlay service: shows a floating per-app slider panel on volume-button changes (multiple stream settings observers + broadcast actions + polling fallback).
@@ -21,7 +22,7 @@
 - Per-app audio attribute overrides: optional usage/content-type filters that limit which playback sessions get controlled.
 - Location rules: stored locations (lat/lon/radius) with current location id derived from live location updates.
 - Location updates can run in the background via a broadcast receiver when enabled and permitted.
-- Optional geofencing is handled via Play services and updates the current location id on entry/exit.
+- Optional geofencing via Play services was removed; location rules now rely on LocationManager updates only.
 - Build flavors: modern (API 26+) full feature set; legacy (API 16-25) presets/diagnostics only with warning banner.
 
 ## Data flow
@@ -47,7 +48,7 @@
 
 ## Hidden API strategy
 - Attempt `VMRuntime.setHiddenApiExemptions` to relax reflection limits.
-- As a fallback, try setting hidden API policy via `Settings.Global` (requires `WRITE_SECURE_SETTINGS`).
+- Avoid depending on `WRITE_SECURE_SETTINGS` in the shipped priv-app module; if policy writes are unavailable, Diagnostics should report that and the app should continue with the VMRuntime path only.
 - Cache reflected `setVolume` method lookups per player proxy class to reduce per-apply overhead.
 
 ## Compatibility
@@ -56,4 +57,5 @@
 
 ## Risks
 - Hidden API restrictions may block reflection on newer versions.
-- Privileged permissions are required to access playback configuration details.
+- Overbroad privapp allowlists can trigger boot-time package-manager enforcement failures on some Android 15 ROMs.
+- Keep privileged permissions to the minimum required for core routing control.

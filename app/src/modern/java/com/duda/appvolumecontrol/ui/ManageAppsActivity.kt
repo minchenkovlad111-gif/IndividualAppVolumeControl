@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -22,13 +22,13 @@ import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.addTextChangedListener
-import com.duda.appvolumecontrol.core.MarkerStyle
-import com.duda.appvolumecontrol.core.ProfileUtils
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.MarkerStyle
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 import android.media.AudioDeviceInfo
 import android.media.AudioAttributes
 import android.media.AudioManager
-import com.duda.appvolumecontrol.core.BluetoothInfoUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.BluetoothInfoUtils
 
 class ManageAppsActivity : AppCompatActivity() {
     private lateinit var volumeStore: VolumeStore

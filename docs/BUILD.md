@@ -10,6 +10,7 @@
 - `./gradlew :app:assembleDebug`
 - Modern flavor: `./gradlew :app:assembleModernDebug`
 - Legacy flavor (API 16-25): `./gradlew :app:assembleLegacyDebug`
+- Fast Kotlin-only validation for modern-source changes: `./gradlew :app:compileModernDebugKotlin`
 - `./gradlew :app:build` prints expected APK output paths at the end (with a presence check).
 - APK outputs:
 - `app/build/outputs/apk/modern/debug/app-modern-debug.apk`
@@ -23,8 +24,28 @@
 1. Build the APK.
 2. Run `module/package.sh` (optionally pass APK path and output zip path).
 - Default output: `IndividualAppAudioVolumeControl-magisk.zip`.
-- Default APK input: modern debug; falls back to legacy debug if the modern APK is missing.
+- Default APK input: signed modern release; falls back to unsigned release outputs, then debug artifacts if release outputs are missing.
+- The installed Android package name is `fuck.individualappaudiovolumecontrol.droidvendorssuck`.
+- The Magisk module mount path remains `system/priv-app/IndividualAppAudioVolumeControl/IndividualAppAudioVolumeControl.apk` to avoid unnecessary module path churn.
+- `module/package.sh` now recreates the output archive from scratch before zipping, so stale APK paths are not retained across rebuilds.
+- `module/package.sh` validates that the APK package name matches the privapp XML, derives expected allowlisted permissions from any `AndroidManifest.xml` under `app/src` that mark permissions with `tools:ignore="ProtectedPermissions"`, and rejects stale XML entries before it writes the ZIP.
+- The module intentionally keeps the privapp allowlist minimal. On current builds that means `MODIFY_AUDIO_ROUTING` only, to avoid boot failures from overbroad privileged permission requests on enforcing ROMs.
+- Packaging the top-level module ZIP also syncs the bundled asset copy used by the in-app installer, so both distribution paths share the same archive.
+- For bootloop diagnosis, the module `service.sh` captures logcat to `/data/adb/individualappaudiovolumecontrol-boot.log` (rotating) on boot, with a fallback to `/cache/individualappaudiovolumecontrol-boot.log` if `/data` is unavailable. Module id defaults to `individualappaudiovolumecontrol`.
 
 ## One-step build + module
-- `scripts/build-module.sh` builds the modern debug APK and packages the Magisk module into `IndividualAppAudioVolumeControl-magisk.zip`.
-- `./gradlew :app:build` also packages the Magisk module (modern debug) after the build completes.
+- `scripts/build-module.sh` builds the signed modern release APK and packages the Magisk module into `IndividualAppAudioVolumeControl-magisk.zip`.
+- `./gradlew :app:build` also packages the Magisk module (signed modern release) after the build completes.
+
+## Bootloop triage module
+- If a priv-app install still bootloops, build an APK-only probe module with no privapp XML:
+- `module/package-system-app-probe.sh app/build/outputs/apk/modern/release/app-modern-release.apk`
+- Output: `IndividualAppAudioVolumeControl-system-app-probe.zip`
+- This stages the APK under `system/app/` instead of `system/priv-app/` and removes `privapp-permissions-appvolumecontrol.xml`.
+- If the probe module boots, the failure is in the privileged install path (`priv-app` / privapp allowlist enforcement). If it still bootloops, the issue is the APK itself or a broader KernelSU/module interaction.
+- Next isolation step: build a `priv-app` probe APK with `MODIFY_AUDIO_ROUTING` removed from the merged manifest:
+- `gradle :app:assembleModernProbe`
+- `module/package-privapp-no-protected-perms-probe.sh app/build/outputs/apk/modern/probe/app-modern-probe.apk`
+- Output: `IndividualAppAudioVolumeControl-privapp-no-protected-perms-probe.zip`
+- This keeps the APK under `system/priv-app/` but removes both the protected permission request and the privapp XML.
+- If this probe boots, `MODIFY_AUDIO_ROUTING` is the specific boot trigger on that ROM. If it still bootloops, the ROM is rejecting the app as a priv-app even without protected permissions.

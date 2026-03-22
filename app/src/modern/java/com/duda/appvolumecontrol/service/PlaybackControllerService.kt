@@ -1,6 +1,6 @@
 @file:Suppress("DEPRECATION")
 
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -19,17 +19,16 @@ import android.widget.RemoteViews
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
-import com.duda.appvolumecontrol.R
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.HiddenApi
-import com.duda.appvolumecontrol.core.GeofenceRuleManager
-import com.duda.appvolumecontrol.core.PlaybackUtils
-import com.duda.appvolumecontrol.core.RulesEngine
-import com.duda.appvolumecontrol.core.VolumeStore
-import com.duda.appvolumecontrol.core.LocationRuleStore
-import com.duda.appvolumecontrol.core.LocationRuleManager
-import com.duda.appvolumecontrol.core.AudioSettingsPrefs
-import com.duda.appvolumecontrol.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.R
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.HiddenApi
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.RulesEngine
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.LocationRuleManager
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AudioSettingsPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
 
 @Suppress("DEPRECATION")
 class PlaybackControllerService : Service() {
@@ -41,7 +40,6 @@ class PlaybackControllerService : Service() {
     private val notifPrefs by lazy { getSharedPreferences(PREFS_NOTIFICATION, Context.MODE_PRIVATE) }
     private val locationRuleStore by lazy { LocationRuleStore(this) }
     private val locationRuleManager by lazy { LocationRuleManager(this) }
-    private val geofenceRuleManager by lazy { GeofenceRuleManager(this) }
     private val lastApplied = mutableMapOf<String, Float>()
     private var lastNotifiedCount: Int = -1
     private var lastNotificationEntries: List<NotificationEntry> = emptyList()
@@ -67,7 +65,6 @@ class PlaybackControllerService : Service() {
         HiddenApi.tryAllowHiddenApiAccess(this)
         RulesEngine.setLocationIdProvider { locationRuleStore.getCurrentLocationId() }
         locationRuleManager.start()
-        geofenceRuleManager.syncGeofences()
         val notification = buildNotification(-1)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -99,7 +96,6 @@ class PlaybackControllerService : Service() {
             ACTION_LOCATION_REFRESH -> locationRuleManager.start()
             ACTION_LOCATION_SYNC -> {
                 locationRuleManager.syncBackgroundUpdates()
-                geofenceRuleManager.syncGeofences()
             }
             ACTION_NOTIFICATION_REFRESH -> {
                 refreshNotificationPage()
@@ -707,11 +703,11 @@ class PlaybackControllerService : Service() {
         private const val TAG = "PlaybackController"
         private const val CHANNEL_ID = "app_volume_control"
         private const val NOTIFICATION_ID = 1001
-        const val ACTION_REAPPLY = "com.duda.appvolumecontrol.action.REAPPLY"
-        const val ACTION_DIAGNOSTICS_DUMP = "com.duda.appvolumecontrol.action.DIAGNOSTICS_DUMP"
-        const val ACTION_LOCATION_REFRESH = "com.duda.appvolumecontrol.action.LOCATION_REFRESH"
-        const val ACTION_LOCATION_SYNC = "com.duda.appvolumecontrol.action.LOCATION_SYNC"
-        const val ACTION_NOTIFICATION_REFRESH = "com.duda.appvolumecontrol.action.NOTIFICATION_REFRESH"
+        const val ACTION_REAPPLY = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.REAPPLY"
+        const val ACTION_DIAGNOSTICS_DUMP = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.DIAGNOSTICS_DUMP"
+        const val ACTION_LOCATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_REFRESH"
+        const val ACTION_LOCATION_SYNC = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_SYNC"
+        const val ACTION_NOTIFICATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIFICATION_REFRESH"
         private const val NOTIF_MAX_ROWS = 3
         private const val MAX_ROUTE_DETAIL_CHARS = 600
         private const val NOTIF_VOLUME_STEP = 0.05f

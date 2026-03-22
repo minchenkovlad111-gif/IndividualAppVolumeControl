@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.core
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -9,7 +9,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
-import com.duda.appvolumecontrol.service.LocationUpdateReceiver
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.LocationUpdateReceiver
 import kotlin.math.min
 
 class LocationRuleManager(private val context: Context) {

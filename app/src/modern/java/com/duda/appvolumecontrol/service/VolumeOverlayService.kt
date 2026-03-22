@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -36,19 +36,19 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import android.widget.TextView
-import com.duda.appvolumecontrol.core.PlaybackUtils
-import com.duda.appvolumecontrol.core.ProfileUtils
-import com.duda.appvolumecontrol.core.SetupStatus
-import com.duda.appvolumecontrol.core.VolumeStore
-import com.duda.appvolumecontrol.core.OverlayPrefs
-import com.duda.appvolumecontrol.core.MarkerStyle
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.ForegroundAppResolver
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.MarkerStyle
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ForegroundAppResolver
 import android.graphics.drawable.Drawable
 import android.widget.Toast
-import com.duda.appvolumecontrol.core.OutputLabelUtils
-import com.duda.appvolumecontrol.ui.OverlayPermissionActivity
-import com.duda.appvolumecontrol.ui.SeekBarTicksView
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OutputLabelUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.ui.OverlayPermissionActivity
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.ui.SeekBarTicksView
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -983,11 +983,11 @@ class VolumeOverlayService : Service() {
     )
 
     companion object {
-        const val ACTION_SHOW = "com.duda.appvolumecontrol.action.SHOW_OVERLAY"
-        const val ACTION_START_WATCH = "com.duda.appvolumecontrol.action.START_OVERLAY_WATCH"
-        const val ACTION_STOP_WATCH = "com.duda.appvolumecontrol.action.STOP_OVERLAY_WATCH"
-        const val ACTION_TOGGLE_PAUSE = "com.duda.appvolumecontrol.action.TOGGLE_OVERLAY_PAUSE"
-        const val EXTRA_SHOW_REASON = "com.duda.appvolumecontrol.extra.OVERLAY_SHOW_REASON"
+        const val ACTION_SHOW = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.SHOW_OVERLAY"
+        const val ACTION_START_WATCH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.START_OVERLAY_WATCH"
+        const val ACTION_STOP_WATCH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.STOP_OVERLAY_WATCH"
+        const val ACTION_TOGGLE_PAUSE = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.TOGGLE_OVERLAY_PAUSE"
+        const val EXTRA_SHOW_REASON = "fuck.individualappaudiovolumecontrol.droidvendorssuck.extra.OVERLAY_SHOW_REASON"
         const val SHOW_REASON_ACCESSIBILITY = "accessibility"
         private const val CHANNEL_ID = "overlay_watcher"
         private const val NOTIFICATION_ID = 1201

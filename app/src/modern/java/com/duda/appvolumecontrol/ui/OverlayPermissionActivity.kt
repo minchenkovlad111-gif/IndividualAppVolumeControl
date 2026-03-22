@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.content.Intent
 import android.net.Uri
@@ -10,7 +10,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.duda.appvolumecontrol.service.VolumeOverlayService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeOverlayService
 
 class OverlayPermissionActivity : AppCompatActivity() {
     private lateinit var statusView: TextView

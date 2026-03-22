@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.core
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import java.time.ZoneId
 import java.time.ZonedDateTime

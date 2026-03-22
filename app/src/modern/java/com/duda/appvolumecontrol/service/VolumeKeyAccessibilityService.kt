@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
@@ -7,9 +7,9 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.OverlayPrefs
-import com.duda.appvolumecontrol.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
 
 class VolumeKeyAccessibilityService : AccessibilityService() {
     private val overlayPrefs by lazy { OverlayPrefs(this) }

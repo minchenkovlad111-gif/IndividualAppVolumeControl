@@ -1,11 +1,11 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import com.duda.appvolumecontrol.core.SetupStatus
-import com.duda.appvolumecontrol.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
 
 class NotificationActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -87,11 +87,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_ADJUST = "com.duda.appvolumecontrol.action.NOTIF_ADJUST"
-        const val ACTION_SET = "com.duda.appvolumecontrol.action.NOTIF_SET"
-        const val ACTION_TOGGLE_MUTE = "com.duda.appvolumecontrol.action.NOTIF_TOGGLE_MUTE"
-        const val ACTION_PAGE_NEXT = "com.duda.appvolumecontrol.action.NOTIF_PAGE_NEXT"
-        const val ACTION_PAGE_PREV = "com.duda.appvolumecontrol.action.NOTIF_PAGE_PREV"
+        const val ACTION_ADJUST = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIF_ADJUST"
+        const val ACTION_SET = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIF_SET"
+        const val ACTION_TOGGLE_MUTE = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIF_TOGGLE_MUTE"
+        const val ACTION_PAGE_NEXT = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIF_PAGE_NEXT"
+        const val ACTION_PAGE_PREV = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIF_PAGE_PREV"
         const val EXTRA_PACKAGE = "package"
         const val EXTRA_USER_ID = "user_id"
         const val EXTRA_DELTA = "delta"

@@ -1,22 +1,41 @@
-package com.duda.appvolumecontrol.core
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 
 import android.content.Context
+import android.content.SharedPreferences
+import java.util.concurrent.Executors
 
 class DiagnosticsStore(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    init {
+        synchronized(cacheLock) {
+            if (sharedPrefs == null) {
+                sharedPrefs = prefs
+            }
+            if (cachedSnapshot == null) {
+                cachedSnapshot = loadSnapshot(prefsLocked())
+            }
+        }
+    }
 
     fun recordLastError(message: String) {
-        prefs.edit()
-            .putString(KEY_LAST_ERROR, message)
-            .putLong(KEY_LAST_ERROR_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastError = message,
+                lastErrorTime = now,
+            )
+        }
     }
 
     fun recordLastApply(count: Int) {
-        prefs.edit()
-            .putInt(KEY_LAST_APPLY_COUNT, count)
-            .putLong(KEY_LAST_APPLY_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastApplyCount = count,
+                lastApplyTime = now,
+            )
+        }
     }
 
     fun recordLastRouting(
@@ -26,84 +45,90 @@ class DiagnosticsStore(context: Context) {
         failed: Int,
         details: String,
     ) {
-        prefs.edit()
-            .putInt(KEY_LAST_ROUTE_ATTEMPTED, attempted)
-            .putInt(KEY_LAST_ROUTE_APPLIED, applied)
-            .putInt(KEY_LAST_ROUTE_MISSING, missing)
-            .putInt(KEY_LAST_ROUTE_FAILED, failed)
-            .putString(KEY_LAST_ROUTE_DETAILS, details)
-            .putLong(KEY_LAST_ROUTE_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastRouteAttempted = attempted,
+                lastRouteApplied = applied,
+                lastRouteMissing = missing,
+                lastRouteFailed = failed,
+                lastRouteDetails = details,
+                lastRouteTime = now,
+            )
+        }
     }
 
     fun recordLastActive(count: Int) {
-        prefs.edit()
-            .putInt(KEY_LAST_ACTIVE_COUNT, count)
-            .putLong(KEY_LAST_ACTIVE_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastActiveCount = count,
+                lastActiveTime = now,
+            )
+        }
     }
 
     fun recordLastDump(count: Int) {
-        prefs.edit()
-            .putInt(KEY_LAST_DUMP_COUNT, count)
-            .putLong(KEY_LAST_DUMP_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastDumpCount = count,
+                lastDumpTime = now,
+            )
+        }
     }
 
     fun recordOverlayWatchStart() {
-        val count = prefs.getInt(KEY_OVERLAY_WATCH_COUNT, 0) + 1
-        prefs.edit()
-            .putInt(KEY_OVERLAY_WATCH_COUNT, count)
-            .putLong(KEY_OVERLAY_WATCH_START_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                overlayWatchCount = overlayWatchCount + 1,
+                overlayWatchStartTime = now,
+            )
+        }
     }
 
     fun recordOverlayWatchStop() {
-        prefs.edit()
-            .putLong(KEY_OVERLAY_WATCH_STOP_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(overlayWatchStopTime = now)
+        }
     }
 
     fun recordOverlaySignal(type: String) {
         val now = System.currentTimeMillis()
-        when (type) {
-            OVERLAY_SIGNAL_OBSERVER -> {
-                val count = prefs.getInt(KEY_OVERLAY_OBSERVER_COUNT, 0) + 1
-                prefs.edit()
-                    .putInt(KEY_OVERLAY_OBSERVER_COUNT, count)
-                    .putLong(KEY_OVERLAY_OBSERVER_TIME, now)
-                    .apply()
-            }
-            OVERLAY_SIGNAL_BROADCAST -> {
-                val count = prefs.getInt(KEY_OVERLAY_BROADCAST_COUNT, 0) + 1
-                prefs.edit()
-                    .putInt(KEY_OVERLAY_BROADCAST_COUNT, count)
-                    .putLong(KEY_OVERLAY_BROADCAST_TIME, now)
-                    .apply()
-            }
-            OVERLAY_SIGNAL_POLL -> {
-                val count = prefs.getInt(KEY_OVERLAY_POLL_COUNT, 0) + 1
-                prefs.edit()
-                    .putInt(KEY_OVERLAY_POLL_COUNT, count)
-                    .putLong(KEY_OVERLAY_POLL_TIME, now)
-                    .apply()
-            }
-            OVERLAY_SIGNAL_MANUAL -> {
-                val count = prefs.getInt(KEY_OVERLAY_MANUAL_COUNT, 0) + 1
-                prefs.edit()
-                    .putInt(KEY_OVERLAY_MANUAL_COUNT, count)
-                    .putLong(KEY_OVERLAY_MANUAL_TIME, now)
-                    .apply()
+        updateSnapshot {
+            when (type) {
+                OVERLAY_SIGNAL_OBSERVER -> copy(
+                    overlayObserverCount = overlayObserverCount + 1,
+                    overlayObserverTime = now,
+                )
+                OVERLAY_SIGNAL_BROADCAST -> copy(
+                    overlayBroadcastCount = overlayBroadcastCount + 1,
+                    overlayBroadcastTime = now,
+                )
+                OVERLAY_SIGNAL_POLL -> copy(
+                    overlayPollCount = overlayPollCount + 1,
+                    overlayPollTime = now,
+                )
+                OVERLAY_SIGNAL_MANUAL -> copy(
+                    overlayManualCount = overlayManualCount + 1,
+                    overlayManualTime = now,
+                )
+                else -> this
             }
         }
     }
 
     fun recordOverlayShow(reason: String, activeCount: Int) {
-        prefs.edit()
-            .putString(KEY_OVERLAY_SHOW_REASON, reason)
-            .putInt(KEY_OVERLAY_SHOW_ACTIVE_COUNT, activeCount)
-            .putLong(KEY_OVERLAY_SHOW_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                overlayShowReason = reason,
+                overlayShowActiveCount = activeCount,
+                overlayShowTime = now,
+            )
+        }
     }
 
     fun recordHiddenApiAttempt(
@@ -112,42 +137,46 @@ class DiagnosticsStore(context: Context) {
         vmRuntimeError: String? = null,
         policyError: String? = null,
     ) {
-        val editor = prefs.edit()
-        if (vmRuntimeOk != null) {
-            editor.putInt(KEY_HIDDEN_API_VM_OK, if (vmRuntimeOk) 1 else 0)
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                hiddenApiVmRuntimeOk = vmRuntimeOk?.let { if (it) 1 else 0 } ?: hiddenApiVmRuntimeOk,
+                hiddenApiPolicyOk = policyOk?.let { if (it) 1 else 0 } ?: hiddenApiPolicyOk,
+                hiddenApiVmRuntimeError = vmRuntimeError ?: hiddenApiVmRuntimeError,
+                hiddenApiPolicyError = policyError ?: hiddenApiPolicyError,
+                hiddenApiTime = now,
+            )
         }
-        if (policyOk != null) {
-            editor.putInt(KEY_HIDDEN_API_POLICY_OK, if (policyOk) 1 else 0)
-        }
-        if (vmRuntimeError != null) {
-            editor.putString(KEY_HIDDEN_API_VM_ERROR, vmRuntimeError)
-        }
-        if (policyError != null) {
-            editor.putString(KEY_HIDDEN_API_POLICY_ERROR, policyError)
-        }
-        editor.putLong(KEY_HIDDEN_API_TIME, System.currentTimeMillis())
-        editor.apply()
     }
 
     fun recordLastImport(count: Int) {
-        prefs.edit()
-            .putInt(KEY_LAST_IMPORT_COUNT, count)
-            .putLong(KEY_LAST_IMPORT_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastImportCount = count,
+                lastImportTime = now,
+            )
+        }
     }
 
     fun recordLastExport(count: Int) {
-        prefs.edit()
-            .putInt(KEY_LAST_EXPORT_COUNT, count)
-            .putLong(KEY_LAST_EXPORT_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                lastExportCount = count,
+                lastExportTime = now,
+            )
+        }
     }
 
     fun recordCallState(state: String) {
-        prefs.edit()
-            .putString(KEY_CALL_STATE, state)
-            .putLong(KEY_CALL_STATE_TIME, System.currentTimeMillis())
-            .apply()
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                callState = state,
+                callStateTime = now,
+            )
+        }
     }
 
     fun recordLocationFix(
@@ -156,19 +185,81 @@ class DiagnosticsStore(context: Context) {
         accuracyMeters: Float?,
         isMock: Boolean?,
     ) {
-        prefs.edit()
-            .putString(KEY_LOCATION_PROVIDER, provider)
-            .putLong(KEY_LOCATION_TIME, timeMs)
-            .putFloat(KEY_LOCATION_ACCURACY, accuracyMeters ?: -1f)
-            .putInt(KEY_LOCATION_MOCK, when (isMock) {
-                true -> 1
-                false -> 0
-                null -> -1
-            })
-            .apply()
+        updateSnapshot {
+            copy(
+                locationProvider = provider,
+                locationTime = timeMs,
+                locationAccuracy = accuracyMeters ?: -1f,
+                locationMock = when (isMock) {
+                    true -> 1
+                    false -> 0
+                    null -> -1
+                },
+            )
+        }
     }
 
     fun snapshot(): DiagnosticsSnapshot {
+        synchronized(cacheLock) {
+            return ensureSnapshotLocked()
+        }
+    }
+
+    private fun updateSnapshot(transform: DiagnosticsSnapshot.() -> DiagnosticsSnapshot) {
+        synchronized(cacheLock) {
+            val current = ensureSnapshotLocked()
+            cachedSnapshot = current.transform()
+            dirtyGeneration += 1
+            if (flushInFlight) {
+                return
+            }
+            flushInFlight = true
+        }
+        flushExecutor.execute { flushLoop() }
+    }
+
+    private fun flushLoop() {
+        while (true) {
+            val snapshotToWrite: DiagnosticsSnapshot
+            val generationToWrite: Int
+            val prefsToWrite: SharedPreferences
+            synchronized(cacheLock) {
+                prefsToWrite = prefsLocked()
+                snapshotToWrite = ensureSnapshotLocked()
+                generationToWrite = dirtyGeneration
+            }
+
+            val writeOk = runCatching {
+                writeSnapshot(prefsToWrite, snapshotToWrite)
+            }.isSuccess
+
+            synchronized(cacheLock) {
+                if (!writeOk || dirtyGeneration == generationToWrite) {
+                    flushInFlight = false
+                    return
+                }
+            }
+        }
+    }
+
+    private fun ensureSnapshotLocked(): DiagnosticsSnapshot {
+        val cached = cachedSnapshot
+        if (cached != null) {
+            return cached
+        }
+        return loadSnapshot(prefsLocked()).also { cachedSnapshot = it }
+    }
+
+    private fun prefsLocked(): SharedPreferences {
+        val existing = sharedPrefs
+        if (existing != null) {
+            return existing
+        }
+        sharedPrefs = prefs
+        return prefs
+    }
+
+    private fun loadSnapshot(prefs: SharedPreferences): DiagnosticsSnapshot {
         return DiagnosticsSnapshot(
             lastError = prefs.getString(KEY_LAST_ERROR, null),
             lastErrorTime = prefs.getLong(KEY_LAST_ERROR_TIME, 0L),
@@ -214,6 +305,54 @@ class DiagnosticsStore(context: Context) {
             locationAccuracy = prefs.getFloat(KEY_LOCATION_ACCURACY, -1f),
             locationMock = prefs.getInt(KEY_LOCATION_MOCK, -1),
         )
+    }
+
+    private fun writeSnapshot(prefs: SharedPreferences, snapshot: DiagnosticsSnapshot) {
+        prefs.edit()
+            .putString(KEY_LAST_ERROR, snapshot.lastError)
+            .putLong(KEY_LAST_ERROR_TIME, snapshot.lastErrorTime)
+            .putInt(KEY_LAST_APPLY_COUNT, snapshot.lastApplyCount)
+            .putLong(KEY_LAST_APPLY_TIME, snapshot.lastApplyTime)
+            .putInt(KEY_LAST_ROUTE_ATTEMPTED, snapshot.lastRouteAttempted)
+            .putInt(KEY_LAST_ROUTE_APPLIED, snapshot.lastRouteApplied)
+            .putInt(KEY_LAST_ROUTE_MISSING, snapshot.lastRouteMissing)
+            .putInt(KEY_LAST_ROUTE_FAILED, snapshot.lastRouteFailed)
+            .putString(KEY_LAST_ROUTE_DETAILS, snapshot.lastRouteDetails)
+            .putLong(KEY_LAST_ROUTE_TIME, snapshot.lastRouteTime)
+            .putInt(KEY_LAST_ACTIVE_COUNT, snapshot.lastActiveCount)
+            .putLong(KEY_LAST_ACTIVE_TIME, snapshot.lastActiveTime)
+            .putInt(KEY_LAST_DUMP_COUNT, snapshot.lastDumpCount)
+            .putLong(KEY_LAST_DUMP_TIME, snapshot.lastDumpTime)
+            .putInt(KEY_OVERLAY_WATCH_COUNT, snapshot.overlayWatchCount)
+            .putLong(KEY_OVERLAY_WATCH_START_TIME, snapshot.overlayWatchStartTime)
+            .putLong(KEY_OVERLAY_WATCH_STOP_TIME, snapshot.overlayWatchStopTime)
+            .putInt(KEY_OVERLAY_OBSERVER_COUNT, snapshot.overlayObserverCount)
+            .putLong(KEY_OVERLAY_OBSERVER_TIME, snapshot.overlayObserverTime)
+            .putInt(KEY_OVERLAY_BROADCAST_COUNT, snapshot.overlayBroadcastCount)
+            .putLong(KEY_OVERLAY_BROADCAST_TIME, snapshot.overlayBroadcastTime)
+            .putInt(KEY_OVERLAY_POLL_COUNT, snapshot.overlayPollCount)
+            .putLong(KEY_OVERLAY_POLL_TIME, snapshot.overlayPollTime)
+            .putInt(KEY_OVERLAY_MANUAL_COUNT, snapshot.overlayManualCount)
+            .putLong(KEY_OVERLAY_MANUAL_TIME, snapshot.overlayManualTime)
+            .putString(KEY_OVERLAY_SHOW_REASON, snapshot.overlayShowReason)
+            .putInt(KEY_OVERLAY_SHOW_ACTIVE_COUNT, snapshot.overlayShowActiveCount)
+            .putLong(KEY_OVERLAY_SHOW_TIME, snapshot.overlayShowTime)
+            .putInt(KEY_HIDDEN_API_VM_OK, snapshot.hiddenApiVmRuntimeOk)
+            .putInt(KEY_HIDDEN_API_POLICY_OK, snapshot.hiddenApiPolicyOk)
+            .putString(KEY_HIDDEN_API_VM_ERROR, snapshot.hiddenApiVmRuntimeError)
+            .putString(KEY_HIDDEN_API_POLICY_ERROR, snapshot.hiddenApiPolicyError)
+            .putLong(KEY_HIDDEN_API_TIME, snapshot.hiddenApiTime)
+            .putInt(KEY_LAST_IMPORT_COUNT, snapshot.lastImportCount)
+            .putLong(KEY_LAST_IMPORT_TIME, snapshot.lastImportTime)
+            .putInt(KEY_LAST_EXPORT_COUNT, snapshot.lastExportCount)
+            .putLong(KEY_LAST_EXPORT_TIME, snapshot.lastExportTime)
+            .putString(KEY_CALL_STATE, snapshot.callState)
+            .putLong(KEY_CALL_STATE_TIME, snapshot.callStateTime)
+            .putString(KEY_LOCATION_PROVIDER, snapshot.locationProvider)
+            .putLong(KEY_LOCATION_TIME, snapshot.locationTime)
+            .putFloat(KEY_LOCATION_ACCURACY, snapshot.locationAccuracy)
+            .putInt(KEY_LOCATION_MOCK, snapshot.locationMock)
+            .commit()
     }
 
     data class DiagnosticsSnapshot(
@@ -263,6 +402,16 @@ class DiagnosticsStore(context: Context) {
     )
 
     companion object {
+        private val cacheLock = Any()
+        private val flushExecutor = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "DiagnosticsStoreFlush")
+        }
+
+        private var sharedPrefs: SharedPreferences? = null
+        private var cachedSnapshot: DiagnosticsSnapshot? = null
+        private var dirtyGeneration: Int = 0
+        private var flushInFlight: Boolean = false
+
         private const val PREFS_NAME = "diagnostics"
         private const val KEY_LAST_ERROR = "last_error"
         private const val KEY_LAST_ERROR_TIME = "last_error_time"

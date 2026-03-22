@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.service
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import com.duda.appvolumecontrol.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
 
 class BootStartReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -31,7 +31,7 @@ class BootStartReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_START_SERVICES = "com.duda.appvolumecontrol.action.START_SERVICES"
+        const val ACTION_START_SERVICES = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.START_SERVICES"
         private const val TAG = "BootStartReceiver"
     }
 }

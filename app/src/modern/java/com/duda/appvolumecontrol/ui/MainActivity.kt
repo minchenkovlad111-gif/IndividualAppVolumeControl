@@ -1,4 +1,4 @@
-package com.duda.appvolumecontrol.ui
+package fuck.individualappaudiovolumecontrol.droidvendorssuck.ui
 
 import android.Manifest
 import android.content.Intent
@@ -40,26 +40,26 @@ import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
 import android.widget.CheckBox
 import android.view.HapticFeedbackConstants
-import com.duda.appvolumecontrol.core.ActiveAppStore
-import com.duda.appvolumecontrol.core.AccessibilityUtils
-import com.duda.appvolumecontrol.core.DiagnosticsStore
-import com.duda.appvolumecontrol.core.ModuleInstaller
-import com.duda.appvolumecontrol.core.MarkerStyle
-import com.duda.appvolumecontrol.core.PlaybackUtils
-import com.duda.appvolumecontrol.core.OverlayPrefs
-import com.duda.appvolumecontrol.core.ProfileUtils
-import com.duda.appvolumecontrol.core.SetupStatus
-import com.duda.appvolumecontrol.core.VolumeStore
-import com.duda.appvolumecontrol.core.AudioSettingsPrefs
-import com.duda.appvolumecontrol.service.PlaybackControllerService
-import com.duda.appvolumecontrol.service.VolumeOverlayService
-import com.duda.appvolumecontrol.ui.SeekBarTicksView
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ActiveAppStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AccessibilityUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.DiagnosticsStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ModuleInstaller
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.MarkerStyle
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.PlaybackUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OverlayPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.ProfileUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.SetupStatus
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.VolumeStore
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.AudioSettingsPrefs
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.PlaybackControllerService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeOverlayService
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.ui.SeekBarTicksView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.widget.Toast
 import kotlin.math.abs
-import com.duda.appvolumecontrol.core.OutputLabelUtils
+import fuck.individualappaudiovolumecontrol.droidvendorssuck.core.OutputLabelUtils
 
 class MainActivity : AppCompatActivity() {
     private lateinit var audioManager: AudioManager
@@ -1318,7 +1318,7 @@ class MainActivity : AppCompatActivity() {
     private fun isAccessibilityServiceEnabled(): Boolean {
         return AccessibilityUtils.isServiceEnabled(
             this,
-            com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService::class.java
+            fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeKeyAccessibilityService::class.java
         )
     }
 
@@ -1329,7 +1329,7 @@ class MainActivity : AppCompatActivity() {
     private fun openAccessibilityServiceSettings() {
         val component = ComponentName(
             this,
-            com.duda.appvolumecontrol.service.VolumeKeyAccessibilityService::class.java
+            fuck.individualappaudiovolumecontrol.droidvendorssuck.service.VolumeKeyAccessibilityService::class.java
         )
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
             putExtra(
