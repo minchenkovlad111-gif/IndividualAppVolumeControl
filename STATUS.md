@@ -12,6 +12,7 @@ Last update: 2026-03-20
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Debounced diagnostics persistence and throttled `ActiveAppStore` writes so UI refresh loops do not keep scheduling `SharedPreferences` flushes every couple of seconds.
 - Moved `SetupCheckActivity` refresh work off the UI thread so the setup screen no longer does audio-session/privilege checks synchronously on launch or manual refresh.
 - Reworked `DiagnosticsStore` to keep an in-process snapshot and flush via a dedicated background `commit()` thread instead of frequent `SharedPreferences.apply()` calls, to avoid `QueuedWork.waitToFinish()` ANRs when `SetupCheckActivity` stops.
 - Captured and reviewed the current device ANR dump: main thread blocked in `ActivityThread.handleStopActivity -> QueuedWork.waitToFinish()` while the queued-work looper was stuck in `SharedPreferencesImpl.writeToFile()` / `fsync`.

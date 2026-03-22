@@ -3,6 +3,7 @@ package fuck.individualappaudiovolumecontrol.droidvendorssuck.core
 import android.content.Context
 import android.content.SharedPreferences
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class DiagnosticsStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -210,34 +211,41 @@ class DiagnosticsStore(context: Context) {
             val current = ensureSnapshotLocked()
             cachedSnapshot = current.transform()
             dirtyGeneration += 1
-            if (flushInFlight) {
-                return
-            }
-            flushInFlight = true
+            scheduleFlushLocked(FLUSH_DELAY_MS)
         }
-        flushExecutor.execute { flushLoop() }
     }
 
-    private fun flushLoop() {
-        while (true) {
-            val snapshotToWrite: DiagnosticsSnapshot
-            val generationToWrite: Int
-            val prefsToWrite: SharedPreferences
-            synchronized(cacheLock) {
-                prefsToWrite = prefsLocked()
-                snapshotToWrite = ensureSnapshotLocked()
-                generationToWrite = dirtyGeneration
-            }
+    private fun scheduleFlushLocked(delayMs: Long) {
+        if (flushScheduled) {
+            return
+        }
+        flushScheduled = true
+        flushExecutor.schedule(
+            { flushOnce() },
+            delayMs,
+            TimeUnit.MILLISECONDS
+        )
+    }
 
-            val writeOk = runCatching {
-                writeSnapshot(prefsToWrite, snapshotToWrite)
-            }.isSuccess
+    private fun flushOnce() {
+        val snapshotToWrite: DiagnosticsSnapshot
+        val generationToWrite: Int
+        val prefsToWrite: SharedPreferences
+        synchronized(cacheLock) {
+            prefsToWrite = prefsLocked()
+            snapshotToWrite = ensureSnapshotLocked()
+            generationToWrite = dirtyGeneration
+        }
 
-            synchronized(cacheLock) {
-                if (!writeOk || dirtyGeneration == generationToWrite) {
-                    flushInFlight = false
-                    return
-                }
+        val writeOk = runCatching {
+            writeSnapshot(prefsToWrite, snapshotToWrite)
+        }.isSuccess
+
+        synchronized(cacheLock) {
+            flushScheduled = false
+            when {
+                !writeOk -> scheduleFlushLocked(WRITE_RETRY_DELAY_MS)
+                dirtyGeneration != generationToWrite -> scheduleFlushLocked(FLUSH_DELAY_MS)
             }
         }
     }
@@ -403,16 +411,18 @@ class DiagnosticsStore(context: Context) {
 
     companion object {
         private val cacheLock = Any()
-        private val flushExecutor = Executors.newSingleThreadExecutor { runnable ->
+        private val flushExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
             Thread(runnable, "DiagnosticsStoreFlush")
         }
 
         private var sharedPrefs: SharedPreferences? = null
         private var cachedSnapshot: DiagnosticsSnapshot? = null
         private var dirtyGeneration: Int = 0
-        private var flushInFlight: Boolean = false
+        private var flushScheduled: Boolean = false
 
         private const val PREFS_NAME = "diagnostics"
+        private const val FLUSH_DELAY_MS = 750L
+        private const val WRITE_RETRY_DELAY_MS = 2_000L
         private const val KEY_LAST_ERROR = "last_error"
         private const val KEY_LAST_ERROR_TIME = "last_error_time"
         private const val KEY_LAST_APPLY_COUNT = "last_apply_count"
