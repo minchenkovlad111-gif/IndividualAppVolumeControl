@@ -272,6 +272,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val hasAcrossUsers = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS) ==
             PackageManager.PERMISSION_GRANTED
+        val hasAcrossUsersFull = checkSelfPermission(PERMISSION_INTERACT_ACROSS_USERS_FULL) ==
+            PackageManager.PERMISSION_GRANTED
         val notificationManager = getSystemService(NotificationManager::class.java)
         val notificationsEnabled = if (android.os.Build.VERSION.SDK_INT >= 24) {
             notificationManager.areNotificationsEnabled()
@@ -452,6 +454,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             "MODIFY_AUDIO_ROUTING granted: $hasModifyRouting",
             "QUERY_ALL_PACKAGES granted: $hasQueryAllPackages",
             "INTERACT_ACROSS_USERS granted: $hasAcrossUsers",
+            "INTERACT_ACROSS_USERS_FULL granted: $hasAcrossUsersFull",
             "Overlay permission: $canDrawOverlays",
             "Overlay enabled (pref): $overlayPrefEnabled",
             "Volume key listener: $accessibilityEnabled",
@@ -801,6 +804,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             PermissionStatus(PERMISSION_MODIFY_AUDIO_ROUTING, required = false),
             PermissionStatus(Manifest.permission.QUERY_ALL_PACKAGES, required = true),
             PermissionStatus(PERMISSION_INTERACT_ACROSS_USERS, required = false),
+            PermissionStatus(PERMISSION_INTERACT_ACROSS_USERS_FULL, required = false),
             PermissionStatus(Manifest.permission.WRITE_SECURE_SETTINGS, required = false),
             PermissionStatus(Manifest.permission.FOREGROUND_SERVICE, required = true),
             PermissionStatus(Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK, required = true),
@@ -846,6 +850,8 @@ class DiagnosticsActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSION_MODIFY_AUDIO_ROUTING = "android.permission.MODIFY_AUDIO_ROUTING"
         private const val PERMISSION_INTERACT_ACROSS_USERS = "android.permission.INTERACT_ACROSS_USERS"
+        private const val PERMISSION_INTERACT_ACROSS_USERS_FULL =
+            "android.permission.INTERACT_ACROSS_USERS_FULL"
         private const val PLAYBACK_CHANNEL_ID = "app_volume_control"
         private const val REQUEST_BLUETOOTH_PERMISSION = 1001
     }

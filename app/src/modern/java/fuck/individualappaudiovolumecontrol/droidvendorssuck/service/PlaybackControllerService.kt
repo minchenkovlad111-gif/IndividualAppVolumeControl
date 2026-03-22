@@ -59,7 +59,13 @@ class PlaybackControllerService : Service() {
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             if (configs == null) return
-            safeApplyVolumes(configs)
+            if (PlaybackUtils.hasAcrossUsersPermission(this@PlaybackControllerService)) {
+                safeApplyVolumes(
+                    PlaybackUtils.getActivePlaybackConfigurationsSafe(this@PlaybackControllerService, diagnosticsStore)
+                )
+            } else {
+                safeApplyVolumes(configs)
+            }
         }
     }
 
