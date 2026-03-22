@@ -98,6 +98,9 @@ class PlaybackControllerService : Service() {
                 PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
             )
             ACTION_DIAGNOSTICS_DUMP -> dumpActiveConfigs()
+            ACTION_CROSS_PROFILE_PROBE -> {
+                PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
+            }
             ACTION_LOCATION_REFRESH -> locationRuleManager.start()
             ACTION_LOCATION_SYNC -> {
                 locationRuleManager.syncBackgroundUpdates()
@@ -114,7 +117,21 @@ class PlaybackControllerService : Service() {
 
     private fun applyVolumes(configs: List<AudioPlaybackConfiguration>) {
         diagnosticsStore.recordLastActive(configs.size)
+        val currentUserId = ProfileUtils.currentUserId()
+        val hasAcrossUsers = PlaybackUtils.hasAcrossUsersPermission(this)
+        val userCounts = mutableMapOf<Int, Int>()
+        var unknownUserCount = 0
+        for (config in configs) {
+            val userId = PlaybackUtils.getUserIdFromUid(PlaybackUtils.getClientUid(config))
+            if (userId == null) {
+                unknownUserCount += 1
+            } else {
+                userCounts[userId] = (userCounts[userId] ?: 0) + 1
+            }
+        }
         var appliedCount = 0
+        var applyAttempted = 0
+        var applyFailed = 0
         var routeAttempted = 0
         var routeApplied = 0
         var routeMissing = 0
@@ -170,10 +187,12 @@ class PlaybackControllerService : Service() {
             if (current != null && current == desiredVolume) continue
 
             val applied = PlaybackUtils.applyVolumeToPlayer(entry.config, desiredVolume)
+            applyAttempted += 1
             if (applied) {
                 lastApplied[key] = desiredVolume
                 appliedCount += 1
             } else {
+                applyFailed += 1
                 Log.w(TAG, "Failed to apply volume for $packageName")
             }
 
@@ -239,6 +258,30 @@ class PlaybackControllerService : Service() {
         lastApplied.keys.retainAll(activeKeys)
         lastPausedKeys.retainAll(pauseAppliedKeys)
         diagnosticsStore.recordLastApply(appliedCount)
+        val usersSummary = if (userCounts.isEmpty()) {
+            "-"
+        } else {
+            userCounts.entries.joinToString(",") { (userId, count) -> "u$userId=$count" }
+        }
+        val foreignCount = if (currentUserId == null) {
+            null
+        } else {
+            userCounts.filterKeys { it != currentUserId }.values.sum()
+        }
+        val summaryParts = mutableListOf(
+            "perm=${if (hasAcrossUsers) "granted" else "denied"}",
+            "current=u${currentUserId ?: "?"}",
+            "configs=${configs.size}",
+            "users=$usersSummary",
+        )
+        if (unknownUserCount > 0) {
+            summaryParts += "unknown=$unknownUserCount"
+        }
+        summaryParts += "foreign=${foreignCount?.toString() ?: "?"}"
+        summaryParts += "applyAttempted=$applyAttempted"
+        summaryParts += "applied=$appliedCount"
+        summaryParts += "failed=$applyFailed"
+        diagnosticsStore.recordCrossProfileApply(summaryParts.joinToString(" | "))
         if (routeAttempted > 0) {
             val detailBlob = truncateDetails(routeDetails, MAX_ROUTE_DETAIL_CHARS)
             diagnosticsStore.recordLastRouting(
@@ -817,6 +860,8 @@ class PlaybackControllerService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_REAPPLY = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.REAPPLY"
         const val ACTION_DIAGNOSTICS_DUMP = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.DIAGNOSTICS_DUMP"
+        const val ACTION_CROSS_PROFILE_PROBE =
+            "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.CROSS_PROFILE_PROBE"
         const val ACTION_LOCATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_REFRESH"
         const val ACTION_LOCATION_SYNC = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.LOCATION_SYNC"
         const val ACTION_NOTIFICATION_REFRESH = "fuck.individualappaudiovolumecontrol.droidvendorssuck.action.NOTIFICATION_REFRESH"
@@ -832,6 +877,12 @@ class PlaybackControllerService : Service() {
         fun requestDiagnosticsDump(context: Context) {
             val intent = Intent(context, PlaybackControllerService::class.java)
             intent.action = ACTION_DIAGNOSTICS_DUMP
+            context.startForegroundService(intent)
+        }
+
+        fun requestCrossProfileProbe(context: Context) {
+            val intent = Intent(context, PlaybackControllerService::class.java)
+            intent.action = ACTION_CROSS_PROFILE_PROBE
             context.startForegroundService(intent)
         }
 

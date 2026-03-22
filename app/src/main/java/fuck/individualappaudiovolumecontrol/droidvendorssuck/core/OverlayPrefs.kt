@@ -114,6 +114,7 @@ class OverlayPrefs(context: Context) {
             "com.android.location.fused",
             "co.aospa.sense",
             "org.lineageos.lineagesettings",
+            "org.lineageos.settings",
         )
         runCatching {
             val apps = packageManager.getInstalledApplications(0)

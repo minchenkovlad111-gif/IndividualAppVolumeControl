@@ -227,6 +227,26 @@ class DiagnosticsStore(context: Context) {
         }
     }
 
+    fun recordCrossProfileProbe(summary: String) {
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                crossProfileProbeSummary = summary,
+                crossProfileProbeTime = now,
+            )
+        }
+    }
+
+    fun recordCrossProfileApply(summary: String) {
+        val now = System.currentTimeMillis()
+        updateSnapshot {
+            copy(
+                crossProfileApplySummary = summary,
+                crossProfileApplyTime = now,
+            )
+        }
+    }
+
     fun snapshot(): DiagnosticsSnapshot {
         synchronized(cacheLock) {
             return ensureSnapshotLocked()
@@ -346,6 +366,10 @@ class DiagnosticsStore(context: Context) {
             locationTime = prefs.getLong(KEY_LOCATION_TIME, 0L),
             locationAccuracy = prefs.getFloat(KEY_LOCATION_ACCURACY, -1f),
             locationMock = prefs.getInt(KEY_LOCATION_MOCK, -1),
+            crossProfileProbeSummary = prefs.getString(KEY_CROSS_PROFILE_PROBE_SUMMARY, null),
+            crossProfileProbeTime = prefs.getLong(KEY_CROSS_PROFILE_PROBE_TIME, 0L),
+            crossProfileApplySummary = prefs.getString(KEY_CROSS_PROFILE_APPLY_SUMMARY, null),
+            crossProfileApplyTime = prefs.getLong(KEY_CROSS_PROFILE_APPLY_TIME, 0L),
         )
     }
 
@@ -401,6 +425,10 @@ class DiagnosticsStore(context: Context) {
             .putLong(KEY_LOCATION_TIME, snapshot.locationTime)
             .putFloat(KEY_LOCATION_ACCURACY, snapshot.locationAccuracy)
             .putInt(KEY_LOCATION_MOCK, snapshot.locationMock)
+            .putString(KEY_CROSS_PROFILE_PROBE_SUMMARY, snapshot.crossProfileProbeSummary)
+            .putLong(KEY_CROSS_PROFILE_PROBE_TIME, snapshot.crossProfileProbeTime)
+            .putString(KEY_CROSS_PROFILE_APPLY_SUMMARY, snapshot.crossProfileApplySummary)
+            .putLong(KEY_CROSS_PROFILE_APPLY_TIME, snapshot.crossProfileApplyTime)
             .commit()
     }
 
@@ -455,6 +483,10 @@ class DiagnosticsStore(context: Context) {
         val locationTime: Long,
         val locationAccuracy: Float,
         val locationMock: Int,
+        val crossProfileProbeSummary: String?,
+        val crossProfileProbeTime: Long,
+        val crossProfileApplySummary: String?,
+        val crossProfileApplyTime: Long,
     )
 
     companion object {
@@ -521,6 +553,10 @@ class DiagnosticsStore(context: Context) {
         private const val KEY_LOCATION_TIME = "location_time"
         private const val KEY_LOCATION_ACCURACY = "location_accuracy"
         private const val KEY_LOCATION_MOCK = "location_mock"
+        private const val KEY_CROSS_PROFILE_PROBE_SUMMARY = "cross_profile_probe_summary"
+        private const val KEY_CROSS_PROFILE_PROBE_TIME = "cross_profile_probe_time"
+        private const val KEY_CROSS_PROFILE_APPLY_SUMMARY = "cross_profile_apply_summary"
+        private const val KEY_CROSS_PROFILE_APPLY_TIME = "cross_profile_apply_time"
 
         const val OVERLAY_SIGNAL_OBSERVER = "observer"
         const val OVERLAY_SIGNAL_BROADCAST = "broadcast"

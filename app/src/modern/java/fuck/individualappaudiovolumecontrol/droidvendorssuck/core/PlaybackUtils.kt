@@ -121,26 +121,48 @@ object PlaybackUtils {
     ): List<AudioPlaybackConfiguration> {
         val audioManager = context.getSystemService(AudioManager::class.java)
         val baseConfigs = getActivePlaybackConfigurationsSafe(audioManager, diagnosticsStore)
-        if (!hasAcrossUsersPermission(context)) return baseConfigs
+        val hasAcrossUsers = hasAcrossUsersPermission(context)
+        val probeParts = mutableListOf(
+            "perm=${if (hasAcrossUsers) "granted" else "denied"}",
+            "base=${baseConfigs.size}",
+        )
+        if (!hasAcrossUsers) {
+            diagnosticsStore?.recordCrossProfileProbe(probeParts.joinToString(" | "))
+            return baseConfigs
+        }
 
         val results = mutableListOf<AudioPlaybackConfiguration>()
         results.addAll(baseConfigs)
 
         val currentUserId = ProfileUtils.currentUserId()
         val userIds = ProfileUtils.collectUserIds(context)
+        probeParts += "current=u${currentUserId ?: "?"}"
+        probeParts += "profiles=${if (userIds.isEmpty()) "-" else userIds.joinToString(",") { "u$it" }}"
         for (userId in userIds) {
             if (currentUserId != null && userId == currentUserId) continue
-            val userHandle = createUserHandle(userId) ?: continue
-            val userContext = createContextAsUser(context, userHandle) ?: continue
+            val userHandle = createUserHandle(userId)
+            if (userHandle == null) {
+                probeParts += "u$userId:userHandle=fail"
+                continue
+            }
+            val userContext = createContextAsUser(context, userHandle)
+            if (userContext == null) {
+                probeParts += "u$userId:context=fail"
+                continue
+            }
             val userAudioManager = userContext.getSystemService(AudioManager::class.java)
             try {
-                results.addAll(userAudioManager.activePlaybackConfigurations)
+                val configs = userAudioManager.activePlaybackConfigurations
+                results.addAll(configs)
+                probeParts += "u$userId:configs=${configs.size}"
             } catch (t: Throwable) {
+                probeParts += "u$userId:${t.javaClass.simpleName}"
                 diagnosticsStore?.recordLastError(
                     "activePlaybackConfigurations failed for u$userId: ${t.javaClass.simpleName}: ${t.message ?: "unknown"}"
                 )
             }
         }
+        diagnosticsStore?.recordCrossProfileProbe(probeParts.joinToString(" | "))
         return results
     }
 

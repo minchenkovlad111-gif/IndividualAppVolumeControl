@@ -1216,6 +1216,20 @@ class MainActivity : AppCompatActivity() {
             .setNeutralButton("Copy package") { _, _ ->
                 copyToClipboard(key.packageName)
             }
+            .setNegativeButton("Ignore for overlay") { _, _ ->
+                val changed = overlayPrefs.addOverlayIgnorePackage(key.packageName, key.userId)
+                if (changed) {
+                    val profileLabel = ProfileUtils.buildProfileLabel(this, key.userId)
+                    Toast.makeText(
+                        this,
+                        "Ignored ${entry.label} ($profileLabel)",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    updateOverlayIgnoreButton()
+                } else {
+                    Toast.makeText(this, "${entry.label} is already ignored", Toast.LENGTH_SHORT).show()
+                }
+            }
             .show()
     }
 
@@ -1650,6 +1664,21 @@ class MainActivity : AppCompatActivity() {
                     setPadding(0, 0, 0, (8 * density).toInt())
                 }
 
+                val profileOptions = mutableListOf(ProfileOption(null, "All profiles"))
+                ProfileUtils.collectUserIds(this).forEach { userId ->
+                    profileOptions.add(ProfileOption(userId, ProfileUtils.buildProfileLabel(this, userId)))
+                }
+                val profileAdapter = ArrayAdapter(
+                    this,
+                    android.R.layout.simple_spinner_item,
+                    profileOptions.map { it.label }
+                ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+                var selectedProfileUserId: Int? = null
+                val profileSpinner = Spinner(this).apply {
+                    adapter = profileAdapter
+                    setSelection(0)
+                }
+
                 val searchInput = EditText(this).apply {
                     hint = "Search apps"
                 }
@@ -1665,10 +1694,25 @@ class MainActivity : AppCompatActivity() {
                 )
                 listView.adapter = adapter
 
+                fun keyFor(packageName: String, userId: Int?): String {
+                    return if (userId == null) packageName else VolumeStore.buildKey(packageName, userId)
+                }
+
+                fun selectedPackagesForProfile(): Set<String> {
+                    val selectedPackages = mutableSetOf<String>()
+                    for (app in apps) {
+                        if (selected.contains(keyFor(app.packageName, selectedProfileUserId))) {
+                            selectedPackages.add(app.packageName)
+                        }
+                    }
+                    return selectedPackages
+                }
+
                 fun applyCheckedState() {
                     for (i in 0 until adapter.count) {
                         val app = adapter.getItem(i) ?: continue
-                        listView.setItemChecked(i, selected.contains(app.packageName))
+                        val key = keyFor(app.packageName, selectedProfileUserId)
+                        listView.setItemChecked(i, selected.contains(key))
                     }
                 }
 
@@ -1683,17 +1727,18 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     adapter.clear()
-                    adapter.addAll(sortOverlayDialogApps(filtered, selected))
+                    adapter.addAll(sortOverlayDialogApps(filtered, selectedPackagesForProfile()))
                     adapter.notifyDataSetChanged()
                     applyCheckedState()
                 }
 
                 listView.setOnItemClickListener { _, _, position, _ ->
                     val app = adapter.getItem(position) ?: return@setOnItemClickListener
+                    val key = keyFor(app.packageName, selectedProfileUserId)
                     if (listView.isItemChecked(position)) {
-                        selected.add(app.packageName)
+                        selected.add(key)
                     } else {
-                        selected.remove(app.packageName)
+                        selected.remove(key)
                     }
                     updateList(searchInput.text?.toString().orEmpty())
                 }
@@ -1702,9 +1747,30 @@ class MainActivity : AppCompatActivity() {
                     updateList(editable?.toString().orEmpty())
                 }
 
+                profileSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        selectedProfileUserId = profileOptions.getOrNull(position)?.userId
+                        updateList(searchInput.text?.toString().orEmpty())
+                    }
+
+                    override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+                }
+
                 val listHeight = (320 * density).toInt()
                 content.addView(
                     helper,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                )
+                content.addView(
+                    profileSpinner,
                     LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT

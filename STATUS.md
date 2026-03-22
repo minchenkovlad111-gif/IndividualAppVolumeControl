@@ -12,6 +12,10 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added `org.lineageos.settings` to the default overlay ignore list.
+- Added a diagnostics action to force a cross-profile probe and a report header to group cross-profile rows.
+- Added cross-profile diagnostics copy action in modern diagnostics and surfaced probe/apply summaries in legacy diagnostics.
+- Added cross-profile diagnostics summaries for playback probing and apply attempts, including per-user config counts and apply results.
 - Added a shared deferred `SharedPreferences` writer and moved `VolumeStore`, `OverlayPrefs`, `LocationRuleStore`, `ActiveAppStore`, `NotificationPrefs`, and `AudioSettingsPrefs` onto background `commit()` flushes so hot write paths no longer queue frequent main-process `apply()` work.
 - Closed the high-priority ANR audit item for remaining high-frequency preference writes and moved it to the done section in `TODO.md`.
 - Added a per-app notification presentation mode that keeps the foreground controller notification for service survival and posts a separate secondary notification for each active app.
@@ -311,4 +315,4 @@ Last update: 2026-03-22
 - Added Manage Apps screen for adding packages or searching apps, keeping main list limited to saved apps.
 
 ## Last updated
-- 2026-03-17
+- 2026-03-22

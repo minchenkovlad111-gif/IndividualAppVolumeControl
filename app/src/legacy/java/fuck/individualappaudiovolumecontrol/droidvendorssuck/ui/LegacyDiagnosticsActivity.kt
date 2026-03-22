@@ -101,6 +101,8 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
             else -> "-"
         }
         val attrOverrideCount = volumeStore.countAudioAttributesOverrides()
+        val crossProfileProbeTime = formatTime(snapshot.crossProfileProbeTime, dateFormat, timeFormat)
+        val crossProfileApplyTime = formatTime(snapshot.crossProfileApplyTime, dateFormat, timeFormat)
         val lines = listOf(
             "SDK: ${Build.VERSION.SDK_INT}",
             "App package: $packageName",
@@ -119,6 +121,10 @@ class LegacyDiagnosticsActivity : AppCompatActivity() {
             "Last import time: ${formatTime(snapshot.lastImportTime, dateFormat, timeFormat)}",
             "Last export count: ${snapshot.lastExportCount}",
             "Last export time: ${formatTime(snapshot.lastExportTime, dateFormat, timeFormat)}",
+            "Cross-profile probe summary: ${snapshot.crossProfileProbeSummary ?: "-"}",
+            "Cross-profile probe time: $crossProfileProbeTime",
+            "Cross-profile apply summary: ${snapshot.crossProfileApplySummary ?: "-"}",
+            "Cross-profile apply time: $crossProfileApplyTime",
         )
         lastReport = lines.joinToString("\n")
         reportView.text = lastReport

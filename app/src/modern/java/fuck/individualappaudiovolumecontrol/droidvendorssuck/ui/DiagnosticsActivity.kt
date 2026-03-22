@@ -46,6 +46,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     private var lastReport: String = ""
     private var lastCompatibilityRow: String = ""
     private var lastBundle: String = ""
+    private var lastCrossProfileDiag: String = ""
     private var lastReportLines: List<String> = emptyList()
     private lateinit var volumeStore: VolumeStore
     private lateinit var bluetoothPermissionButton: Button
@@ -100,6 +101,15 @@ class DiagnosticsActivity : AppCompatActivity() {
             }
         }
 
+        val crossProfileProbeButton = Button(this).apply {
+            text = "Cross-profile probe"
+            setOnClickListener {
+                PlaybackControllerService.requestCrossProfileProbe(this@DiagnosticsActivity)
+                Toast.makeText(this@DiagnosticsActivity, "Cross-profile probe requested", Toast.LENGTH_SHORT).show()
+                refresh()
+            }
+        }
+
         val hiddenApiButton = Button(this).apply {
             text = "Retry hidden API"
             setOnClickListener {
@@ -122,6 +132,11 @@ class DiagnosticsActivity : AppCompatActivity() {
         val copyCompatibilityButton = Button(this).apply {
             text = "Copy compatibility row"
             setOnClickListener { copyCompatibilityRow() }
+        }
+
+        val copyCrossProfileButton = Button(this).apply {
+            text = "Copy cross-profile diag"
+            setOnClickListener { copyCrossProfileDiag() }
         }
 
         val copyBundleButton = Button(this).apply {
@@ -178,10 +193,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(searchView)
         root.addView(refreshButton)
         root.addView(selfTestButton)
+        root.addView(crossProfileProbeButton)
         root.addView(hiddenApiButton)
         root.addView(bluetoothPermissionButton)
         root.addView(copyButton)
         root.addView(copyCompatibilityButton)
+        root.addView(copyCrossProfileButton)
         root.addView(copyBundleButton)
         root.addView(shareButton)
         root.addView(shareBundleButton)
@@ -221,6 +238,8 @@ class DiagnosticsActivity : AppCompatActivity() {
         val overlayShowTime = formatTime(snapshot.overlayShowTime, dateFormat)
         val controllerServiceStartTime = formatTime(snapshot.controllerServiceStartTime, dateFormat)
         val controllerNotificationPostTime = formatTime(snapshot.controllerNotificationPostTime, dateFormat)
+        val crossProfileProbeTime = formatTime(snapshot.crossProfileProbeTime, dateFormat)
+        val crossProfileApplyTime = formatTime(snapshot.crossProfileApplyTime, dateFormat)
 
         val hiddenApiPolicy = readGlobalInt("hidden_api_policy")
         val hiddenApiPolicyPreP = readGlobalInt("hidden_api_policy_pre_p_apps")
@@ -391,6 +410,11 @@ class DiagnosticsActivity : AppCompatActivity() {
             "Active packages now: ${if (activePackages.isEmpty()) "-" else activePackages.joinToString(", ")}",
             "Active userIds now: $activeUserSummary",
             "Cross-profile playback access: $acrossUsersStatus",
+            "Cross-profile diagnostics:",
+            "Cross-profile probe summary: ${snapshot.crossProfileProbeSummary ?: "-"}",
+            "Cross-profile probe time: $crossProfileProbeTime",
+            "Cross-profile apply summary: ${snapshot.crossProfileApplySummary ?: "-"}",
+            "Cross-profile apply time: $crossProfileApplyTime",
             "Stored presets: $presetCount",
             "Rule groups: ${ruleGroups.size}",
             "Rules enabled/total: ${enabledRules.size}/${rules.size}",
@@ -445,6 +469,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             snapshot.hiddenApiVmRuntimeOk,
             snapshot.hiddenApiPolicyOk
         )
+        lastCrossProfileDiag = buildCrossProfileDiag(snapshot, dateFormat)
         lastBundle = buildBundle()
     }
 
@@ -602,6 +627,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         Toast.makeText(this, "Compatibility row copied", Toast.LENGTH_SHORT).show()
     }
 
+    private fun copyCrossProfileDiag() {
+        val manager = getSystemService(ClipboardManager::class.java)
+        manager.setPrimaryClip(ClipData.newPlainText("cross_profile", lastCrossProfileDiag))
+        Toast.makeText(this, "Cross-profile diagnostics copied", Toast.LENGTH_SHORT).show()
+    }
+
     private fun copyBundle() {
         val manager = getSystemService(ClipboardManager::class.java)
         manager.setPrimaryClip(ClipData.newPlainText("bundle", lastBundle))
@@ -690,6 +721,20 @@ class DiagnosticsActivity : AppCompatActivity() {
         return "| $device | $androidVersion | $priv | $vm | $policy | $perApp | $notes |"
     }
 
+    private fun buildCrossProfileDiag(
+        snapshot: DiagnosticsStore.DiagnosticsSnapshot,
+        dateFormat: SimpleDateFormat,
+    ): String {
+        val probeTime = formatTime(snapshot.crossProfileProbeTime, dateFormat)
+        val applyTime = formatTime(snapshot.crossProfileApplyTime, dateFormat)
+        return listOf(
+            "Cross-profile probe summary: ${snapshot.crossProfileProbeSummary ?: "-"}",
+            "Cross-profile probe time: $probeTime",
+            "Cross-profile apply summary: ${snapshot.crossProfileApplySummary ?: "-"}",
+            "Cross-profile apply time: $applyTime",
+        ).joinToString("\n")
+    }
+
     private fun buildBundle(): String {
         val presets = volumeStore.exportJson()
         return listOf(
@@ -701,6 +746,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             "",
             "=== Compatibility Row ===",
             lastCompatibilityRow,
+            "",
+            "=== Cross-Profile Diagnostics ===",
+            lastCrossProfileDiag,
         ).joinToString("\n")
     }
 
