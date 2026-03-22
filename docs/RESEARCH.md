@@ -14,7 +14,8 @@
 - On enforcing ROMs, the privapp allowlist is a boot-critical surface. Minimize requested privileged permissions first, then add grants back only with device validation.
 - Captured ANR evidence on-device shows `ActivityThread.handleStopActivity()` can block in `QueuedWork.waitToFinish()` if the app is still draining `SharedPreferences.apply()` writes; high-frequency diagnostics writes should be coalesced and persisted off that path.
 - Notification `RemoteViews` can display progress and click targets, but do not provide a reliable draggable `SeekBar` interaction path for custom per-app sliders in the notification shade. The practical fallback is a visual level bar plus discrete tap actions and an overlay shortcut for full sliders.
-- Notification presentation should stay configurable because some devices or users benefit more from a single-app pager than from denser multi-app pages, even when both are rendered inside one ongoing notification.
+- Notification presentation should stay configurable because some devices or users benefit more from a single-app pager than from denser multi-app pages, and others may prefer one secondary notification per active app while one foreground controller notification remains in place for service survival.
+- Notification persistence failures are not always code-path failures; they can come from channel importance, global notification disablement, or the foreground service dying. Diagnostics therefore need to report all three dimensions explicitly.
 
 ## Validation checklist
 - Verify hidden API access works on Android 12, 13, 14, 15 (VMRuntime and Settings.Global paths).

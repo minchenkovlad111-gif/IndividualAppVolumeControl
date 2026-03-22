@@ -281,7 +281,11 @@ class MainActivity : AppCompatActivity() {
         notificationPresentationAdapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            mutableListOf("Multi-app page (up to 3)", "Single-app pager")
+            mutableListOf(
+                "Multi-app page (up to 3)",
+                "Single-app pager",
+                "One notification per app"
+            )
         ).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
@@ -295,10 +299,10 @@ class MainActivity : AppCompatActivity() {
                     position: Int,
                     id: Long
                 ) {
-                    val mode = if (position == 1) {
-                        NotificationPrefs.MODE_SINGLE_ROW_PAGED
-                    } else {
-                        NotificationPrefs.MODE_MULTI_ROW_PAGED
+                    val mode = when (position) {
+                        1 -> NotificationPrefs.MODE_SINGLE_ROW_PAGED
+                        2 -> NotificationPrefs.MODE_PER_APP
+                        else -> NotificationPrefs.MODE_MULTI_ROW_PAGED
                     }
                     if (notificationPrefs.getPresentationMode() == mode) return
                     notificationPrefs.setPresentationMode(mode)
@@ -1035,6 +1039,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
         applyCustomMarkers(ticksView, entry.key)
+        ticksView.setPadding(slider.paddingLeft, 0, slider.paddingRight, 0)
 
         slider.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -1419,14 +1424,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateNotificationPresentationUi() {
         val mode = notificationPrefs.getPresentationMode()
-        val desiredIndex = if (mode == NotificationPrefs.MODE_SINGLE_ROW_PAGED) 1 else 0
+        val desiredIndex = when (mode) {
+            NotificationPrefs.MODE_SINGLE_ROW_PAGED -> 1
+            NotificationPrefs.MODE_PER_APP -> 2
+            else -> 0
+        }
         if (notificationPresentationSpinner.selectedItemPosition != desiredIndex) {
             notificationPresentationSpinner.setSelection(desiredIndex)
         }
-        notificationPresentationHint.text = if (mode == NotificationPrefs.MODE_SINGLE_ROW_PAGED) {
-            "Shows one app per page with Next/Prev as the compatibility fallback."
-        } else {
-            "Shows up to three apps per notification page, with Next/Prev when more are active."
+        notificationPresentationHint.text = when (mode) {
+            NotificationPrefs.MODE_SINGLE_ROW_PAGED ->
+                "Shows one app per page with Next/Prev as the compatibility fallback."
+            NotificationPrefs.MODE_PER_APP ->
+                "Posts one notification per active app while keeping one foreground controller notification alive."
+            else ->
+                "Shows up to three apps per notification page, with Next/Prev when more are active."
         }
     }
 

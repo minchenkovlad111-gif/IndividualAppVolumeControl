@@ -13,6 +13,8 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added a per-app notification presentation mode that keeps the foreground controller notification for service survival and posts a separate secondary notification for each active app.
+- Fixed slider guide alignment by making the 10% tick overlay use the same left/right insets as the actual `SeekBar` track in both the main UI and the overlay.
 - Added high-priority playback-notification persistence diagnostics and a forced foreground-notification refresh path so Diagnostics can show whether the controller service is alive, whether notifications/channels are enabled, and when the controller last posted its notification.
 - Added configurable notification presentation: the main UI can now switch between multi-app pages and a single-app pager, with `Next` / `Prev` kept as the fallback mode in one shared notification.
 - Removed the redundant system notification `Overlay` action button so the custom overlay button inside the notification header is the single overlay entry point.

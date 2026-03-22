@@ -50,6 +50,7 @@ class PlaybackControllerService : Service() {
     private var lastNotificationPages: Int = 0
     private var lastNotificationTotal: Int = 0
     private var lastNotificationKeys: Set<VolumeStore.VolumeKey> = emptySet()
+    private val postedPerAppNotificationIds = mutableSetOf<Int>()
     private val lastPausedKeys = mutableSetOf<String>()
     private var callMuteActive: Boolean = false
     private var telephonyCallback: TelephonyCallback? = null
@@ -84,6 +85,7 @@ class PlaybackControllerService : Service() {
     }
 
     override fun onDestroy() {
+        cancelPerAppNotifications()
         locationRuleManager.stop()
         teardownCallStateListener()
         audioManager.unregisterAudioPlaybackCallback(playbackCallback)
@@ -291,9 +293,16 @@ class PlaybackControllerService : Service() {
             manager.createNotificationChannel(channel)
         }
         val detail = if (activeCount >= 0) "Active apps: $activeCount" else "Managing per-app volume"
+        val mode = notificationPrefs.getPresentationMode()
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("IndividualAppAudioVolumeControl")
-            .setContentText(detail)
+            .setContentText(
+                if (mode == NotificationPrefs.MODE_PER_APP) {
+                    "$detail · per-app notifications"
+                } else {
+                    detail
+                }
+            )
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -324,6 +333,7 @@ class PlaybackControllerService : Service() {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = buildNotification(activeCount)
         manager.notify(NOTIFICATION_ID, notification)
+        syncPerAppNotifications(manager)
         val notificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             manager.areNotificationsEnabled()
         } else {
@@ -360,7 +370,7 @@ class PlaybackControllerService : Service() {
             val userPart = entry.userId?.toString() ?: "x"
             "${entry.packageName}@$userPart:${entry.percent}"
         }
-        return "mode=${notificationPrefs.getPresentationMode()}|p=$lastNotificationPage/$lastNotificationPages/t=$lastNotificationTotal|$base"
+        return "mode=${notificationPrefs.getPresentationMode()}|p=$lastNotificationPage/$lastNotificationPages/t=$lastNotificationTotal|k=${lastNotificationKeys.size}|$base"
     }
 
     private data class ActiveConfig(
@@ -413,6 +423,53 @@ class PlaybackControllerService : Service() {
         bindNotificationRow(views, 1, entries.getOrNull(1))
         bindNotificationRow(views, 2, entries.getOrNull(2))
         return views
+    }
+
+    private fun syncPerAppNotifications(manager: NotificationManager) {
+        if (notificationPrefs.getPresentationMode() != NotificationPrefs.MODE_PER_APP) {
+            cancelPerAppNotifications(manager)
+            return
+        }
+        val desired = mutableSetOf<Int>()
+        val allEntries = buildAllNotificationEntries(lastNotificationKeys)
+        for (entry in allEntries) {
+            val notificationId = perAppNotificationId(entry)
+            desired.add(notificationId)
+            manager.notify(notificationId, buildPerAppNotification(entry))
+        }
+        val stale = postedPerAppNotificationIds - desired
+        for (notificationId in stale) {
+            manager.cancel(notificationId)
+        }
+        postedPerAppNotificationIds.clear()
+        postedPerAppNotificationIds.addAll(desired)
+    }
+
+    private fun cancelPerAppNotifications(manager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager) {
+        for (notificationId in postedPerAppNotificationIds) {
+            manager.cancel(notificationId)
+        }
+        postedPerAppNotificationIds.clear()
+    }
+
+    private fun buildPerAppNotification(entry: NotificationEntry): Notification {
+        val views = RemoteViews(packageName, R.layout.notification_volume_big)
+        views.setOnClickPendingIntent(R.id.notif_open_overlay, buildOverlayPendingIntent())
+        views.setViewVisibility(R.id.notif_prev, android.view.View.GONE)
+        views.setViewVisibility(R.id.notif_next, android.view.View.GONE)
+        views.setViewVisibility(R.id.notif_page, android.view.View.GONE)
+        views.setTextViewText(R.id.notif_subtitle, "Per-app notification")
+        bindNotificationRow(views, 0, entry)
+        bindNotificationRow(views, 1, null)
+        bindNotificationRow(views, 2, null)
+        return Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle(entry.label)
+            .setContentText("${entry.profileLabel} · ${entry.percent}%")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOnlyAlertOnce(true)
+            .setCustomBigContentView(views)
+            .setStyle(Notification.DecoratedCustomViewStyle())
+            .build()
     }
 
     private fun refreshNotificationPage() {
@@ -623,20 +680,7 @@ class PlaybackControllerService : Service() {
 
     private fun buildNotificationEntries(keys: Set<VolumeStore.VolumeKey>): NotificationPage {
         if (keys.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
-        overlayPrefs.ensureDefaultIgnoreList(packageManager)
-        val entries = keys.map { key ->
-            if (overlayPrefs.isOverlayIgnored(key)) return@map null
-            val label = resolveLabel(key.packageName)
-            val volume = volumeStore.getVolume(key) ?: 1f
-            NotificationEntry(
-                packageName = key.packageName,
-                userId = key.userId,
-                label = label,
-                profileLabel = ProfileUtils.buildProfileLabel(this, key.userId),
-                percent = (volume * 100).toInt().coerceIn(0, 100)
-            )
-        }.filterNotNull()
-            .sortedBy { it.label.lowercase() }
+        val entries = buildAllNotificationEntries(keys)
         if (entries.isEmpty()) return NotificationPage(emptyList(), 0, 0, 0)
         val rowsPerPage = notificationPrefs.getRowsPerPage()
         val totalPages = ((entries.size - 1) / rowsPerPage) + 1
@@ -646,6 +690,26 @@ class PlaybackControllerService : Service() {
         val toIndex = (fromIndex + rowsPerPage).coerceAtMost(entries.size)
         val pageEntries = entries.subList(fromIndex, toIndex)
         return NotificationPage(pageEntries, currentPage, totalPages, entries.size)
+    }
+
+    private fun buildAllNotificationEntries(keys: Set<VolumeStore.VolumeKey>): List<NotificationEntry> {
+        overlayPrefs.ensureDefaultIgnoreList(packageManager)
+        return keys.mapNotNull { key ->
+            if (overlayPrefs.isOverlayIgnored(key)) return@mapNotNull null
+            val label = resolveLabel(key.packageName)
+            val volume = volumeStore.getVolume(key) ?: 1f
+            NotificationEntry(
+                packageName = key.packageName,
+                userId = key.userId,
+                label = label,
+                profileLabel = ProfileUtils.buildProfileLabel(this, key.userId),
+                percent = (volume * 100).toInt().coerceIn(0, 100)
+            )
+        }.sortedBy { it.label.lowercase() }
+    }
+
+    private fun perAppNotificationId(entry: NotificationEntry): Int {
+        return 20_000 + (entry.packageName + "@" + (entry.userId ?: -1)).hashCode().let { kotlin.math.abs(it % 10_000) }
     }
 
     private fun getNotificationPage(): Int {

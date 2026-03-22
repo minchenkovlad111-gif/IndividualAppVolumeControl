@@ -725,6 +725,7 @@ class VolumeOverlayService : Service() {
                 }
             })
         }
+        ticksView.setPadding(slider.paddingLeft, 0, slider.paddingRight, 0)
 
         if (!rowControlsEnabled) {
             muteButton.isEnabled = false
