@@ -464,8 +464,10 @@ class VolumeOverlayService : Service() {
             if (shouldShowManualPreview()) {
                 container.addView(buildManualPreviewRow())
                 statusView?.let { status ->
-                    status.text = "Test overlay preview. Start audio to show real app controls."
-                    status.visibility = View.VISIBLE
+                    if (controlsEnabled) {
+                        status.text = "Test overlay preview. Start audio to show real app controls."
+                        status.visibility = View.VISIBLE
+                    }
                 }
                 return 1
             }
