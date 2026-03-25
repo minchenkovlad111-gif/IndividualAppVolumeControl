@@ -113,6 +113,7 @@ class OverlayPrefs(context: Context) {
             "com.android.systemui",
             "com.android.location.fused",
             "co.aospa.sense",
+            "lineageos.platform",
             "org.lineageos.lineagesettings",
             "org.lineageos.settings",
         )
