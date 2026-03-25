@@ -32,7 +32,8 @@
 - On KernelSU, a metamodule is required for the module `system/` tree to mount. If no metamodule is active, flashing the ZIP is not enough to make the app a privileged system app.
 - `module/package.sh` now recreates the output archive from scratch before zipping, so stale APK paths are not retained across rebuilds.
 - `module/package.sh` validates that the APK package name matches the privapp XML, derives expected allowlisted permissions from any `AndroidManifest.xml` under `app/src` that mark permissions with `tools:ignore="ProtectedPermissions"`, and rejects stale XML entries before it writes the ZIP.
-- The module intentionally keeps the privapp allowlist minimal. Current source/configuration requests `MODIFY_AUDIO_ROUTING` and `INTERACT_ACROSS_USERS`; both should be treated as boot-critical on enforcing ROMs and revalidated on-device.
+- The module currently allowlists `MODIFY_AUDIO_ROUTING`, `INTERACT_ACROSS_USERS`, and `INTERACT_ACROSS_USERS_FULL` because foreign-profile playback control depends on them on current builds. Treat all three as boot-critical on enforcing ROMs and revalidate on-device.
+- On KernelSU Next, root alone is not enough for cross-profile control: if the module is not mounted as a real priv-app with those grants after reboot, the app can at best fall back to root-based cross-profile detection.
 - Packaging the top-level module ZIP also syncs the bundled asset copy used by the in-app installer, so both distribution paths share the same archive.
 - For bootloop diagnosis, the module `service.sh` captures logcat to `/data/adb/individualappaudiovolumecontrol-boot.log` (rotating) on boot, with a fallback to `/cache/individualappaudiovolumecontrol-boot.log` if `/data` is unavailable. Module id defaults to `individualappaudiovolumecontrol`.
 

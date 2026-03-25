@@ -4,6 +4,8 @@
 Note: Some privileged permissions are not exposed as public SDK constants; use their string names in code when checking grants.
 ### Privileged (privapp whitelist)
 - `android.permission.MODIFY_AUDIO_ROUTING`: Required for advanced routing and per-player control on some devices.
+- `android.permission.INTERACT_ACROSS_USERS`: Required to enumerate and resolve active playback from other Android users/profiles.
+- `android.permission.INTERACT_ACROSS_USERS_FULL`: Required on some ROMs for reliable cross-profile audio control and user-scoped context access.
 
 ### Non-privileged (manifest/runtime)
 - `android.permission.MODIFY_AUDIO_SETTINGS`: Adjust per-player volume via AudioManager/hidden APIs.
@@ -25,7 +27,8 @@ The Magisk module ships `privapp-permissions-appvolumecontrol.xml` to grant sign
 The current privileged app package name is `fuck.individualappaudiovolumecontrol.droidvendorssuck`, and the whitelist XML must target that exact package.
 The whitelist must stay aligned with every privileged permission requested in the manifest or boot-time package scan can fail on enforcing ROMs.
 Packaging now derives the expected allowlist from manifest permissions marked with `tools:ignore="ProtectedPermissions"` and rejects stale XML entries so the whitelist cannot silently drift.
-To reduce boot-loop risk on enforcing Android 15 ROMs and KernelSU installs, the module now allowlists only the core `MODIFY_AUDIO_ROUTING` permission. Optional features such as usage-access fallback and hidden-API policy tweaking must degrade gracefully without extra privileged grants.
+Cross-profile detection via root `dumpsys` is only a fallback for visibility. Actual foreign-profile control still depends on receiving real `AudioPlaybackConfiguration` objects and resolving package/user data successfully, which in practice means the privapp path for `INTERACT_ACROSS_USERS(_FULL)` must work on-device.
+The module service also performs a best-effort post-boot `pm grant` / `cmd package grant` attempt for `INTERACT_ACROSS_USERS` and `INTERACT_ACROSS_USERS_FULL` across detected users, and logs the result with tag `IndividualAppAudioVolumeControl`. This is only a fallback probe: on most ROMs these signature|privileged permissions still cannot be granted dynamically unless the privapp install path is already correct.
 
 ## Validation checklist
 - Confirm which permissions are required on Android 12–15 devices.

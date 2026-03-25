@@ -14,3 +14,4 @@ This module installs the IndividualAppAudioVolumeControl APK as a privileged sys
 4. Zip the `module/` folder and flash via Magisk or KernelSU.
 5. Or run `module/package.sh` to copy the APK, validate the privapp allowlist against the APK manifest, create the top-level zip, and sync the bundled asset copy used by the app installer.
 6. Current source/configuration requests `android.permission.MODIFY_AUDIO_ROUTING`, `android.permission.INTERACT_ACROSS_USERS`, and `android.permission.INTERACT_ACROSS_USERS_FULL`; all remain boot-sensitive privileged permissions on enforcing ROMs.
+7. `service.sh` waits for boot completion, then tries a best-effort `pm grant` / `cmd package grant` for the across-users permissions on each detected Android user and logs whether the grant actually stuck. Treat this as diagnostics only; successful privapp mounting and allowlisting remain the real requirement.
