@@ -148,7 +148,7 @@ class PlaybackControllerService : Service() {
         val activeVolumeKeys = mutableSetOf<VolumeStore.VolumeKey>()
         val activeConfigs = mutableListOf<ActiveConfig>()
         for (config in configs) {
-            val packageName = PlaybackUtils.getClientPackageName(config, packageManager) ?: continue
+            val packageName = PlaybackUtils.getClientPackageName(this, config, packageManager) ?: continue
             val uid = PlaybackUtils.getClientUid(config)
             val userId = PlaybackUtils.getUserIdFromUid(uid)
             val volumeKey = VolumeStore.VolumeKey(packageName, userId)
@@ -320,7 +320,7 @@ class PlaybackControllerService : Service() {
         try {
             val configs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
             diagnosticsStore.recordLastDump(configs.size)
-            val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
+            val packages = configs.mapNotNull { PlaybackUtils.getClientPackageName(this, it, packageManager) }
                 .distinct()
                 .sorted()
             Log.i(TAG, "Diagnostics dump: active=${configs.size} packages=$packages")

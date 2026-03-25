@@ -188,7 +188,7 @@ class SetupCheckActivity : AppCompatActivity() {
 
                 val activeConfigs = PlaybackUtils.getActivePlaybackConfigurationsSafe(this, diagnosticsStore)
                 val activePackages = activeConfigs
-                    .mapNotNull { PlaybackUtils.getClientPackageName(it, packageManager) }
+                    .mapNotNull { PlaybackUtils.getClientPackageName(this, it, packageManager) }
                     .distinct()
                     .sorted()
 

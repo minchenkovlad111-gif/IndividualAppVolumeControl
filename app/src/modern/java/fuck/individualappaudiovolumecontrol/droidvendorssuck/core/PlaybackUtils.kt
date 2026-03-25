@@ -54,6 +54,7 @@ object PlaybackUtils {
     private val playMethodCache = mutableMapOf<Class<*>, java.lang.reflect.Method>()
 
     fun getClientPackageName(
+        context: Context,
         config: AudioPlaybackConfiguration,
         packageManager: PackageManager
     ): String? {
@@ -69,7 +70,7 @@ object PlaybackUtils {
         return try {
             val uidMethod = clientUidMethod ?: return null
             val uid = uidMethod.invoke(config) as? Int ?: return null
-            val packages = packageManager.getPackagesForUid(uid)
+            val packages = getPackagesForUid(context, packageManager, uid)
             packages?.firstOrNull()
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to resolve client package", t)
@@ -201,6 +202,25 @@ object PlaybackUtils {
         }
     }
 
+    private fun getPackagesForUid(
+        context: Context,
+        packageManager: PackageManager,
+        uid: Int,
+    ): Array<String>? {
+        val direct = runCatching { packageManager.getPackagesForUid(uid) }.getOrNull()
+        if (!direct.isNullOrEmpty()) return direct
+
+        val userId = getUserIdFromUid(uid) ?: return direct
+        val currentUserId = ProfileUtils.currentUserId()
+        if (currentUserId != null && userId == currentUserId) return direct
+
+        val userHandle = createUserHandle(userId) ?: return direct
+        val userContext = createContextAsUser(context, userHandle) ?: return direct
+        return runCatching { userContext.packageManager.getPackagesForUid(uid) }
+            .onFailure { Log.w(TAG, "Failed to resolve uid $uid in user u$userId", it) }
+            .getOrNull() ?: direct
+    }
+
     private const val PERMISSION_INTERACT_ACROSS_USERS =
         "android.permission.INTERACT_ACROSS_USERS"
     private const val PERMISSION_INTERACT_ACROSS_USERS_FULL =
@@ -289,7 +309,7 @@ object PlaybackUtils {
         val counts = mutableMapOf<VolumeKey, Pair<Int, Boolean>>()
         val configs = getActivePlaybackConfigurationsSafe(context, diagnosticsStore)
         for (config in configs) {
-            val packageName = getClientPackageName(config, packageManager) ?: continue
+            val packageName = getClientPackageName(context, config, packageManager) ?: continue
             val uid = getClientUid(config)
             val userId = getUserIdFromUid(uid)
             if (filterOverlayIgnore && overlayPrefs?.isOverlayIgnored(packageName, userId) == true) {
