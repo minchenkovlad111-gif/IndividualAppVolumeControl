@@ -16,7 +16,8 @@
 13. Network audio routing (send/receive per-app audio streams over LAN).
 14. Virtual microphone + effects (voice changer pipeline).
 15. Audio sharing to other devices (LAN streaming + Linux client).
-16. Validate cross-profile (work profile) playback detection and controls on Android 12-15.
+16. Re-validate cross-profile (work profile) playback detection and controls on Android 12-15 after the foreign-profile UID package-resolution fix, especially on KernelSU Next installs.
+17. Validate whether the new post-boot `pm` / `cmd package` grant probe ever succeeds for `INTERACT_ACROSS_USERS(_FULL)` on target ROMs, and record results in `docs/VALIDATION.md`.
 
 ## Done (recent)
 1. Audited the remaining high-frequency `SharedPreferences.apply()` paths and moved active-app timestamps, location updates, overlay state, volume presets, and notification paging onto a deferred background-commit store to reduce `QueuedWork.waitToFinish()` ANR risk.

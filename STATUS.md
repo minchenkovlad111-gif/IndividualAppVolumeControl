@@ -2,6 +2,7 @@
 Last update: 2026-03-22
 
 ## Current focus
+- Cross-profile playback control fix for foreign-profile package resolution, with KernelSU Next validation.
 - Setup Check / diagnostics ANR validation on device after deferred `SharedPreferences` write hardening.
 - Package rename to `fuck.individualappaudiovolumecontrol.droidvendorssuck` with Magisk/module safety validation.
 - Privapp allowlist minimization after KernelSU bootloop reports on Android 15.
@@ -12,6 +13,9 @@ Last update: 2026-03-22
 - Rules engine groundwork (storage + playback overrides).
 
 ## Latest work
+- Added a post-boot best-effort grant probe in `module/service.sh` that tries both `pm grant` and `cmd package grant` for `INTERACT_ACROSS_USERS(_FULL)` across detected users, then logs whether the permission is actually granted so KernelSU/Magisk installs can be diagnosed more concretely.
+- Fixed foreign-profile package resolution by resolving playback UIDs through the target user context when hidden `getClientPackageName()` is unavailable, which should let cross-profile `AudioPlaybackConfiguration` entries remain controllable instead of being dropped.
+- Clarified docs that root `dumpsys` fallback is detection-only and that actual cross-profile control on KernelSU Next still depends on the app being mounted as a privileged system app with `INTERACT_ACROSS_USERS(_FULL)`.
 - Added `INTERACT_ACROSS_USERS_FULL` to the manifest and privapp allowlist so cross-profile control can be granted on enforcing ROMs.
 - Ensured playback callbacks reapply volumes using cross-profile configs when across-users permission is granted, and exposed INTERACT_ACROSS_USERS_FULL in diagnostics.
 - Added `org.lineageos.settings` to the default overlay ignore list.
